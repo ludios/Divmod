@@ -16,7 +16,7 @@ from axiom.attributes import reference, integer, inmemory
 from xmantissa.ixmantissa import INavigableFragment, INavigableElement, ISessionlessSiteRootPlugin, ISiteRootPlugin
 from xmantissa import webnav, website
 
-MOUNTAIN, GRASS, WATER, FOREST, DESERT = range(5)
+VOID, MOUNTAIN, GRASS, WATER, FOREST, DESERT = range(6)
 TERRAIN_TYPES = (MOUNTAIN, GRASS, WATER, FOREST, DESERT)
 
 TERRAIN_NAMES = {
@@ -25,8 +25,11 @@ TERRAIN_NAMES = {
     FOREST: 'forest',
     WATER: 'water',
     DESERT: 'desert',
+    VOID: 'void',
     }
 
+VIEWPORT_X = 4
+VIEWPORT_Y = 4
 
 class RadicalWorld(Item, website.PrefixURLMixin):
     implements(ISessionlessSiteRootPlugin)
@@ -47,11 +50,16 @@ class RadicalWorld(Item, website.PrefixURLMixin):
         self.store.powerUp(self, ISessionlessSiteRootPlugin)
 
     def getTerrain(self):
-        if not hasattr(self, 'world'):
+        if not hasattr(self, 'terrain'):
             rnd = random.Random()
             rnd.seed(self.seed)
             self.terrain = [rnd.choice(TERRAIN_TYPES) for n in range(self.width) for m in range(self.height)]
         return self.terrain
+
+    def getTerrainAt(self, x, y):
+        if x < 0 or x >= self.width or y < 0 or y >= self.height:
+            return TERRAIN_NAMES[VOID]
+        return TERRAIN_NAMES[self.getTerrain()[y * self.width + x]]
 
     def createResource(self):
         return static.File(util.sibpath(__file__, 'static'))
@@ -98,15 +106,34 @@ class RadicalGame(rend.Fragment):
             T.div(id='map-node', onkeypress=livepage.js.server.handle('keypress', livepage.js.event)),
             ])
 
+    dispX = VIEWPORT_X / 2
+    dispY = VIEWPORT_Y / 2
+
+    charImage = 'player'
+
+    _charCounter = 0
+
     def getWorld(self):
         for world in self.original.store.parent.query(RadicalWorld):
             return world
         raise RuntimeError("No world found")
 
     def goingLive(self, ctx, client):
+        self._charImages = {}
         self.client = client
         self.world = self.getWorld()
         self.sendCompleteTerrain()
+
+    def newCharacter(self, image):
+        self._charCounter += 1
+        self._charImages[self._charCounter] = image
+        return self._charCounter
+
+    def moveCharacter(self, id, row, col):
+        return livepage.js.moveCharacter(id, row, col, self._charImages[id])
+
+    def updateMyPosition(self):
+        return self.moveCharacter(self.me, self.dispY, self.dispX)
 
     def sendCompleteTerrain(self):
         """
@@ -115,71 +142,104 @@ class RadicalGame(rend.Fragment):
         """
         ch = self.original
         def send():
-            allTerr = self.world.getTerrain()
-            visTerr = [[None] * 8 for n in range(8)]
-            xBase = ch.posX - 4
-            yBase = ch.posY - 4
-            for visY in range(8):
-                for visX in range(8):
-                    visTerr[visX][visY] = TERRAIN_NAMES[allTerr[(yBase + visY) * self.world.width + (xBase + visX)]]
-            self.client.send(livepage.js.initializeMap(livepage.js(json.serialize(visTerr))))
+            visTerr = [[None] * VIEWPORT_Y for n in range(VIEWPORT_X)]
+            xBase = ch.posX - (VIEWPORT_X / 2)
+            yBase = ch.posY - (VIEWPORT_Y / 2)
+            for visY in range(VIEWPORT_Y):
+                yPos = yBase + visY
+                for visX in range(VIEWPORT_X):
+                    xPos = xBase + visX
+                    visTerr[visX][visY] = self.world.getTerrainAt(xPos, yPos)
+
+            self.me = self.newCharacter(self.charImage)
+
+            self.client.send([
+                    livepage.js.initializeMap(livepage.js(json.serialize(visTerr))),
+                    livepage.eol,
+                    self.moveCharacter(self.me, self.dispY, self.dispX),
+                    livepage.eol,
+                    ])
 
         from twisted.internet import reactor
         reactor.callLater(0.1, send)
 
+    def _vertScroll(self, func):
+        ch = self.original
+        allTerr = self.world.getTerrain()
+        visTerr = [None] * VIEWPORT_X
+        base = ch.posX - self.dispX
+        for visX in xrange(base, base + VIEWPORT_X):
+            visTerr[visX - base] = self.world.getTerrainAt(visX, ch.posY)
+        return func(livepage.js(json.serialize(visTerr)))
+
+    def scrollDown(self):
+        return self._vertScroll(livepage.js.insertTopRow)
+
+    def scrollUp(self):
+        return self._vertScroll(livepage.js.insertBottomRow)
+
+    def _horizScroll(self, func  ):
+        ch = self.original
+        allTerr = self.world.getTerrain()
+        visTerr = [None] * VIEWPORT_Y
+        base = ch.posY - self.dispY
+        for visY in range(base, base + VIEWPORT_Y):
+            visTerr[visY - base] = self.world.getTerrainAt(ch.posX, visY)
+        return func(livepage.js(json.serialize(visTerr)))
+
+
+    def scrollLeft(self):
+        return self._horizScroll(livepage.js.insertLeftColumn)
+
+    def scrollRight(self):
+        return self._horizScroll(livepage.js.insertRightColumn)
 
     def handle_keyPress(self, ctx, which, alt, ctrl, meta, shift):
-        print 'key', repr(which), alt, ctrl, meta, shift
+        print self.dispX, self.dispY
+        print self.original.posX, self.original.posY
 
     def handle_upArrow(self, ctx):
-        ch = self.original
-        if ch.posY > 4:
-            ch.posY -= 1;
-            allTerr = self.world.getTerrain()
-            visTerr = [None] * 8
-            for visX in range(8):
-                visTerr[visX] = TERRAIN_NAMES[allTerr[(ch.posY - 4) * self.world.width + ch.posX - 4 + visX]]
-            return livepage.js.insertTopRow(livepage.js(json.serialize(visTerr)))
-
-        return livepage.js.alert('You are at the edge of the world!')
+        if self.dispY > 0:
+            self.dispY -= 1
+            self.original.posY -= 1
+            yield self.updateMyPosition()
+        else:
+            if self.original.posY > 0:
+                self.original.posY -= 1
+                yield self.scrollDown()
 
 
     def handle_downArrow(self, ctx):
-        ch = self.original
-        if ch.posY < self.world.height - 4:
-            ch.posY += 1;
-            allTerr = self.world.getTerrain()
-            visTerr = [None] * 8
-            for visX in range(8):
-                visTerr[visX] = TERRAIN_NAMES[allTerr[(ch.posY + 4) * self.world.width + ch.posX - 4 + visX]]
-            return livepage.js.insertBottomRow(livepage.js(json.serialize(visTerr)))
-
-        return livepage.js.alert('You are at the edge of the world!')
+        if self.dispY < VIEWPORT_Y - 1:
+            self.dispY += 1
+            self.original.posY += 1
+            yield self.updateMyPosition()
+        else:
+            if self.original.posY < self.world.height - 1:
+                self.original.posY += 1
+                yield self.scrollUp()
 
 
     def handle_leftArrow(self, ctx):
-        ch = self.original
-        if ch.posX > 4:
-            ch.posX -= 1
-            allTerr = self.world.getTerrain()
-            visTerr = [None] * 8
-            for visY in range(8):
-                visTerr[visY] = TERRAIN_NAMES[allTerr[(ch.posY + 4 - visY) * self.world.width + ch.posX - 4]]
-            return livepage.js.insertRightColumn(livepage.js(json.serialize(visTerr)))
+        if self.dispX > 0:
+            self.dispX -= 1
+            self.original.posX -= 1
+            yield self.updateMyPosition()
+        else:
+            if self.original.posX > 0:
+                self.original.posX -= 1
+                yield self.scrollRight()
 
-        return livepage.js.alert('You are at the endge of the world!')
 
     def handle_rightArrow(self, ctx):
-        ch = self.original
-        if ch.posX < self.world.width - 4:
-            ch.posX += 1
-            allTerr = self.world.getTerrain()
-            visTerr = [None] * 8
-            for visY in range(8):
-                visTerr[visY] = TERRAIN_NAMES[allTerr[(ch.posY + 4 - visY) * self.world.width + ch.posX + 4]]
-            return livepage.js.insertLeftColumn(livepage.js(json.serialize(visTerr)))
-
-        return livepage.js.alert('You are at the endge of the world!')
+        if self.dispX < VIEWPORT_X - 1:
+            self.dispX += 1
+            self.original.posX += 1
+            yield self.updateMyPosition()
+        else:
+            if self.original.posX < self.world.width - 1:
+                self.original.posX += 1
+                yield self.scrollLeft()
 
 
 registerAdapter(RadicalGame, RadicalCharacter, INavigableFragment)

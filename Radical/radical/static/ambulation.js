@@ -45,6 +45,10 @@ function setTerrain(x, y, kind) {
     document.getElementById(tileId).setAttribute('src', mapTileImageSource(kind));
 };
 
+function absolutePositionFromCoordinates(row, col) {
+    return [75 + row * 64, 175 + col * 64];
+};
+
 function createMapTile(row, col, kind) {
     /* Create a completely initialized map tile at the given location
      * and with the given terrain type.
@@ -52,11 +56,13 @@ function createMapTile(row, col, kind) {
     var image = document.createElement('img');
     image.setAttribute('src', mapTileImageSource(kind));
 
+    var pos = absolutePositionFromCoordinates(row, col);
+
     var tile = document.createElement('div');
     tile.setAttribute('id', mapTileNodeId(col, row));
     tile.style.position = 'absolute';
-    tile.style.top = new String(75 + row * 64) + 'px';
-    tile.style.left = new String(175 + col * 64) + 'px';
+    tile.style.top = new String(pos[0]) + 'px';
+    tile.style.left = new String(pos[1]) + 'px';
     tile.appendChild(image);
 
     return tile;
@@ -110,6 +116,40 @@ function insertRightColumn(terrain) {
     theMap.redraw();
 };
 
+
+function characterTileImageSource(image) {
+    return '/static/radical/' + image + '.png';
+};
+
+function createCharacterTile(charId, charImage) {
+    var node = document.createElement('img');
+    node.setAttribute('id', charId);
+    node.setAttribute('src', charImage);
+    return node;
+};
+
+function moveCharacterTile(charNode, row, col) {
+    var pos = absolutePositionFromCoordinates(row, col);
+    charNode.style.cssText = 'position: absolute; top: ' + new String(pos[0]) + 'px; left: ' + new String(pos[1]) + 'px; z-index: 2;';
+};
+
+function characterId(charId) {
+    return 'character-' + charId;
+};
+
+function moveCharacter(charId, row, col, charImage) {
+    var node = document.getElementById(characterId(charId));
+    if (!node) {
+        node = createCharacterTile(characterId(charId), characterTileImageSource(charImage));
+        theMap.element.appendChild(node);
+    }
+    moveCharacterTile(node, row, col);
+};
+
+function displayCharacter(row, col, image) {
+    var charTile = createCharacterTile(row, col, image);
+    theMap.element.appendChild(charTile);
+};
 
 function onKeyPress(event) {
     /* Capture keystrokes and report them to the server.

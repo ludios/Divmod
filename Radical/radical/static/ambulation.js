@@ -87,6 +87,30 @@ function insertBottomRow(terrain) {
     theMap.redraw();
 };
 
+function insertLeftColumn(terrain) {
+    /* Move everything to the left and insert the given terrain in the
+     * new empty column.
+     */
+    for (n = 0; n < terrain.length; n++) {
+        theMap.terrain[n].push(terrain[n]);
+        theMap.terrain[n].shift();
+    }
+    theMap.redraw();
+};
+
+
+function insertRightColumn(terrain) {
+    /* Move everything to the left and insert the given terrain in the
+     * new empty column.
+     */
+    for (n = 0; n < terrain.length; n++) {
+        theMap.terrain[n].unshift(terrain[n]);
+        theMap.terrain[n].pop();
+    }
+    theMap.redraw();
+};
+
+
 function onKeyPress(event) {
     /* Capture keystrokes and report them to the server.
      */

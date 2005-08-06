@@ -16,12 +16,15 @@ from axiom.attributes import reference, integer, inmemory
 from xmantissa.ixmantissa import INavigableFragment, INavigableElement, ISessionlessSiteRootPlugin, ISiteRootPlugin
 from xmantissa import webnav, website
 
-MOUNTAIN, GRASS = range(2)
-TERRAIN_TYPES = (MOUNTAIN, GRASS)
+MOUNTAIN, GRASS, WATER, FOREST, DESERT = range(5)
+TERRAIN_TYPES = (MOUNTAIN, GRASS, WATER, FOREST, DESERT)
 
 TERRAIN_NAMES = {
     MOUNTAIN: 'mountain',
     GRASS: 'grass',
+    FOREST: 'forest',
+    WATER: 'water',
+    DESERT: 'desert',
     }
 
 
@@ -122,7 +125,7 @@ class RadicalGame(rend.Fragment):
             self.client.send(livepage.js.initializeMap(livepage.js(json.serialize(visTerr))))
 
         from twisted.internet import reactor
-        reactor.callLater(1, send)
+        reactor.callLater(0.1, send)
 
 
     def handle_keyPress(self, ctx, which, alt, ctrl, meta, shift):
@@ -135,8 +138,7 @@ class RadicalGame(rend.Fragment):
             allTerr = self.world.getTerrain()
             visTerr = [None] * 8
             for visX in range(8):
-                visTerr[visX] = TERRAIN_NAMES[allTerr[(ch.posY - 4) * self.world.width + visX]]
-            print 'Top inserting', visTerr
+                visTerr[visX] = TERRAIN_NAMES[allTerr[(ch.posY - 4) * self.world.width + ch.posX - 4 + visX]]
             return livepage.js.insertTopRow(livepage.js(json.serialize(visTerr)))
 
         return livepage.js.alert('You are at the edge of the world!')
@@ -144,22 +146,40 @@ class RadicalGame(rend.Fragment):
 
     def handle_downArrow(self, ctx):
         ch = self.original
-        if ch.posY < len(self.world.getTerrain()) - 4:
+        if ch.posY < self.world.height - 4:
             ch.posY += 1;
             allTerr = self.world.getTerrain()
             visTerr = [None] * 8
             for visX in range(8):
-                visTerr[visX] = TERRAIN_NAMES[allTerr[(ch.posY + 4) * self.world.width + visX]]
-            print 'Bottom inserting', visTerr
+                visTerr[visX] = TERRAIN_NAMES[allTerr[(ch.posY + 4) * self.world.width + ch.posX - 4 + visX]]
             return livepage.js.insertBottomRow(livepage.js(json.serialize(visTerr)))
 
         return livepage.js.alert('You are at the edge of the world!')
 
 
     def handle_leftArrow(self, ctx):
-        pass
+        ch = self.original
+        if ch.posX > 4:
+            ch.posX -= 1
+            allTerr = self.world.getTerrain()
+            visTerr = [None] * 8
+            for visY in range(8):
+                visTerr[visY] = TERRAIN_NAMES[allTerr[(ch.posY + 4 - visY) * self.world.width + ch.posX - 4]]
+            return livepage.js.insertRightColumn(livepage.js(json.serialize(visTerr)))
+
+        return livepage.js.alert('You are at the endge of the world!')
 
     def handle_rightArrow(self, ctx):
-        pass
+        ch = self.original
+        if ch.posX < self.world.width - 4:
+            ch.posX += 1
+            allTerr = self.world.getTerrain()
+            visTerr = [None] * 8
+            for visY in range(8):
+                visTerr[visY] = TERRAIN_NAMES[allTerr[(ch.posY + 4 - visY) * self.world.width + ch.posX + 4]]
+            return livepage.js.insertLeftColumn(livepage.js(json.serialize(visTerr)))
+
+        return livepage.js.alert('You are at the endge of the world!')
+
 
 registerAdapter(RadicalGame, RadicalCharacter, INavigableFragment)

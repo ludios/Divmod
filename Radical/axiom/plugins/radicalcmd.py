@@ -8,6 +8,8 @@ from twisted import plugin
 
 from axiom import store, item, iaxiom
 
+from xmantissa import signup
+
 from radical import radapp
 
 class RadicalConfiguration(usage.Options):
@@ -16,6 +18,16 @@ class RadicalConfiguration(usage.Options):
     name = 'radical'
     description = 'omfg play the game now'
 
+    optFlags = [
+        ('world', 'w', 'Install a world on the given database'),
+        ]
+
     def postOptions(self):
         s = self.parent.getStore()
-        radapp.RadicalApplication(store=s).install()
+        if self['world']:
+            for world in s.store.query(radapp.RadicalWorld):
+                break
+            else:
+                radapp.RadicalWorld(store=s.store).install()
+        else:
+            radapp.RadicalApplication(store=s).install()

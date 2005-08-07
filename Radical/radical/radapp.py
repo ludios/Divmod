@@ -28,8 +28,8 @@ TERRAIN_NAMES = {
     VOID: 'void',
     }
 
-VIEWPORT_X = 4
-VIEWPORT_Y = 4
+VIEWPORT_X = 8
+VIEWPORT_Y = 8
 
 class RadicalWorld(Item, website.PrefixURLMixin):
     implements(ISessionlessSiteRootPlugin)
@@ -40,6 +40,7 @@ class RadicalWorld(Item, website.PrefixURLMixin):
     seed = integer()
 
     terrain = inmemory()
+    players = inmemory()
 
     prefixURL = 'static/radical'
 
@@ -57,12 +58,28 @@ class RadicalWorld(Item, website.PrefixURLMixin):
         return self.terrain
 
     def getTerrainAt(self, x, y):
+        t = self.getTerrain()
+        print 'Getting terrain from', hex(id(t))
         if x < 0 or x >= self.width or y < 0 or y >= self.height:
             return TERRAIN_NAMES[VOID]
-        return TERRAIN_NAMES[self.getTerrain()[y * self.width + x]]
+        return TERRAIN_NAMES[t[y * self.width + x]]
 
     def createResource(self):
         return static.File(util.sibpath(__file__, 'static'))
+
+    def addPlayer(self, player):
+        if not hasattr(self, 'players'):
+            self.players = []
+
+        self.players.append(player)
+
+    def removePlayer(self, player):
+        self.players.remove(player)
+
+    def playerMoved(self, who, where):
+        for p in self.players:
+            if p is not who:
+                p.observeMovement(who, where)
 
 
 
@@ -98,6 +115,8 @@ class RadicalCharacter(Item):
     posY = integer(default=10)
 
 
+theMap = livepage.js.theMap
+
 class RadicalGame(rend.Fragment):
     live = True
     fragmentName = 'radical-game'
@@ -113,6 +132,11 @@ class RadicalGame(rend.Fragment):
 
     _charCounter = 0
 
+    def newCharacter(self, image):
+        self._charCounter += 1
+        self._charImages[self._charCounter] = image
+        return self._charCounter
+
     def getWorld(self):
         for world in self.original.store.parent.query(RadicalWorld):
             return world
@@ -120,14 +144,30 @@ class RadicalGame(rend.Fragment):
 
     def goingLive(self, ctx, client):
         self._charImages = {}
+        self._otherPeople = {}
+        self.me = self.newCharacter(self.charImage)
         self.client = client
         self.world = self.getWorld()
+        self.world.addPlayer(self)
+        self.world.playerMoved(self, (self.original.posX, self.original.posY))
         self.sendCompleteTerrain()
 
-    def newCharacter(self, image):
-        self._charCounter += 1
-        self._charImages[self._charCounter] = image
-        return self._charCounter
+    def inRange(self, other):
+        return (
+            (self.original.posX - self.dispX <= other.original.posX <= self.original.posX - self.dispX + VIEWPORT_X) and
+            (self.original.posY - self.dispY <= other.original.posY <= self.original.posY - self.dispY + VIEWPORT_Y))
+
+    def observeMovement(self, who, where):
+        if self.inRange(who):
+            if who not in self._otherPeople:
+                self._otherPeople[who] = self.newCharacter(self.charImage)
+            self.client.send(self.moveCharacter(self._otherPeople[who], who.original.posY, who.original.posX))
+        else:
+            if who in self._otherPeople:
+                self.client.send(self.eraseCharacter(self._otherPeople.pop(who)))
+
+    def eraseCharacter(self, id):
+        return livepage.js.eraseCharacter(id)
 
     def moveCharacter(self, id, row, col):
         return livepage.js.moveCharacter(id, row, col, self._charImages[id])
@@ -151,8 +191,6 @@ class RadicalGame(rend.Fragment):
                     xPos = xBase + visX
                     visTerr[visX][visY] = self.world.getTerrainAt(xPos, yPos)
 
-            self.me = self.newCharacter(self.charImage)
-
             self.client.send([
                     livepage.js.initializeMap(livepage.js(json.serialize(visTerr))),
                     livepage.eol,
@@ -173,10 +211,10 @@ class RadicalGame(rend.Fragment):
         return func(livepage.js(json.serialize(visTerr)))
 
     def scrollDown(self):
-        return self._vertScroll(livepage.js.insertTopRow)
+        return self._vertScroll(theMap.insertTopRow)
 
     def scrollUp(self):
-        return self._vertScroll(livepage.js.insertBottomRow)
+        return self._vertScroll(theMap.insertBottomRow)
 
     def _horizScroll(self, func  ):
         ch = self.original
@@ -189,10 +227,10 @@ class RadicalGame(rend.Fragment):
 
 
     def scrollLeft(self):
-        return self._horizScroll(livepage.js.insertLeftColumn)
+        return self._horizScroll(theMap.insertLeftColumn)
 
     def scrollRight(self):
-        return self._horizScroll(livepage.js.insertRightColumn)
+        return self._horizScroll(theMap.insertRightColumn)
 
     def handle_keyPress(self, ctx, which, alt, ctrl, meta, shift):
         print self.dispX, self.dispY
@@ -203,10 +241,12 @@ class RadicalGame(rend.Fragment):
             self.dispY -= 1
             self.original.posY -= 1
             yield self.updateMyPosition()
+        elif self.original.posY > 0:
+            self.original.posY -= 1
+            yield self.scrollDown()
         else:
-            if self.original.posY > 0:
-                self.original.posY -= 1
-                yield self.scrollDown()
+            return
+        self.world.playerMoved(self, (self.original.posX, self.original.posY))
 
 
     def handle_downArrow(self, ctx):
@@ -214,10 +254,12 @@ class RadicalGame(rend.Fragment):
             self.dispY += 1
             self.original.posY += 1
             yield self.updateMyPosition()
+        elif self.original.posY < self.world.height - 1:
+            self.original.posY += 1
+            yield self.scrollUp()
         else:
-            if self.original.posY < self.world.height - 1:
-                self.original.posY += 1
-                yield self.scrollUp()
+            return
+        self.world.playerMoved(self, (self.original.posX, self.original.posY))
 
 
     def handle_leftArrow(self, ctx):
@@ -225,10 +267,13 @@ class RadicalGame(rend.Fragment):
             self.dispX -= 1
             self.original.posX -= 1
             yield self.updateMyPosition()
+        elif self.original.posX > 0:
+            self.original.posX -= 1
+            yield self.scrollRight()
         else:
-            if self.original.posX > 0:
-                self.original.posX -= 1
-                yield self.scrollRight()
+            return
+        self.world.playerMoved(self, (self.original.posX, self.original.posY))
+
 
 
     def handle_rightArrow(self, ctx):
@@ -236,10 +281,13 @@ class RadicalGame(rend.Fragment):
             self.dispX += 1
             self.original.posX += 1
             yield self.updateMyPosition()
+        elif self.original.posX < self.world.width - 1:
+            self.original.posX += 1
+            yield self.scrollLeft()
         else:
-            if self.original.posX < self.world.width - 1:
-                self.original.posX += 1
-                yield self.scrollLeft()
+            return
+        self.world.playerMoved(self, (self.original.posX, self.original.posY))
+
 
 
 registerAdapter(RadicalGame, RadicalCharacter, INavigableFragment)

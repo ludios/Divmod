@@ -1,4 +1,15 @@
 
+var VIEWPORT_X = 8;
+var VIEWPORT_Y = 8;
+
+var theMap = null;
+
+function GameObject(row, col, node) {
+    this.row = row;
+    this.col = col;
+    this.node = node;
+};
+
 function GameMap_erase() {
     this.element.innerHTML = '';
 };
@@ -10,20 +21,106 @@ function GameMap_redraw() {
             this.element.appendChild(tile);
         }
     }
+    for (n = 0; n < this.contents.length; n++) {
+        pos = absolutePositionFromCoordinates(row, col);
+        this.contents[n].node.style.cssText = 'position: absolute; top: ' + new String(pos[0]) + 'px; left: ' + new String(pos[1]) + 'px';
+        this.element.appendChild(this.contents[n].node);
+    }
 };
+
+function GameMap_insertTopRow(terrain) {
+    /* Move everything on the screen down one.  Insert the given
+     * terrain in the new, empty row at the top.
+     */
+    contents = this.contents;
+    this.contents = []
+    for (n = 0; n < contents.length; n++) {
+        contents[n].row += 1;
+        if (contents[n] < VIEWPORT_Y) {
+            this.contents.push(contents[n]);
+        }
+    }
+
+    this.terrain.unshift(terrain);
+    this.terrain.pop();
+    this.redraw();
+};
+
+function GameMap_insertBottomRow(terrain) {
+    /* Opposite of insertTopRow
+     */
+    contents = this.contents;
+    this.contents = []
+    for (n = 0; n < contents.length; n++) {
+        contents[n].row -= 1;
+        if (contents[n] >= 0) {
+            this.contents.push(contents[n]);
+        }
+    }
+
+    this.terrain.push(terrain);
+    this.terrain.shift();
+    this.redraw();
+};
+
+function GameMap_insertLeftColumn(terrain) {
+    /* Move everything to the left and insert the given terrain in the
+     * new empty column.
+     */
+    contents = this.contents;
+    this.contents = []
+    for (n = 0; n < contents.length; n++) {
+        contents[n].col -= 1;
+        if (contents[n] >= 0) {
+            this.contents.push(contents[n]);
+        }
+    }
+
+    for (n = 0; n < terrain.length; n++) {
+        this.terrain[n].push(terrain[n]);
+        this.terrain[n].shift();
+    }
+    this.redraw();
+};
+
+
+function GameMap_insertRightColumn(terrain) {
+    /* Move everything to the left and insert the given terrain in the
+     * new empty column.
+     */
+    contents = this.contents;
+    this.contents = []
+    for (n = 0; n < contents.length; n++) {
+        contents[n].col += 1;
+        if (contents[n] < VIEWPORT_Y) {
+            this.contents.push(contents[n]);
+        }
+    }
+
+    for (n = 0; n < terrain.length; n++) {
+        this.terrain[n].unshift(terrain[n]);
+        this.terrain[n].pop();
+    }
+    this.redraw();
+};
+
+
 
 function GameMap(terrain) {
     this.terrain = terrain
     this.width = terrain.length;
     this.height = terrain[0].length;
+    this.contents = [];
 
     this.element = document.getElementById('map-node');
 
     this.erase = GameMap_erase;
     this.redraw = GameMap_redraw;
+    this.insertTopRow = GameMap_insertTopRow;
+    this.insertBottomRow = GameMap_insertBottomRow;
+    this.insertLeftColumn = GameMap_insertLeftColumn;
+    this.insertRightColumn = GameMap_insertRightColumn;
 };
-
-var theMap = null;
 
 function mapTileImageSource(kind) {
     /* Return the URL for the image representing the terrain of the
@@ -76,47 +173,6 @@ function initializeMap(terrain) {
     theMap.redraw();
 };
 
-function insertTopRow(terrain) {
-    /* Move everything on the screen down one.  Insert the given
-     * terrain in the new, empty row at the top.
-     */
-    theMap.terrain.unshift(terrain);
-    theMap.terrain.pop();
-    theMap.redraw();
-};
-
-function insertBottomRow(terrain) {
-    /* Opposite of insertTopRow
-     */
-    theMap.terrain.push(terrain);
-    theMap.terrain.shift();
-    theMap.redraw();
-};
-
-function insertLeftColumn(terrain) {
-    /* Move everything to the left and insert the given terrain in the
-     * new empty column.
-     */
-    for (n = 0; n < terrain.length; n++) {
-        theMap.terrain[n].push(terrain[n]);
-        theMap.terrain[n].shift();
-    }
-    theMap.redraw();
-};
-
-
-function insertRightColumn(terrain) {
-    /* Move everything to the left and insert the given terrain in the
-     * new empty column.
-     */
-    for (n = 0; n < terrain.length; n++) {
-        theMap.terrain[n].unshift(terrain[n]);
-        theMap.terrain[n].pop();
-    }
-    theMap.redraw();
-};
-
-
 function characterTileImageSource(image) {
     return '/static/radical/' + image + '.png';
 };
@@ -137,11 +193,26 @@ function characterId(charId) {
     return 'character-' + charId;
 };
 
+function eraseCharacter(charId) {
+    var node = document.getElementById(characterId(charId));
+    if (node) {
+        theMap.element.removeChild(node);
+        for (n = 0; n < theMap.contents.length; n++) {
+            if (theMap.contents[n].node == node) {
+                theMap.contents.splice(n, 1);
+                break;
+            }
+        }
+    }
+};
+
+
 function moveCharacter(charId, row, col, charImage) {
     var node = document.getElementById(characterId(charId));
     if (!node) {
         node = createCharacterTile(characterId(charId), characterTileImageSource(charImage));
         theMap.element.appendChild(node);
+        theMap.contents[theMap.contents] = node;
     }
     moveCharacterTile(node, row, col);
 };
@@ -171,4 +242,3 @@ function onKeyPress(event) {
 };
 
 document.onkeypress = onKeyPress;
-

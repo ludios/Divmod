@@ -4,6 +4,13 @@ var VIEWPORT_Y = 8;
 
 var theMap = null;
 
+function mapTileImageSource(kind) {
+    /* Return the URL for the image representing the terrain of the
+     * given kind.
+     */
+    return '/static/radical/' + kind + '.png';
+};
+
 function GameObject(row, col, node) {
     this.row = row;
     this.col = col;
@@ -15,16 +22,13 @@ function GameMap_erase() {
 };
 
 function GameMap_redraw() {
+    var idx = 0;
     for (row = 0; row < this.terrain.length; row++) {
         for (col = 0; col < this.terrain[row].length; col++) {
-            tile = createMapTile(row, col, this.terrain[row][col]);
-            this.element.appendChild(tile);
+            imgSrc = mapTileImageSource(this.terrain[row][col]);
+            this.tiles[idx].firstChild.src = imgSrc;
+            idx++;
         }
-    }
-    for (n = 0; n < this.contents.length; n++) {
-        pos = absolutePositionFromCoordinates(row, col);
-        this.contents[n].node.style.cssText = 'position: absolute; top: ' + new String(pos[0]) + 'px; left: ' + new String(pos[1]) + 'px';
-        this.element.appendChild(this.contents[n].node);
     }
 };
 
@@ -114,19 +118,21 @@ function GameMap(terrain) {
 
     this.element = document.getElementById('map-node');
 
+    this.tiles = [];
+    for (row = 0; row < this.terrain.length; row++) {
+        for (col = 0; col < this.terrain[row].length; col++) {
+            tile = createMapTile(row, col, this.terrain[row][col]);
+            this.tiles[this.tiles.length] = tile;
+            this.element.appendChild(tile);
+        }
+    }
+
     this.erase = GameMap_erase;
     this.redraw = GameMap_redraw;
     this.insertTopRow = GameMap_insertTopRow;
     this.insertBottomRow = GameMap_insertBottomRow;
     this.insertLeftColumn = GameMap_insertLeftColumn;
     this.insertRightColumn = GameMap_insertRightColumn;
-};
-
-function mapTileImageSource(kind) {
-    /* Return the URL for the image representing the terrain of the
-     * given kind.
-     */
-    return '/static/radical/' + kind + '.png';
 };
 
 function mapTileNodeId(x, y) {
@@ -177,10 +183,19 @@ function characterTileImageSource(image) {
     return '/static/radical/' + image + '.png';
 };
 
-function createCharacterTile(charId, charImage) {
-    var node = document.createElement('img');
-    node.setAttribute('id', charId);
-    node.setAttribute('src', charImage);
+function createCharacterTile(charId, charImageURL) {
+    var node = document.createElement('span');
+    var charImage = document.createElement('img');
+    var charMessage = document.createElement('div');
+
+    node.id = charId;
+    charImage.src = charImageURL;
+
+    charMessage.style.cssText = 'background-color: white; opacity: 100; visibility: hidden; border-style: solid; border-color: red';
+
+    node.appendChild(charMessage);
+    node.appendChild(charImage);
+
     return node;
 };
 
@@ -221,6 +236,21 @@ function displayCharacter(row, col, image) {
     var charTile = createCharacterTile(row, col, image);
     theMap.element.appendChild(charTile);
 };
+
+function appendMessage(charId, message) {
+    var node = document.getElementById(characterId(charId));
+    var messageNode = node.firstChild;
+
+    messageNode.innerHTML = message;
+    messageNode.style.visibility = 'visible';
+    window.setTimeout(function() {
+                          if (messageNode.innerHTML == message) {
+                              messageNode.style.visibility = 'hidden';
+                          };
+                      }, 10000);
+
+};
+
 
 function onKeyPress(event) {
     /* Capture keystrokes and report them to the server.

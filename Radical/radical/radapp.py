@@ -81,6 +81,10 @@ class RadicalWorld(Item, website.PrefixURLMixin):
             if p is not who:
                 p.observeMovement(who, where)
 
+    def playerMessage(self, who, what):
+        for p in self.players:
+            if p is not who:
+                p.observeMessage(who, what)
 
 
 class RadicalApplication(Item, website.PrefixURLMixin):
@@ -144,8 +148,8 @@ class RadicalGame(rend.Fragment):
 
     def goingLive(self, ctx, client):
         self._charImages = {}
-        self._otherPeople = {}
         self.me = self.newCharacter(self.charImage)
+        self._otherPeople = {self: self.me}
         self.client = client
         self.world = self.getWorld()
         self.world.addPlayer(self)
@@ -165,6 +169,13 @@ class RadicalGame(rend.Fragment):
         else:
             if who in self._otherPeople:
                 self.client.send(self.eraseCharacter(self._otherPeople.pop(who)))
+
+    def observeMessage(self, who, what):
+        if self.inRange(who) and who in self._otherPeople:
+            self.client.send(self.appendMessage(who, what))
+
+    def appendMessage(self, who, what):
+        return livepage.js.appendMessage(self._otherPeople[who], what)
 
     def eraseCharacter(self, id):
         return livepage.js.eraseCharacter(id)
@@ -232,7 +243,21 @@ class RadicalGame(rend.Fragment):
     def scrollRight(self):
         return self._horizScroll(theMap.insertRightColumn)
 
+
+    message = ''
+    def sendMessage(self, message):
+        self.world.playerMessage(self, message)
+        self.observeMessage(self, message)
+
+    def handle_document(self, ctx, doc):
+        file('document', 'w').write(doc)
+
     def handle_keyPress(self, ctx, which, alt, ctrl, meta, shift):
+        if which == '\r':
+            self.sendMessage(self.message)
+            self.message = ''
+        else:
+            self.message += which
         print self.dispX, self.dispY
         print self.original.posX, self.original.posY
 

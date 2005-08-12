@@ -4,11 +4,30 @@ var VIEWPORT_Y = 8;
 
 var theMap = null;
 
+var messageCount = 0;
+
+function notify(message) {
+    var notification = document.getElementById('notification');
+    var d = document.createElement('div');
+    var t = document.createTextNode(message);
+    d.appendChild(t);
+    notification.appendChild(d);
+    messageCount++;
+    if (messageCount > 10) {
+        notification.removeChild(notification.firstChild);
+        messageCount--;
+    }
+}
+
 function mapTileImageSource(kind) {
     /* Return the URL for the image representing the terrain of the
      * given kind.
      */
     return '/static/radical/' + kind + '.png';
+};
+
+function absolutePositionFromCoordinates(row, col) {
+    return [175 + row * 64, 75 + col * 64];
 };
 
 function GameObject(row, col, node) {
@@ -30,6 +49,15 @@ function GameMap_redraw() {
             idx++;
         }
     }
+
+    var pos = null;
+    for (var n = 0; n < this.contents.length; n++) {
+        obj = this.contents[n];
+        pos = absolutePositionFromCoordinates(obj.row, obj.col);
+        obj.style.left = new String(pos[0]) + "px";
+        obj.style.top = new String(pos[1]) + "px";
+        notify("Rendering " + new String(obj.id) + " at " + obj.style.cssText);
+    }
 };
 
 function GameMap_insertTopRow(terrain) {
@@ -37,67 +65,15 @@ function GameMap_insertTopRow(terrain) {
      * terrain in the new, empty row at the top.
      */
     contents = this.contents;
-    this.contents = []
-    for (n = 0; n < contents.length; n++) {
-        contents[n].row += 1;
-        if (contents[n] < VIEWPORT_Y) {
-            this.contents.push(contents[n]);
-        }
-    }
-
-    this.terrain.unshift(terrain);
-    this.terrain.pop();
-    this.redraw();
-};
-
-function GameMap_insertBottomRow(terrain) {
-    /* Opposite of insertTopRow
-     */
-    contents = this.contents;
-    this.contents = []
-    for (n = 0; n < contents.length; n++) {
-        contents[n].row -= 1;
-        if (contents[n] >= 0) {
-            this.contents.push(contents[n]);
-        }
-    }
-
-    this.terrain.push(terrain);
-    this.terrain.shift();
-    this.redraw();
-};
-
-function GameMap_insertLeftColumn(terrain) {
-    /* Move everything to the left and insert the given terrain in the
-     * new empty column.
-     */
-    contents = this.contents;
-    this.contents = []
-    for (n = 0; n < contents.length; n++) {
-        contents[n].col -= 1;
-        if (contents[n] >= 0) {
-            this.contents.push(contents[n]);
-        }
-    }
-
-    for (n = 0; n < terrain.length; n++) {
-        this.terrain[n].push(terrain[n]);
-        this.terrain[n].shift();
-    }
-    this.redraw();
-};
-
-
-function GameMap_insertRightColumn(terrain) {
-    /* Move everything to the left and insert the given terrain in the
-     * new empty column.
-     */
-    contents = this.contents;
-    this.contents = []
-    for (n = 0; n < contents.length; n++) {
+    this.contents = [this.contents[0]];
+    for (n = 1; n < contents.length; n++) {
         contents[n].col += 1;
-        if (contents[n] < VIEWPORT_Y) {
+        notify('Shifting ' + new String(contents[n].id) + ' right.');
+        if (contents[n].col < VIEWPORT_Y) {
             this.contents.push(contents[n]);
+        } else {
+            this.element.removeChild(contents[n]);
+            notify('It is off the screen!');
         }
     }
 
@@ -108,10 +84,78 @@ function GameMap_insertRightColumn(terrain) {
     this.redraw();
 };
 
+function GameMap_insertBottomRow(terrain) {
+    /* Opposite of insertTopRow
+     */
+    contents = this.contents;
+    this.contents = [this.contents[0]];
+    for (n = 1; n < contents.length; n++) {
+        contents[n].col -= 1;
+        notify('Shifting ' + new String(contents[n]) + ' left.');
+        if (contents[n].col >= 0) {
+            this.contents.push(contents[n]);
+        } else {
+            this.element.removeChild(contents[n]);
+            notify('It is off the screen!');
+        }
+    }
+
+    for (n = 0; n < terrain.length; n++) {
+        this.terrain[n].push(terrain[n]);
+        this.terrain[n].shift();
+    }
+    this.redraw();
+};
+
+function GameMap_insertLeftColumn(terrain) {
+    /* Move everything to the right and insert the given terrain in the
+     * new empty column.
+     */
+    contents = this.contents;
+    this.contents = [this.contents[0]];
+    for (n = 1; n < contents.length; n++) {
+        notify('Shifting ' + new String(contents[n].id) + ' down.');
+        contents[n].row += 1;
+        if (contents[n].row < VIEWPORT_Y) {
+            this.contents.push(contents[n]);
+        } else {
+            this.element.removeChild(contents[n]);
+            notify('It is off the screen!');
+        }
+    }
+
+    this.terrain.unshift(terrain);
+    this.terrain.pop();
+    this.redraw();
+};
+
+
+function GameMap_insertRightColumn(terrain) {
+    /* Move everything to the left and insert the given terrain in the
+     * new empty column.
+     */
+    contents = this.contents;
+    this.contents = [this.contents[0]];
+    for (n = 1; n < contents.length; n++) {
+        contents[n].row -= 1;
+        notify('Shifting ' + new String(contents[n].id) + ' up.');
+        if (contents[n].row >= 0) {
+            this.contents.push(contents[n]);
+        } else {
+            this.element.removeChild(contents[n]);
+            notify('It is off the screen!');
+        }
+    }
+
+    this.terrain.push(terrain);
+    this.terrain.shift();
+    this.redraw();
+};
+
 
 
 function GameMap(terrain) {
-    this.terrain = terrain
+    this.terrain = terrain;
     this.width = terrain.length;
     this.height = terrain[0].length;
     this.contents = [];
@@ -148,10 +192,6 @@ function setTerrain(x, y, kind) {
     document.getElementById(tileId).setAttribute('src', mapTileImageSource(kind));
 };
 
-function absolutePositionFromCoordinates(row, col) {
-    return [75 + row * 64, 175 + col * 64];
-};
-
 function createMapTile(row, col, kind) {
     /* Create a completely initialized map tile at the given location
      * and with the given terrain type.
@@ -164,8 +204,8 @@ function createMapTile(row, col, kind) {
     var tile = document.createElement('div');
     tile.setAttribute('id', mapTileNodeId(col, row));
     tile.style.position = 'absolute';
-    tile.style.top = new String(pos[0]) + 'px';
-    tile.style.left = new String(pos[1]) + 'px';
+    tile.style.left = new String(pos[0]) + 'px';
+    tile.style.top = new String(pos[1]) + 'px';
     tile.appendChild(image);
 
     return tile;
@@ -189,6 +229,7 @@ function createCharacterTile(charId, charImageURL) {
     var charMessage = document.createElement('div');
 
     node.id = charId;
+    node.style.cssText = 'position: absolute; z-index: 2';
     charImage.src = charImageURL;
 
     charMessage.style.cssText = 'background-color: white; opacity: 100; visibility: hidden; border-style: solid; border-color: red';
@@ -201,7 +242,11 @@ function createCharacterTile(charId, charImageURL) {
 
 function moveCharacterTile(charNode, row, col) {
     var pos = absolutePositionFromCoordinates(row, col);
-    charNode.style.cssText = 'position: absolute; top: ' + new String(pos[0]) + 'px; left: ' + new String(pos[1]) + 'px; z-index: 2;';
+    charNode.style.position = 'absolute';
+    charNode.style.left = new String(pos[0]) + 'px';
+    charNode.style.top = new String(pos[1]) + 'px';
+    charNode.row = row;
+    charNode.col = col;
 };
 
 function characterId(charId) {
@@ -211,13 +256,18 @@ function characterId(charId) {
 function eraseCharacter(charId) {
     var node = document.getElementById(characterId(charId));
     if (node) {
+        notify('Erasing character ' + charId + '.');
         theMap.element.removeChild(node);
         for (n = 0; n < theMap.contents.length; n++) {
-            if (theMap.contents[n].node == node) {
+            if (theMap.contents[n] == node) {
+                notify('Removing ' + new String(theMap.contents[n].id) + ' from the map.');
+                notify('Contents is now ' + new String(theMap.contents));
                 theMap.contents.splice(n, 1);
                 break;
             }
         }
+    } else {
+        notify('Bogus erase request: ' + charId + '.');
     }
 };
 
@@ -227,14 +277,12 @@ function moveCharacter(charId, row, col, charImage) {
     if (!node) {
         node = createCharacterTile(characterId(charId), characterTileImageSource(charImage));
         theMap.element.appendChild(node);
-        theMap.contents[theMap.contents] = node;
+        theMap.contents.push(node);
+        notify('Creating a new character ' + charId);
+        notify('Contents is now ' + new String(theMap.contents));
     }
+    notify('Moving ' + charId + ' to row ' + new String(row) + ', ' + new String(col) + '.');
     moveCharacterTile(node, row, col);
-};
-
-function displayCharacter(row, col, image) {
-    var charTile = createCharacterTile(row, col, image);
-    theMap.element.appendChild(charTile);
 };
 
 function appendMessage(charId, message) {

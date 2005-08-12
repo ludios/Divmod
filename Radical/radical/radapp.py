@@ -59,7 +59,6 @@ class RadicalWorld(Item, website.PrefixURLMixin):
 
     def getTerrainAt(self, x, y):
         t = self.getTerrain()
-        print 'Getting terrain from', hex(id(t))
         if x < 0 or x >= self.width or y < 0 or y >= self.height:
             return TERRAIN_NAMES[VOID]
         return TERRAIN_NAMES[t[y * self.width + x]]
@@ -70,11 +69,15 @@ class RadicalWorld(Item, website.PrefixURLMixin):
     def addPlayer(self, player):
         if not hasattr(self, 'players'):
             self.players = []
-
         self.players.append(player)
+        for p in self.players:
+            if p is not player:
+                player.observeMovement(p, (p.original.posX, p.original.posY))
 
     def removePlayer(self, player):
         self.players.remove(player)
+        for p in self.players:
+            p.observeDisappearance(player)
 
     def playerMoved(self, who, where):
         for p in self.players:
@@ -121,16 +124,21 @@ class RadicalCharacter(Item):
 
 theMap = livepage.js.theMap
 
+def _pickDisplayCoordinate(pos, viewport, max):
+    if pos <= viewport / 2:
+        return pos
+    if pos > max - viewport / 2:
+        return viewport - (max - pos)
+    return viewport / 2
+
 class RadicalGame(rend.Fragment):
     live = True
     fragmentName = 'radical-game'
     docFactory = loaders.stan([
             T.script(language='javascript', src='/static/radical/ambulation.js'),
             T.div(id='map-node', onkeypress=livepage.js.server.handle('keypress', livepage.js.event)),
+            T.div(id='notification', style='position: absolute; top: 75; left: 680; background-color: white'),
             ])
-
-    dispX = VIEWPORT_X / 2
-    dispY = VIEWPORT_Y / 2
 
     charImage = 'player'
 
@@ -147,25 +155,45 @@ class RadicalGame(rend.Fragment):
         raise RuntimeError("No world found")
 
     def goingLive(self, ctx, client):
+        from twisted.internet import reactor
+        reactor.callLater(0.1, self._reallyGoingLive, client)
+        client.notifyOnClose().addBoth(self._closed)
+
+    def _closed(self, ignored):
+        self.world.removePlayer(self)
+
+    def _reallyGoingLive(self, client):
+        self.world = self.getWorld()
+        self.dispX = _pickDisplayCoordinate(self.original.posX, VIEWPORT_X, self.world.width)
+        self.dispY = _pickDisplayCoordinate(self.original.posY, VIEWPORT_Y, self.world.height)
+
         self._charImages = {}
         self.me = self.newCharacter(self.charImage)
         self._otherPeople = {self: self.me}
         self.client = client
-        self.world = self.getWorld()
-        self.world.addPlayer(self)
-        self.world.playerMoved(self, (self.original.posX, self.original.posY))
+
         self.sendCompleteTerrain()
+        self.world.addPlayer(self)
+
+        print 'I am at', (self.original.posX, self.original.posY), 'and viewport selected was', (self.dispX, self.dispY)
+
+        self.world.playerMoved(self, (self.original.posX, self.original.posY))
+
 
     def inRange(self, other):
+        baseX = self.original.posX - self.dispX
+        baseY = self.original.posY - self.dispY
         return (
-            (self.original.posX - self.dispX <= other.original.posX <= self.original.posX - self.dispX + VIEWPORT_X) and
-            (self.original.posY - self.dispY <= other.original.posY <= self.original.posY - self.dispY + VIEWPORT_Y))
+            (baseX <= other.original.posX < baseX + VIEWPORT_X) and
+            (baseY <= other.original.posY < baseY + VIEWPORT_Y))
 
     def observeMovement(self, who, where):
         if self.inRange(who):
             if who not in self._otherPeople:
                 self._otherPeople[who] = self.newCharacter(self.charImage)
-            self.client.send(self.moveCharacter(self._otherPeople[who], who.original.posY, who.original.posX))
+            row = who.original.posX - (self.original.posX - self.dispX)
+            col = who.original.posY - (self.original.posY - self.dispY)
+            self.client.send(self.moveCharacter(self._otherPeople[who], row, col))
         else:
             if who in self._otherPeople:
                 self.client.send(self.eraseCharacter(self._otherPeople.pop(who)))
@@ -173,6 +201,10 @@ class RadicalGame(rend.Fragment):
     def observeMessage(self, who, what):
         if self.inRange(who) and who in self._otherPeople:
             self.client.send(self.appendMessage(who, what))
+
+    def observeDisappearance(self, who):
+        if self.inRange(who) and who in self._otherPeople:
+            self.client.send(self.eraseCharacter(self._otherPeople.pop(who)))
 
     def appendMessage(self, who, what):
         return livepage.js.appendMessage(self._otherPeople[who], what)
@@ -184,7 +216,7 @@ class RadicalGame(rend.Fragment):
         return livepage.js.moveCharacter(id, row, col, self._charImages[id])
 
     def updateMyPosition(self):
-        return self.moveCharacter(self.me, self.dispY, self.dispX)
+        return self.moveCharacter(self.me, self.dispX, self.dispY)
 
     def sendCompleteTerrain(self):
         """
@@ -192,25 +224,22 @@ class RadicalGame(rend.Fragment):
         centered at the client's current position.
         """
         ch = self.original
-        def send():
-            visTerr = [[None] * VIEWPORT_Y for n in range(VIEWPORT_X)]
-            xBase = ch.posX - (VIEWPORT_X / 2)
-            yBase = ch.posY - (VIEWPORT_Y / 2)
-            for visY in range(VIEWPORT_Y):
-                yPos = yBase + visY
-                for visX in range(VIEWPORT_X):
-                    xPos = xBase + visX
-                    visTerr[visX][visY] = self.world.getTerrainAt(xPos, yPos)
+        visTerr = [[None] * VIEWPORT_Y for n in range(VIEWPORT_X)]
+        xBase = ch.posX - self.dispX
+        yBase = ch.posY - self.dispY
+        for visY in range(VIEWPORT_Y):
+            yPos = yBase + visY
+            for visX in range(VIEWPORT_X):
+                xPos = xBase + visX
+                visTerr[visX][visY] = self.world.getTerrainAt(xPos, yPos)
 
-            self.client.send([
-                    livepage.js.initializeMap(livepage.js(json.serialize(visTerr))),
-                    livepage.eol,
-                    self.moveCharacter(self.me, self.dispY, self.dispX),
-                    livepage.eol,
-                    ])
+        self.client.send([
+                livepage.js.initializeMap(livepage.js(json.serialize(visTerr))),
+                livepage.eol,
+                self.moveCharacter(self.me, self.dispX, self.dispY),
+                livepage.eol,
+                ])
 
-        from twisted.internet import reactor
-        reactor.callLater(0.1, send)
 
     def _vertScroll(self, func):
         ch = self.original
@@ -221,11 +250,14 @@ class RadicalGame(rend.Fragment):
             visTerr[visX - base] = self.world.getTerrainAt(visX, ch.posY)
         return func(livepage.js(json.serialize(visTerr)))
 
+
     def scrollDown(self):
         return self._vertScroll(theMap.insertTopRow)
 
+
     def scrollUp(self):
         return self._vertScroll(theMap.insertBottomRow)
+
 
     def _horizScroll(self, func  ):
         ch = self.original
@@ -238,10 +270,11 @@ class RadicalGame(rend.Fragment):
 
 
     def scrollLeft(self):
-        return self._horizScroll(theMap.insertLeftColumn)
+        return self._horizScroll(theMap.insertRightColumn)
+
 
     def scrollRight(self):
-        return self._horizScroll(theMap.insertRightColumn)
+        return self._horizScroll(theMap.insertLeftColumn)
 
 
     message = ''
@@ -249,8 +282,10 @@ class RadicalGame(rend.Fragment):
         self.world.playerMessage(self, message)
         self.observeMessage(self, message)
 
+
     def handle_document(self, ctx, doc):
         file('document', 'w').write(doc)
+
 
     def handle_keyPress(self, ctx, which, alt, ctrl, meta, shift):
         if which == '\r':
@@ -260,6 +295,7 @@ class RadicalGame(rend.Fragment):
             self.message += which
         print self.dispX, self.dispY
         print self.original.posX, self.original.posY
+
 
     def handle_upArrow(self, ctx):
         if self.dispY > 0:
@@ -298,7 +334,6 @@ class RadicalGame(rend.Fragment):
         else:
             return
         self.world.playerMoved(self, (self.original.posX, self.original.posY))
-
 
 
     def handle_rightArrow(self, ctx):

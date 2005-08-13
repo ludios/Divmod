@@ -63,9 +63,6 @@ class RadicalWorld(Item, website.PrefixURLMixin):
             return TERRAIN_NAMES[VOID]
         return TERRAIN_NAMES[t[y * self.width + x]]
 
-    def createResource(self):
-        return static.File(util.sibpath(__file__, 'static'))
-
     def addPlayer(self, player):
         if not hasattr(self, 'players'):
             self.players = []
@@ -88,6 +85,11 @@ class RadicalWorld(Item, website.PrefixURLMixin):
         for p in self.players:
             if p is not who:
                 p.observeMessage(who, what)
+
+
+    # ISessionlessSiteRootPlugin, via PrefixURLMixin
+    def createResource(self):
+        return static.File(util.sibpath(__file__, 'static'))
 
 
 class RadicalApplication(Item, website.PrefixURLMixin):
@@ -132,10 +134,11 @@ def _pickDisplayCoordinate(pos, viewport, max):
     return viewport / 2
 
 class RadicalGame(rend.Fragment):
+    implements(INavigableFragment)
+
     live = True
     fragmentName = 'radical-game'
     docFactory = loaders.stan([
-            T.script(language='javascript', src='/static/radical/ambulation.js'),
             T.div(id='map-node', onkeypress=livepage.js.server.handle('keypress', livepage.js.event)),
             T.div(id='notification', style='position: absolute; top: 75; left: 680; background-color: white'),
             ])
@@ -143,6 +146,9 @@ class RadicalGame(rend.Fragment):
     charImage = 'player'
 
     _charCounter = 0
+
+    def head(self):
+        return T.script(language='javascript', src='/static/radical/ambulation.js')
 
     def newCharacter(self, image):
         self._charCounter += 1
@@ -154,29 +160,25 @@ class RadicalGame(rend.Fragment):
             return world
         raise RuntimeError("No world found")
 
-    def goingLive(self, ctx, client):
-        from twisted.internet import reactor
-        reactor.callLater(0.1, self._reallyGoingLive, client)
-        client.notifyOnClose().addBoth(self._closed)
-
     def _closed(self, ignored):
         self.world.removePlayer(self)
 
-    def _reallyGoingLive(self, client):
+    def goingLive(self, ctx, client):
+        self.client = client
         self.world = self.getWorld()
-        self.dispX = _pickDisplayCoordinate(self.original.posX, VIEWPORT_X, self.world.width)
-        self.dispY = _pickDisplayCoordinate(self.original.posY, VIEWPORT_Y, self.world.height)
 
         self._charImages = {}
         self.me = self.newCharacter(self.charImage)
         self._otherPeople = {self: self.me}
-        self.client = client
+
+        self.dispX = _pickDisplayCoordinate(self.original.posX, VIEWPORT_X, self.world.width)
+        self.dispY = _pickDisplayCoordinate(self.original.posY, VIEWPORT_Y, self.world.height)
 
         self.sendCompleteTerrain()
         self.world.addPlayer(self)
+        client.notifyOnClose().addBoth(self._closed)
 
         print 'I am at', (self.original.posX, self.original.posY), 'and viewport selected was', (self.dispX, self.dispY)
-
         self.world.playerMoved(self, (self.original.posX, self.original.posY))
 
 
@@ -347,7 +349,6 @@ class RadicalGame(rend.Fragment):
         else:
             return
         self.world.playerMoved(self, (self.original.posX, self.original.posY))
-
 
 
 registerAdapter(RadicalGame, RadicalCharacter, INavigableFragment)

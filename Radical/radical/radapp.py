@@ -208,13 +208,13 @@ class RadicalGame(rend.Fragment):
             self.client.send(self.eraseCharacter(self._otherPeople.pop(who)))
 
     def appendMessage(self, who, what):
-        return livepage.js.appendMessage(self._otherPeople[who], what)
+        return livepage.js.appendMessage(self._otherPeople[who], what), livepage.eol
 
     def eraseCharacter(self, id):
         return livepage.js.eraseCharacter(id)
 
     def moveCharacter(self, id, row, col):
-        return livepage.js.moveCharacter(id, row, col, self._charImages[id])
+        return livepage.js.moveCharacter(id, row, col, self._charImages[id]), livepage.eol
 
     def updateMyPosition(self):
         return self.moveCharacter(self.me, self.dispX, self.dispY)
@@ -242,22 +242,26 @@ class RadicalGame(rend.Fragment):
                 ])
 
 
-    def _vertScroll(self, func):
+    def scrollDown(self):
         ch = self.original
         allTerr = self.world.getTerrain()
         visTerr = [None] * VIEWPORT_X
         base = ch.posX - self.dispX
+        row = ch.posY - 1 - self.dispY
         for visX in xrange(base, base + VIEWPORT_X):
-            visTerr[visX - base] = self.world.getTerrainAt(visX, ch.posY)
-        return func(livepage.js(json.serialize(visTerr)))
-
-
-    def scrollDown(self):
-        return self._vertScroll(theMap.insertTopRow)
+            visTerr[visX - base] = self.world.getTerrainAt(visX, row)
+        return theMap.insertTopRow(livepage.js(json.serialize(visTerr))), livepage.eol
 
 
     def scrollUp(self):
-        return self._vertScroll(theMap.insertBottomRow)
+        ch = self.original
+        allTerr = self.world.getTerrain()
+        visTerr = [None] * VIEWPORT_X
+        base = ch.posX - self.dispX
+        row = ch.posY + 1 + (VIEWPORT_Y - self.dispY)
+        for visX in xrange(base, base + VIEWPORT_X):
+            visTerr[visX - base] = self.world.getTerrainAt(visX, row)
+        return theMap.insertBottomRow(livepage.js(json.serialize(visTerr))), livepage.eol
 
 
     def _horizScroll(self, func  ):
@@ -267,7 +271,7 @@ class RadicalGame(rend.Fragment):
         base = ch.posY - self.dispY
         for visY in range(base, base + VIEWPORT_Y):
             visTerr[visY - base] = self.world.getTerrainAt(ch.posX, visY)
-        return func(livepage.js(json.serialize(visTerr)))
+        return func(livepage.js(json.serialize(visTerr))), livepage.eol
 
 
     def scrollLeft(self):
@@ -294,41 +298,69 @@ class RadicalGame(rend.Fragment):
         meta = meta == 'true'
         shift = shift == 'true'
         print which, alt and 'A' or '.', ctrl and 'C' or '.', meta and 'M' or '.', shift and 'S' or '.'
-        print self.dispX, self.dispY
-        print self.original.posX, self.original.posY
+        print 'Display', self.dispX, self.dispY
+        print 'Actual', self.original.posX, self.original.posY
 
 
     def handle_sendMessage(self, ctx, message):
         self.sendMessage(message)
 
 
-    def handle_upArrow(self, ctx):
+    def handle_upArrow(self, ctx, ctrl):
+        ctrl = ctrl == 'true'
+        if ctrl:
+            return self.tryScrollUp()
+        else:
+            return self.moveUp()
+
+    def moveUp(self):
         if self.dispY > 0:
             self.dispY -= 1
             self.original.posY -= 1
             yield self.updateMyPosition()
         elif self.original.posY > 0:
-            self.original.posY -= 1
             yield self.scrollDown()
+            self.original.posY -= 1
         else:
             return
         self.world.playerMoved(self, (self.original.posX, self.original.posY))
 
 
-    def handle_downArrow(self, ctx):
+    def tryScrollUp(self):
+        if self.dispY < VIEWPORT_Y - 1:
+            self.dispY += 1
+            yield self.scrollDown()
+            yield self.updateMyPosition()
+
+
+    def handle_downArrow(self, ctx, ctrl):
+        ctrl = ctrl == 'true'
+        if ctrl:
+            return self.tryScrollDown()
+        else:
+            return self.moveDown()
+
+    def moveDown(self):
         if self.dispY < VIEWPORT_Y - 1:
             self.dispY += 1
             self.original.posY += 1
             yield self.updateMyPosition()
         elif self.original.posY < self.world.height - 1:
-            self.original.posY += 1
             yield self.scrollUp()
+            self.original.posY += 1
         else:
             return
         self.world.playerMoved(self, (self.original.posX, self.original.posY))
 
 
-    def handle_leftArrow(self, ctx):
+    def tryScrollDown(self):
+        if self.dispY > 0:
+            self.dispY -= 1
+            yield self.scrollUp()
+            yield self.updateMyPosition()
+
+
+    def handle_leftArrow(self, ctx, ctrl):
         if self.dispX > 0:
             self.dispX -= 1
             self.original.posX -= 1
@@ -341,7 +373,7 @@ class RadicalGame(rend.Fragment):
         self.world.playerMoved(self, (self.original.posX, self.original.posY))
 
 
-    def handle_rightArrow(self, ctx):
+    def handle_rightArrow(self, ctx, ctrl):
         if self.dispX < VIEWPORT_X - 1:
             self.dispX += 1
             self.original.posX += 1

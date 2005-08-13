@@ -6,6 +6,16 @@ var theMap = null;
 
 var messageCount = 0;
 
+var introductoryInstructions = (
+    'Welcome to Radical.  Use the arrow keys to move around.  ' +
+    'Use \' to focus the chat box.  Have fun!');
+
+function debug(message) {
+    if (false) {
+        notify(message);
+    }
+}
+
 function notify(message) {
     var notification = document.getElementById('notification');
     var d = document.createElement('div');
@@ -17,6 +27,14 @@ function notify(message) {
         notification.removeChild(notification.firstChild);
         messageCount--;
     }
+}
+
+function strvars(obj) {
+    var accum = [];
+    for (e in obj) {
+        accum.push(e + ': ' + obj[e]);
+    }
+    return '{' + accum.join(', ') + '}';
 }
 
 function mapTileImageSource(kind) {
@@ -56,7 +74,7 @@ function GameMap_redraw() {
         pos = absolutePositionFromCoordinates(obj.row, obj.col);
         obj.style.left = new String(pos[0]) + "px";
         obj.style.top = new String(pos[1]) + "px";
-        notify("Rendering " + new String(obj.id) + " at " + obj.style.cssText);
+        debug("Rendering " + new String(obj.id) + " at " + obj.style.cssText);
     }
 };
 
@@ -68,12 +86,12 @@ function GameMap_insertTopRow(terrain) {
     this.contents = [this.contents[0]];
     for (n = 1; n < contents.length; n++) {
         contents[n].col += 1;
-        notify('Shifting ' + new String(contents[n].id) + ' right.');
+        debug('Shifting ' + new String(contents[n].id) + ' right.');
         if (contents[n].col < VIEWPORT_Y) {
             this.contents.push(contents[n]);
         } else {
             this.element.removeChild(contents[n]);
-            notify('It is off the screen!');
+            debug('It is off the screen!');
         }
     }
 
@@ -91,12 +109,12 @@ function GameMap_insertBottomRow(terrain) {
     this.contents = [this.contents[0]];
     for (n = 1; n < contents.length; n++) {
         contents[n].col -= 1;
-        notify('Shifting ' + new String(contents[n]) + ' left.');
+        debug('Shifting ' + new String(contents[n]) + ' left.');
         if (contents[n].col >= 0) {
             this.contents.push(contents[n]);
         } else {
             this.element.removeChild(contents[n]);
-            notify('It is off the screen!');
+            debug('It is off the screen!');
         }
     }
 
@@ -114,13 +132,13 @@ function GameMap_insertLeftColumn(terrain) {
     contents = this.contents;
     this.contents = [this.contents[0]];
     for (n = 1; n < contents.length; n++) {
-        notify('Shifting ' + new String(contents[n].id) + ' down.');
+        debug('Shifting ' + new String(contents[n].id) + ' down.');
         contents[n].row += 1;
         if (contents[n].row < VIEWPORT_Y) {
             this.contents.push(contents[n]);
         } else {
             this.element.removeChild(contents[n]);
-            notify('It is off the screen!');
+            debug('It is off the screen!');
         }
     }
 
@@ -138,12 +156,12 @@ function GameMap_insertRightColumn(terrain) {
     this.contents = [this.contents[0]];
     for (n = 1; n < contents.length; n++) {
         contents[n].row -= 1;
-        notify('Shifting ' + new String(contents[n].id) + ' up.');
+        debug('Shifting ' + new String(contents[n].id) + ' up.');
         if (contents[n].row >= 0) {
             this.contents.push(contents[n]);
         } else {
             this.element.removeChild(contents[n]);
-            notify('It is off the screen!');
+            debug('It is off the screen!');
         }
     }
 
@@ -177,6 +195,8 @@ function GameMap(terrain) {
     this.insertBottomRow = GameMap_insertBottomRow;
     this.insertLeftColumn = GameMap_insertLeftColumn;
     this.insertRightColumn = GameMap_insertRightColumn;
+
+    notify(introductoryInstructions);
 };
 
 function mapTileNodeId(x, y) {
@@ -256,18 +276,18 @@ function characterId(charId) {
 function eraseCharacter(charId) {
     var node = document.getElementById(characterId(charId));
     if (node) {
-        notify('Erasing character ' + charId + '.');
+        debug('Erasing character ' + charId + '.');
         theMap.element.removeChild(node);
         for (n = 0; n < theMap.contents.length; n++) {
             if (theMap.contents[n] == node) {
-                notify('Removing ' + new String(theMap.contents[n].id) + ' from the map.');
-                notify('Contents is now ' + new String(theMap.contents));
+                debug('Removing ' + new String(theMap.contents[n].id) + ' from the map.');
+                debug('Contents is now ' + new String(theMap.contents));
                 theMap.contents.splice(n, 1);
                 break;
             }
         }
     } else {
-        notify('Bogus erase request: ' + charId + '.');
+        debug('Bogus erase request: ' + charId + '.');
     }
 };
 
@@ -278,10 +298,10 @@ function moveCharacter(charId, row, col, charImage) {
         node = createCharacterTile(characterId(charId), characterTileImageSource(charImage));
         theMap.element.appendChild(node);
         theMap.contents.push(node);
-        notify('Creating a new character ' + charId);
-        notify('Contents is now ' + new String(theMap.contents));
+        debug('Creating a new character ' + charId);
+        debug('Contents is now ' + new String(theMap.contents));
     }
-    notify('Moving ' + charId + ' to row ' + new String(row) + ', ' + new String(col) + '.');
+    debug('Moving ' + charId + ' to row ' + new String(row) + ', ' + new String(col) + '.');
     moveCharacterTile(node, row, col);
 };
 
@@ -296,13 +316,16 @@ function appendMessage(charId, message) {
                               messageNode.style.visibility = 'hidden';
                           };
                       }, 10000);
-
+    notify(charId + ' says ' + message);
 };
+
 
 
 function onKeyPress(event) {
     /* Capture keystrokes and report them to the server.
      */
+    // debug(strvars(event));
+
     if (event.keyCode == event.DOM_VK_LEFT) {
         server.handle('leftArrow');
     } else if (event.keyCode == event.DOM_VK_RIGHT) {
@@ -311,12 +334,34 @@ function onKeyPress(event) {
         server.handle('upArrow');
     } else if (event.keyCode == event.DOM_VK_DOWN) {
         server.handle('downArrow');
+    } else if (event.which == 39) {
+        // Single-quote
+        debug("Doing it");
+        var form = document.getElementById('input-form');
+        debug(form.firstChild.nextSibling);
+        form.firstChild.nextSibling.focus();
+        event.cancelBubble = true;
     } else {
         server.handle('keyPress',
                       String.fromCharCode(event.which),
                       event.altKey, event.ctrlKey, event.metaKey,
                       event.shiftKey);
     }
+
+    if (event.keyCode == event.DOM_VK_BACK_SPACE) {
+        return false;
+    }
+    return true;
 };
+
+function inputSubmitted(event, inputNode) {
+    var message = inputNode.value;
+
+    inputNode.value = '';
+    server.handle('sendMessage', message);
+    inputNode.blur();
+
+    return false;
+}
 
 document.onkeypress = onKeyPress;

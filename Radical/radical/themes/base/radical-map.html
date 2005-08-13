@@ -1,4 +1,22 @@
 <div xmlns:nevow="http://nevow.com/ns/nevow/0.1">
-  <div id="map-node" onkeypress="server.handle('keypress', event)" />
-  <div id="notification" style="position: absolute; top: 75; left: 680" />
+  <div id="map-node" />
+  <div id="notification" style="position: absolute; top: 75; left: 700" />
+
+  <!-- Wrap the form in an element that prevent events from getting
+       any higher in the document - this lets us use normal input
+       handling to edit the value of the text input without also
+       processing those events in the main document keypress handler
+    -->
+  <span onkeypress="event.cancelBubble = true">
+
+    <!-- A nicer way of finding the input element would be... nicer -->
+    <form
+       id="input-form"
+       onsubmit="return inputSubmitted(event, this.firstChild.nextSibling)"
+       style="position: absolute; top: 600">
+      Say<input type="text" />
+    </form>
+
+  </span>
+
 </div>

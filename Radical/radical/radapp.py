@@ -144,7 +144,10 @@ class RadicalGame(rend.Fragment):
     _charCounter = 0
 
     def head(self):
-        return T.script(language='javascript', src='/static/radical/ambulation.js')
+        return [
+            T.script(language='javascript', src='/static/radical/ambulation.js'),
+            T.script(language='javascript', src='/static/radical/json.js'),
+            ]
 
     def newCharacter(self, image):
         self._charCounter += 1
@@ -286,13 +289,17 @@ class RadicalGame(rend.Fragment):
 
 
     def handle_keyPress(self, ctx, which, alt, ctrl, meta, shift):
-        if which == '\r':
-            self.sendMessage(self.message)
-            self.message = ''
-        else:
-            self.message += which
+        alt = alt == 'true'
+        ctrl = ctrl == 'true'
+        meta = meta == 'true'
+        shift = shift == 'true'
+        print which, alt and 'A' or '.', ctrl and 'C' or '.', meta and 'M' or '.', shift and 'S' or '.'
         print self.dispX, self.dispY
         print self.original.posX, self.original.posY
+
+
+    def handle_sendMessage(self, ctx, message):
+        self.sendMessage(message)
 
 
     def handle_upArrow(self, ctx):

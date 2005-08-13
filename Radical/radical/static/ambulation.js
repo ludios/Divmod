@@ -1,21 +1,40 @@
 
+// Width and height, in tiles, of the viewport onto the world map
 var VIEWPORT_X = 8;
 var VIEWPORT_Y = 8;
 
+// Reference to the single instance of GameMap
 var theMap = null;
 
+// Pixel position of the top, left corner of the map area
+var MAP_TOP_PX = 75;
+var MAP_LEFT_PX = 175;
+
+// Pixel size of each tile
+var TILE_WIDTH_PX = 128;
+var TILE_HEIGHT_PX = 96;
+
+// Pixel size of each object which can occupy a tile
+var OBJECT_WIDTH_PX = 128;
+var OBJECT_HEIGHT_PX = 128;
+
+// How many messages are in the notification area
 var messageCount = 0;
 
+// Text displayed in the notification area when the page loads
 var introductoryInstructions = (
     'Welcome to Radical.  Use the arrow keys to move around.  ' +
     'Use \' to focus the chat box.  Have fun!');
 
+// Display some information in the notification area, if debugging is enabled
 function debug(message) {
     if (false) {
         notify(message);
     }
 }
 
+// Display some information in the notification area.  Bump the oldest
+// thing if the area is full.
 function notify(message) {
     var notification = document.getElementById('notification');
     var d = document.createElement('div');
@@ -29,6 +48,7 @@ function notify(message) {
     }
 }
 
+// Kind of like Python's vars() builtin
 function strvars(obj) {
     var accum = [];
     for (e in obj) {
@@ -37,6 +57,14 @@ function strvars(obj) {
     return '{' + accum.join(', ') + '}';
 }
 
+// Position the given node absolutely at the indicated pixel coordinate
+function setNodePosition(node, left, top) {
+    node.style.position = 'absolute';
+    node.style.left = left + 'px';
+    node.style.top = top + 'px';
+}
+
+
 function mapTileImageSource(kind) {
     /* Return the URL for the image representing the terrain of the
      * given kind.
@@ -44,14 +72,26 @@ function mapTileImageSource(kind) {
     return '/static/radical/' + kind + '.png';
 };
 
+// Position of a tile at the given tile-based coordinate
 function absolutePositionFromCoordinates(row, col) {
-    return [175 + row * 64, 75 + col * 64];
+    return [MAP_LEFT_PX + row * TILE_WIDTH_PX, MAP_TOP_PX + col * TILE_HEIGHT_PX];
 };
 
-function GameObject(row, col, node) {
-    this.row = row;
-    this.col = col;
-    this.node = node;
+// Position of an object occupying a tile at the given tile-based coordinate
+function absoluteObjectPositionFromCoordinates(row, col) {
+    var tilePos = absolutePositionFromCoordinates(row, col);
+
+    // The goal here is to center the middle of the bottom of the
+    // image in the middle of the tile it occupies.  These coordinates
+    // are for the top-left of the image, though.
+
+    tileCenterX = tilePos[0] + TILE_WIDTH_PX / 2;
+    tileCenterY = tilePos[1] + TILE_HEIGHT_PX / 2;
+
+    objLeft = tileCenterX - OBJECT_WIDTH_PX / 2;
+    objTop = tileCenterY - OBJECT_HEIGHT_PX;
+
+    return [objLeft, objTop];
 };
 
 function GameMap_erase() {
@@ -71,10 +111,9 @@ function GameMap_redraw() {
     var pos = null;
     for (var n = 0; n < this.contents.length; n++) {
         obj = this.contents[n];
-        pos = absolutePositionFromCoordinates(obj.row, obj.col);
-        obj.style.left = new String(pos[0]) + "px";
-        obj.style.top = new String(pos[1]) + "px";
-        debug("Rendering " + new String(obj.id) + " at " + obj.style.cssText);
+        pos = absoluteObjectPositionFromCoordinates(obj.row, obj.col);
+        setNodePosition(obj, pos[0], pos[1]);
+        debug("Rendering " + new String(obj.id) + " at " + pos.join(', '));
     }
 };
 
@@ -209,7 +248,7 @@ function setTerrain(x, y, kind) {
      * location to the given kind.
      */
     var tileId = mapTileNodeId(x, y);
-    document.getElementById(tileId).setAttribute('src', mapTileImageSource(kind));
+    document.getElementById(tileId).src = mapTileImageSource(kind);
 };
 
 function createMapTile(row, col, kind) {
@@ -217,15 +256,15 @@ function createMapTile(row, col, kind) {
      * and with the given terrain type.
      */
     var image = document.createElement('img');
-    image.setAttribute('src', mapTileImageSource(kind));
+    image.src = mapTileImageSource(kind);
+    image.height = TILE_HEIGHT_PX;
+    image.width = TILE_WIDTH_PX;
 
     var pos = absolutePositionFromCoordinates(row, col);
 
     var tile = document.createElement('div');
-    tile.setAttribute('id', mapTileNodeId(col, row));
-    tile.style.position = 'absolute';
-    tile.style.left = new String(pos[0]) + 'px';
-    tile.style.top = new String(pos[1]) + 'px';
+    tile.id = mapTileNodeId(col, row);
+    setNodePosition(tile, pos[0], pos[1]);
     tile.appendChild(image);
 
     return tile;
@@ -251,6 +290,8 @@ function createCharacterTile(charId, charImageURL) {
     node.id = charId;
     node.style.cssText = 'position: absolute; z-index: 2';
     charImage.src = charImageURL;
+    charImage.height = OBJECT_HEIGHT_PX;
+    charImage.width = OBJECT_WIDTH_PX;
 
     charMessage.style.cssText = 'background-color: white; opacity: 100; visibility: hidden; border-style: solid; border-color: red';
 
@@ -261,12 +302,13 @@ function createCharacterTile(charId, charImageURL) {
 };
 
 function moveCharacterTile(charNode, row, col) {
-    var pos = absolutePositionFromCoordinates(row, col);
-    charNode.style.position = 'absolute';
-    charNode.style.left = new String(pos[0]) + 'px';
-    charNode.style.top = new String(pos[1]) + 'px';
+    var pos = absoluteObjectPositionFromCoordinates(row, col);
+    setNodePosition(charNode, pos[0], pos[1]);
     charNode.row = row;
-    charNode.col = col;
+    if (col != charNode.col) {
+        charNode.col = col;
+        charNode.style.zIndex = col;
+    }
 };
 
 function characterId(charId) {
@@ -327,13 +369,13 @@ function onKeyPress(event) {
     // debug(strvars(event));
 
     if (event.keyCode == event.DOM_VK_LEFT) {
-        server.handle('leftArrow');
+        server.handle('leftArrow', event.ctrlKey);
     } else if (event.keyCode == event.DOM_VK_RIGHT) {
-        server.handle('rightArrow');
+        server.handle('rightArrow', event.ctrlKey);
     } else if (event.keyCode == event.DOM_VK_UP) {
-        server.handle('upArrow');
+        server.handle('upArrow', event.ctrlKey);
     } else if (event.keyCode == event.DOM_VK_DOWN) {
-        server.handle('downArrow');
+        server.handle('downArrow', event.ctrlKey);
     } else if (event.which == 39) {
         // Single-quote
         debug("Doing it");
@@ -365,3 +407,17 @@ function inputSubmitted(event, inputNode) {
 }
 
 document.onkeypress = onKeyPress;
+
+var radical_oldOnLoad = window.onload;
+function radical_onLoad() {
+    if (radical_oldOnLoad) {
+        radical_oldOnLoad();
+    }
+
+    notification = document.getElementById('notification');
+    setNodePosition(notification, MAP_LEFT_PX + (TILE_WIDTH_PX * VIEWPORT_X), MAP_TOP_PX);
+
+    inputForm = document.getElementById('input-form');
+    setNodePosition(inputForm, MAP_LEFT_PX, MAP_TOP_PX + (TILE_HEIGHT_PX * VIEWPORT_Y));
+}
+window.onload = radical_onLoad;

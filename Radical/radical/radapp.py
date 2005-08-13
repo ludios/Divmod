@@ -137,11 +137,7 @@ class RadicalGame(rend.Fragment):
     implements(INavigableFragment)
 
     live = True
-    fragmentName = 'radical-game'
-    docFactory = loaders.stan([
-            T.div(id='map-node', onkeypress=livepage.js.server.handle('keypress', livepage.js.event)),
-            T.div(id='notification', style='position: absolute; top: 75; left: 680; background-color: white'),
-            ])
+    fragmentName = 'radical-map'
 
     charImage = 'player'
 

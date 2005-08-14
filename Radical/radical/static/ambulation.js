@@ -431,6 +431,35 @@ function appendMessage(charId, message) {
 };
 
 
+function addInventoryItem(itemId, kind) {
+    var itemsNode = document.getElementById('inventory-items');
+    var newItem = document.createElement('img');
+    newItem.id = 'inventory-' + itemId;
+    newItem.src = itemTileImageSource(kind);
+    itemsNode.appendChild(newItem);
+}
+
+function removeInventoryItem(itemId) {
+    var itemNode = document.getElementById('inventory-' + itemId);
+    itemNode.parentNode.removeChild(itemNode);
+}
+
+function displayInventory() {
+    var imageNode = document.getElementById('inventory-image');
+    var itemsNode = document.getElementById('inventory-items');
+
+    imageNode.style.visibility = 'hidden';
+    itemsNode.style.visibility = 'visible';
+}
+
+function hideInventory() {
+    var imageNode = document.getElementById('inventory-image');
+    var itemsNode = document.getElementById('inventory-items');
+
+    imageNode.style.visibility = 'visible';
+    itemsNode.style.visibility = 'hidden';
+}
+
 
 function onKeyPress(event) {
     /* Capture keystrokes and report them to the server.
@@ -477,6 +506,7 @@ function inputSubmitted(event, inputNode) {
 
 document.onkeypress = onKeyPress;
 
+
 var radical_oldOnLoad = window.onload;
 function radical_onLoad() {
     if (radical_oldOnLoad) {
@@ -488,5 +518,8 @@ function radical_onLoad() {
 
     inputForm = document.getElementById('input-form');
     setNodePosition(inputForm, MAP_LEFT_PX, MAP_TOP_PX + (TILE_HEIGHT_PX * VIEWPORT_Y));
+
+    inventoryNode = document.getElementById('inventory');
+    setNodePosition(inventoryNode, MAP_LEFT_PX + (TILE_WIDTH_PX * VIEWPORT_X), MAP_TOP_PX + (TILE_HEIGHT_PX * (VIEWPORT_Y - 1)));
 }
 window.onload = radical_onLoad;

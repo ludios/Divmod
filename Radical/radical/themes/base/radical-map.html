@@ -1,6 +1,19 @@
 <div xmlns:nevow="http://nevow.com/ns/nevow/0.1">
+
+  <!-- Map tiles and game content goes here -->
   <div id="map-node" />
+
+
+  <!-- This is an area where events are announced -->
   <div id="notification" />
+
+  <!-- Stuff you are carrying will be displayed inside this -->
+  <div id="inventory" onmouseover="displayInventory()" onmouseout="hideInventory()">
+    <img id="inventory-image" src="/static/radical/inventory.png" />
+    <div id="inventory-items" style="visiblity: hidden">
+      <span>Inventory</span>
+    </div>
+  </div>
 
   <!-- Wrap the form in an element that prevent events from getting
        any higher in the document - this lets us use normal input

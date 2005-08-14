@@ -1,7 +1,7 @@
 
 import random
 
-from zope.interface import implements
+from zope.interface import implements, Interface
 
 from twisted.plugin import IPlugin
 from twisted.python.components import registerAdapter
@@ -9,9 +9,9 @@ from twisted.python import util
 
 from nevow import rend, loaders, livepage, flat, static, json, tags as T
 
-from axiom import store
+from axiom import store, extime
 from axiom.item import Item
-from axiom.attributes import reference, integer, inmemory
+from axiom.attributes import reference, integer, text, timestamp, inmemory
 
 from xmantissa.ixmantissa import INavigableFragment, INavigableElement, ISessionlessSiteRootPlugin, ISiteRootPlugin
 from xmantissa import webnav, website
@@ -20,16 +20,28 @@ VOID, MOUNTAIN, GRASS, WATER, FOREST, DESERT = range(6)
 TERRAIN_TYPES = (MOUNTAIN, GRASS, WATER, FOREST, DESERT)
 
 TERRAIN_NAMES = {
-    MOUNTAIN: 'mountain',
-    GRASS: 'grass',
-    FOREST: 'forest',
-    WATER: 'water',
-    DESERT: 'desert',
-    VOID: 'void',
+    MOUNTAIN: u'mountain',
+    GRASS: u'grass',
+    FOREST: u'forest',
+    WATER: u'water',
+    DESERT: u'desert',
+    VOID: u'void',
     }
 
 VIEWPORT_X = 8
 VIEWPORT_Y = 8
+
+class Location(object):
+    def __init__(self, terrain, contents):
+        self.terrain = terrain
+        self.contents = contents
+
+    def getTerrain(self):
+        return TERRAIN_NAMES[self.terrain]
+
+    def getObjects(self):
+        return self.contents
+
 
 class RadicalWorld(Item, website.PrefixURLMixin):
     implements(ISessionlessSiteRootPlugin)
@@ -50,18 +62,29 @@ class RadicalWorld(Item, website.PrefixURLMixin):
     def install(self):
         self.store.powerUp(self, ISessionlessSiteRootPlugin)
 
-    def getTerrain(self):
+        sword = RadicalObject.create(self.store, u'sword')
+        sword.powerUp(LocationComponent(store=self.store, x=15, y=15), ILocated)
+
+    def getLocationMatrix(self):
         if not hasattr(self, 'terrain'):
             rnd = random.Random()
             rnd.seed(self.seed)
-            self.terrain = [rnd.choice(TERRAIN_TYPES) for n in range(self.width) for m in range(self.height)]
+            self.terrain = [Location(rnd.choice(TERRAIN_TYPES), [])
+                            for n in range(self.width)
+                            for m in range(self.height)]
+
+            for obj in self.store.query(RadicalObject):
+                loc = ILocated(obj, None)
+                if loc is not None:
+                    self.getLocationAt(loc.x, loc.y).contents.append(obj)
         return self.terrain
 
-    def getTerrainAt(self, x, y):
-        t = self.getTerrain()
+
+    def getLocationAt(self, x, y):
+        t = self.getLocationMatrix()
         if x < 0 or x >= self.width or y < 0 or y >= self.height:
-            return TERRAIN_NAMES[VOID]
-        return TERRAIN_NAMES[t[y * self.width + x]]
+            raise ValueError("Terrain out of bounds")
+        return t[y * self.width + x]
 
     def addPlayer(self, player):
         if not hasattr(self, 'players'):
@@ -69,7 +92,8 @@ class RadicalWorld(Item, website.PrefixURLMixin):
         self.players.append(player)
         for p in self.players:
             if p is not player:
-                player.observeMovement(p, (p.original.posX, p.original.posY))
+                loc = ILocated(p.original)
+                player.observeMovement(p, (loc.x, loc.y))
 
     def removePlayer(self, player):
         self.players.remove(player)
@@ -104,7 +128,7 @@ class RadicalApplication(Item, website.PrefixURLMixin):
 
     def install(self):
         self.store.powerUp(self, INavigableElement)
-        self.character = RadicalCharacter(store=self.store)
+        self.character = RadicalCharacter.create(self.store, 10, 10, u'player')
 
     def getTabs(self):
         return [webnav.Tab('Games', self.storeID, 0.0,
@@ -115,13 +139,63 @@ class RadicalApplication(Item, website.PrefixURLMixin):
 
 
 
+class ILocated(Interface):
+    pass
+
+class IVisible(Interface):
+    pass
+
+class ICarryable(Interface):
+    pass
+
+
+class VisibilityComponent(Item):
+    typeName = 'radical_visibility_component'
+    schemaVersion = 1
+
+    image = text()
+
+
+class LocationComponent(Item):
+    typeName = 'radical_location_component'
+    schemaVersion = 1
+
+    x = integer(default=10)
+    y = integer(default=10)
+
+
+class CarriedComponent(Item):
+    typeName = 'radical_carried_component'
+    schemaVersion = 1
+
+    carriedBy = reference()
+
+
 class RadicalCharacter(Item):
     schemaVersion = 1
     typeName = 'radical_character'
 
     hitpoints = integer(default=1)
-    posX = integer(default=10)
-    posY = integer(default=10)
+
+    def create(cls, store, x, y, image):
+        o = cls(store=store)
+        o.powerUp(LocationComponent(store=store, x=x, y=y), ILocated)
+        o.powerUp(VisibilityComponent(store=store, image=image), IVisible)
+        return o
+    create = classmethod(create)
+
+
+class RadicalObject(Item):
+    schemaVersion = 1
+    typeName = 'radical_object'
+
+    created = timestamp()
+
+    def create(cls, store, image):
+        o = cls(store=store, created=extime.Time())
+        o.powerUp(VisibilityComponent(store=store, image=image), IVisible)
+        return o
+    create = classmethod(create)
 
 
 theMap = livepage.js.theMap
@@ -138,8 +212,6 @@ class RadicalGame(rend.Fragment):
 
     live = True
     fragmentName = 'radical-map'
-
-    charImage = 'player'
 
     _charCounter = 0
 
@@ -167,33 +239,41 @@ class RadicalGame(rend.Fragment):
         self.world = self.getWorld()
 
         self._charImages = {}
-        self.me = self.newCharacter(self.charImage)
+        self.me = self.newCharacter(IVisible(self.original).image)
         self._otherPeople = {self: self.me}
 
-        self.dispX = _pickDisplayCoordinate(self.original.posX, VIEWPORT_X, self.world.width)
-        self.dispY = _pickDisplayCoordinate(self.original.posY, VIEWPORT_Y, self.world.height)
+        loc = ILocated(self.original)
+
+        self.dispX = _pickDisplayCoordinate(loc.x, VIEWPORT_X, self.world.width)
+        self.dispY = _pickDisplayCoordinate(loc.y, VIEWPORT_Y, self.world.height)
 
         self.sendCompleteTerrain()
         self.world.addPlayer(self)
         client.notifyOnClose().addBoth(self._closed)
 
-        print 'I am at', (self.original.posX, self.original.posY), 'and viewport selected was', (self.dispX, self.dispY)
-        self.world.playerMoved(self, (self.original.posX, self.original.posY))
+        print 'I am at', (loc.x, loc.y), 'and viewport selected was', (self.dispX, self.dispY)
+        self.world.playerMoved(self, (loc.x, loc.y))
 
 
     def inRange(self, other):
-        baseX = self.original.posX - self.dispX
-        baseY = self.original.posY - self.dispY
+        loc = ILocated(self.original)
+        oloc = ILocated(other.original)
+
+        baseX = loc.x - self.dispX
+        baseY = loc.y - self.dispY
         return (
-            (baseX <= other.original.posX < baseX + VIEWPORT_X) and
-            (baseY <= other.original.posY < baseY + VIEWPORT_Y))
+            (baseX <= oloc.x < baseX + VIEWPORT_X) and
+            (baseY <= oloc.y < baseY + VIEWPORT_Y))
 
     def observeMovement(self, who, where):
+        loc = ILocated(self.original)
+        wloc = ILocated(who.original)
+
         if self.inRange(who):
             if who not in self._otherPeople:
-                self._otherPeople[who] = self.newCharacter(self.charImage)
-            row = who.original.posX - (self.original.posX - self.dispX)
-            col = who.original.posY - (self.original.posY - self.dispY)
+                self._otherPeople[who] = self.newCharacter(IVisible(who.original).image)
+            row = wloc.x - (loc.x - self.dispX)
+            col = wloc.y - (loc.y - self.dispY)
             self.client.send(self.moveCharacter(self._otherPeople[who], row, col))
         else:
             if who in self._otherPeople:
@@ -224,15 +304,16 @@ class RadicalGame(rend.Fragment):
         Send an entire screen's worth of terrain to the client,
         centered at the client's current position.
         """
-        ch = self.original
+        loc = ILocated(self.original)
         visTerr = [[None] * VIEWPORT_Y for n in range(VIEWPORT_X)]
-        xBase = ch.posX - self.dispX
-        yBase = ch.posY - self.dispY
+        xBase = loc.x - self.dispX
+        yBase = loc.y - self.dispY
         for visY in range(VIEWPORT_Y):
             yPos = yBase + visY
             for visX in range(VIEWPORT_X):
                 xPos = xBase + visX
-                visTerr[visX][visY] = self.world.getTerrainAt(xPos, yPos)
+                loc = self.world.getLocationAt(xPos, yPos)
+                visTerr[visX][visY] = loc.getTerrain()
 
         self.client.send([
                 livepage.js.initializeMap(livepage.js(json.serialize(visTerr))),
@@ -242,36 +323,43 @@ class RadicalGame(rend.Fragment):
                 ])
 
 
-    def scrollDown(self):
-        ch = self.original
-        allTerr = self.world.getTerrain()
-        visTerr = [None] * VIEWPORT_X
-        base = ch.posX - self.dispX
-        row = ch.posY - 1 - self.dispY
+    def _vertScroll(self, func, row):
+        loc = ILocated(self.original)
+        base = loc.x - self.dispX
+        visTerr = []
+        visObjs = []
         for visX in xrange(base, base + VIEWPORT_X):
-            visTerr[visX - base] = self.world.getTerrainAt(visX, row)
-        return theMap.insertTopRow(livepage.js(json.serialize(visTerr))), livepage.eol
+            location = self.world.getLocationAt(visX, row)
+            visTerr.append(location.getTerrain())
+            visObjs.append([IVisible(o).image for o in location.getObjects()])
+
+        return func(
+            livepage.js(json.serialize(visTerr)),
+            livepage.js(json.serialize(visObjs))), livepage.eol
+
+    def scrollDown(self):
+        loc = ILocated(self.original)
+        return self._vertScroll(theMap.insertTopRow, loc.y - 1 - self.dispY)
 
 
     def scrollUp(self):
-        ch = self.original
-        allTerr = self.world.getTerrain()
-        visTerr = [None] * VIEWPORT_X
-        base = ch.posX - self.dispX
-        row = ch.posY + 1 + (VIEWPORT_Y - self.dispY)
-        for visX in xrange(base, base + VIEWPORT_X):
-            visTerr[visX - base] = self.world.getTerrainAt(visX, row)
-        return theMap.insertBottomRow(livepage.js(json.serialize(visTerr))), livepage.eol
+        loc = ILocated(self.original)
+        return self._vertScroll(theMap.insertBottomRow, loc.y + 1 + (VIEWPORT_Y - self.dispY))
 
 
-    def _horizScroll(self, func  ):
-        ch = self.original
-        allTerr = self.world.getTerrain()
-        visTerr = [None] * VIEWPORT_Y
-        base = ch.posY - self.dispY
+    def _horizScroll(self, func):
+        loc = ILocated(self.original)
+        base = loc.y - self.dispY
+        visTerr = []
+        visObjs = []
         for visY in range(base, base + VIEWPORT_Y):
-            visTerr[visY - base] = self.world.getTerrainAt(ch.posX, visY)
-        return func(livepage.js(json.serialize(visTerr))), livepage.eol
+            location = self.world.getLocationAt(loc.x, visY)
+            visTerr.append(location.getTerrain())
+            visObjs.append([IVisible(o).image for o in location.getObjects()])
+
+        return func(
+            livepage.js(json.serialize(visTerr)),
+            livepage.js(json.serialize(visObjs))), livepage.eol
 
 
     def scrollLeft(self):
@@ -298,8 +386,9 @@ class RadicalGame(rend.Fragment):
         meta = meta == 'true'
         shift = shift == 'true'
         print which, alt and 'A' or '.', ctrl and 'C' or '.', meta and 'M' or '.', shift and 'S' or '.'
+        loc = ILocated(self.original)
         print 'Display', self.dispX, self.dispY
-        print 'Actual', self.original.posX, self.original.posY
+        print 'Actual', loc.x, loc.y
 
 
     def handle_sendMessage(self, ctx, message):
@@ -314,16 +403,19 @@ class RadicalGame(rend.Fragment):
             return self.moveUp()
 
     def moveUp(self):
+        loc = ILocated(self.original)
+
         if self.dispY > 0:
             self.dispY -= 1
-            self.original.posY -= 1
+            loc.y -= 1
             yield self.updateMyPosition()
-        elif self.original.posY > 0:
+        elif loc.y > 0:
             yield self.scrollDown()
-            self.original.posY -= 1
+            loc.y -= 1
         else:
             return
-        self.world.playerMoved(self, (self.original.posX, self.original.posY))
+
+        self.world.playerMoved(self, (loc.x, loc.y))
 
 
     def tryScrollUp(self):
@@ -341,16 +433,18 @@ class RadicalGame(rend.Fragment):
             return self.moveDown()
 
     def moveDown(self):
+        loc = ILocated(self.original)
+
         if self.dispY < VIEWPORT_Y - 1:
             self.dispY += 1
-            self.original.posY += 1
+            loc.y += 1
             yield self.updateMyPosition()
-        elif self.original.posY < self.world.height - 1:
+        elif loc.y < self.world.height - 1:
             yield self.scrollUp()
-            self.original.posY += 1
+            loc.y += 1
         else:
             return
-        self.world.playerMoved(self, (self.original.posX, self.original.posY))
+        self.world.playerMoved(self, (loc.x, loc.y))
 
 
     def tryScrollDown(self):
@@ -361,29 +455,31 @@ class RadicalGame(rend.Fragment):
 
 
     def handle_leftArrow(self, ctx, ctrl):
+        loc = ILocated(self.original)
         if self.dispX > 0:
             self.dispX -= 1
-            self.original.posX -= 1
+            loc.x -= 1
             yield self.updateMyPosition()
-        elif self.original.posX > 0:
-            self.original.posX -= 1
+        elif loc.x > 0:
+            loc.x -= 1
             yield self.scrollRight()
         else:
             return
-        self.world.playerMoved(self, (self.original.posX, self.original.posY))
+        self.world.playerMoved(self, (loc.x, loc.y))
 
 
     def handle_rightArrow(self, ctx, ctrl):
+        loc = ILocated(self.original)
         if self.dispX < VIEWPORT_X - 1:
             self.dispX += 1
-            self.original.posX += 1
+            loc.x += 1
             yield self.updateMyPosition()
-        elif self.original.posX < self.world.width - 1:
-            self.original.posX += 1
+        elif loc.x < self.world.width - 1:
+            loc.x += 1
             yield self.scrollLeft()
         else:
             return
-        self.world.playerMoved(self, (self.original.posX, self.original.posY))
+        self.world.playerMoved(self, (loc.x, loc.y))
 
 
 registerAdapter(RadicalGame, RadicalCharacter, INavigableFragment)

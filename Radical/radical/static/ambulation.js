@@ -117,10 +117,12 @@ function GameMap_redraw() {
     }
 };
 
-function GameMap_insertTopRow(terrain) {
+function GameMap_insertTopRow(terrain, items) {
     /* Move everything on the screen down one.  Insert the given
      * terrain in the new, empty row at the top.
      */
+    notify('Insert top row: ' + JSON.stringify(items));
+
     contents = this.contents;
     this.contents = [this.contents[0]];
     for (n = 1; n < contents.length; n++) {
@@ -137,13 +139,22 @@ function GameMap_insertTopRow(terrain) {
     for (n = 0; n < terrain.length; n++) {
         this.terrain[n].unshift(terrain[n]);
         this.terrain[n].pop();
+        if (items[n]) {
+            for (m = 0; m < items[n].length; m++) {
+                var itemNode = createItemTile(n, 0, m, items[n][m]);
+                this.contents.push(itemNode);
+                this.element.appendChild(itemNode);
+            }
+        }
     }
     this.redraw();
 };
 
-function GameMap_insertBottomRow(terrain) {
+function GameMap_insertBottomRow(terrain, items) {
     /* Opposite of insertTopRow
      */
+    notify('Insert bottom row: ' + JSON.stringify(items));
+
     contents = this.contents;
     this.contents = [this.contents[0]];
     for (n = 1; n < contents.length; n++) {
@@ -160,11 +171,18 @@ function GameMap_insertBottomRow(terrain) {
     for (n = 0; n < terrain.length; n++) {
         this.terrain[n].push(terrain[n]);
         this.terrain[n].shift();
+        if (items[n]) {
+            for (m = 0; m < items[n].length; m++) {
+                var itemNode = createItemTile(n, VIEWPORT_Y - 1, m, items[n][m]);
+                this.contents.push(itemNode);
+                this.element.appendChild(itemNode);
+            }
+        }
     }
     this.redraw();
 };
 
-function GameMap_insertLeftColumn(terrain) {
+function GameMap_insertLeftColumn(terrain, items) {
     /* Move everything to the right and insert the given terrain in the
      * new empty column.
      */
@@ -183,11 +201,22 @@ function GameMap_insertLeftColumn(terrain) {
 
     this.terrain.unshift(terrain);
     this.terrain.pop();
+
+    for (n = 0; n < terrain.length; n++) {
+        if (items[n]) {
+            for (m = 0; m < items[n].length; m++) {
+                var itemNode = createItemTile(0, n, m, items[n][m]);
+                this.contents.push(itemNode);
+                this.element.appendChild(itemNode);
+            }
+        }
+    }
+
     this.redraw();
 };
 
 
-function GameMap_insertRightColumn(terrain) {
+function GameMap_insertRightColumn(terrain, items) {
     /* Move everything to the left and insert the given terrain in the
      * new empty column.
      */
@@ -206,6 +235,17 @@ function GameMap_insertRightColumn(terrain) {
 
     this.terrain.push(terrain);
     this.terrain.shift();
+
+    for (n = 0; n < terrain.length; n++) {
+        if (items[n]) {
+            for (m = 0; m < items[n].length; m++) {
+                var itemNode = createItemTile(VIEWPORT_X - 1, n, m, items[n][m]);
+                this.contents.push(itemNode);
+                this.element.appendChild(itemNode);
+            }
+        }
+    }
+
     this.redraw();
 };
 
@@ -269,6 +309,35 @@ function createMapTile(row, col, kind) {
 
     return tile;
 };
+
+function itemTileImageSource(kind) {
+    notify('Creating ' + kind);
+    return '/static/radical/' + kind + '.png';
+}
+
+function createItemTile(row, col, idx, kind) {
+    /* Create a completely initialized item tile at the given
+     * location.
+     */
+    notify('Creating an item tile at ' + row + ' ' + col + ' of type ' + kind);
+
+    var image = document.createElement('img');
+    image.src = itemTileImageSource(kind);
+//     image.height = TILE_HEIGHT_PX;
+//     image.width = TILE_WIDTH_PX;
+
+    var pos = absoluteObjectPositionFromCoordinates(row, col);
+    var tile = document.createElement('span');
+    tile.id = 'item-' + row + '-' + col + '-' + idx;
+    setNodePosition(tile, pos[0], pos[1]);
+    tile.style.zIndex = row + 1;
+    tile.appendChild(image);
+
+    tile.row = row;
+    tile.col = col;
+
+    return tile;
+}
 
 function initializeMap(terrain) {
     /* Create a game map by creating a bunch of divs at particular

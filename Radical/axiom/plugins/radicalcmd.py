@@ -24,10 +24,12 @@ class RadicalConfiguration(usage.Options):
 
     def postOptions(self):
         s = self.parent.getStore()
-        if self['world']:
-            for world in s.store.query(radapp.RadicalWorld):
-                break
+        def postOptions():
+            if self['world']:
+                for world in s.store.query(radapp.RadicalWorld):
+                    break
+                else:
+                    radapp.RadicalWorld(store=s.store).install()
             else:
-                radapp.RadicalWorld(store=s.store).install()
-        else:
-            radapp.RadicalApplication(store=s).install()
+                radapp.RadicalApplication(store=s).install()
+        s.transact(postOptions)

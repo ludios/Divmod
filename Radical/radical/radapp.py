@@ -63,7 +63,7 @@ class RadicalWorld(Item, website.PrefixURLMixin):
         self.store.powerUp(self, ISessionlessSiteRootPlugin)
 
         sword = RadicalObject.create(self.store, u'sword')
-        sword.powerUp(LocationComponent(store=self.store, x=15, y=15), ILocated)
+        sword.powerUp(LocationComponent(store=self.store, original=sword, x=15, y=15), ILocated)
 
     def getLocationMatrix(self):
         if not hasattr(self, 'terrain'):
@@ -154,6 +154,7 @@ class VisibilityComponent(Item):
     schemaVersion = 1
 
     image = text()
+    original = reference(allowNone=False)
 
 
 class LocationComponent(Item):
@@ -162,6 +163,31 @@ class LocationComponent(Item):
 
     x = integer(default=10)
     y = integer(default=10)
+    original = reference(allowNone=False)
+
+    def moveWest(self):
+        if self.x > 0:
+            self.x -= 1
+            return True
+        return False
+
+    def moveEast(self):
+        if self.x < self.original.world.width - 1:
+            self.x += 1
+            return True
+        return False
+
+    def moveNorth(self):
+        if self.y > 0:
+            self.y -= 1
+            return True
+        return False
+
+    def moveSouth(self):
+        if self.y < self.original.world.height - 1:
+            self.y += 1
+            return True
+        return False
 
 
 class CarriedComponent(Item):
@@ -169,6 +195,7 @@ class CarriedComponent(Item):
     schemaVersion = 1
 
     carriedBy = reference()
+    original = reference(allowNone=False)
 
 
 class RadicalCharacter(Item):
@@ -177,10 +204,18 @@ class RadicalCharacter(Item):
 
     hitpoints = integer(default=1)
 
+    def world():
+        def get(self):
+            for world in self.store.parent.query(RadicalWorld):
+                return world
+            raise RuntimeError("Character is not in any world, it seems.")
+        return get,
+    world = property(*world())
+
     def create(cls, store, x, y, image):
         o = cls(store=store)
-        o.powerUp(LocationComponent(store=store, x=x, y=y), ILocated)
-        o.powerUp(VisibilityComponent(store=store, image=image), IVisible)
+        o.powerUp(LocationComponent(store=store, original=o, x=x, y=y), ILocated)
+        o.powerUp(VisibilityComponent(store=store, original=o, image=image), IVisible)
         return o
     create = classmethod(create)
 
@@ -193,7 +228,7 @@ class RadicalObject(Item):
 
     def create(cls, store, image):
         o = cls(store=store, created=extime.Time())
-        o.powerUp(VisibilityComponent(store=store, image=image), IVisible)
+        o.powerUp(VisibilityComponent(store=store, original=o, image=image), IVisible)
         return o
     create = classmethod(create)
 
@@ -206,6 +241,21 @@ def _pickDisplayCoordinate(pos, viewport, max):
     if pos > max - viewport / 2:
         return viewport - (max - pos)
     return viewport / 2
+
+
+MOVEMENT, ATTACK = 'MOVEMENT', 'ATTACK'
+
+class UserInput(object):
+    """Handle input from the user based on the current game state.
+    """
+    state = MOVEMENT
+
+    def dispatch(self, event, *a, **kw):
+        return getattr(self, self.state + '_' + event)(*a, **kw)
+
+    def MOVEMENT_WEST(self):
+        pass
+
 
 class RadicalGame(rend.Fragment):
     implements(INavigableFragment)
@@ -404,18 +454,13 @@ class RadicalGame(rend.Fragment):
 
     def moveUp(self):
         loc = ILocated(self.original)
-
-        if self.dispY > 0:
-            self.dispY -= 1
-            loc.y -= 1
-            yield self.updateMyPosition()
-        elif loc.y > 0:
-            yield self.scrollDown()
-            loc.y -= 1
-        else:
-            return
-
-        self.world.playerMoved(self, (loc.x, loc.y))
+        if loc.moveNorth():
+            if self.dispY > 0:
+                self.dispY -= 1
+                yield self.updateMyPosition()
+            else:
+                yield self.scrollDown()
+            self.world.playerMoved(self, (loc.x, loc.y))
 
 
     def tryScrollUp(self):
@@ -434,17 +479,13 @@ class RadicalGame(rend.Fragment):
 
     def moveDown(self):
         loc = ILocated(self.original)
-
-        if self.dispY < VIEWPORT_Y - 1:
-            self.dispY += 1
-            loc.y += 1
-            yield self.updateMyPosition()
-        elif loc.y < self.world.height - 1:
-            yield self.scrollUp()
-            loc.y += 1
-        else:
-            return
-        self.world.playerMoved(self, (loc.x, loc.y))
+        if loc.moveSouth():
+            if self.dispY < VIEWPORT_Y - 1:
+                self.dispY += 1
+                yield self.updateMyPosition()
+            else:
+                yield self.scrollUp()
+            self.world.playerMoved(self, (loc.x, loc.y))
 
 
     def tryScrollDown(self):
@@ -456,30 +497,24 @@ class RadicalGame(rend.Fragment):
 
     def handle_leftArrow(self, ctx, ctrl):
         loc = ILocated(self.original)
-        if self.dispX > 0:
-            self.dispX -= 1
-            loc.x -= 1
-            yield self.updateMyPosition()
-        elif loc.x > 0:
-            loc.x -= 1
-            yield self.scrollRight()
-        else:
-            return
-        self.world.playerMoved(self, (loc.x, loc.y))
+        if loc.moveWest():
+            if self.dispX > 0:
+                self.dispX -= 1
+                yield self.updateMyPosition()
+            else:
+                yield self.scrollRight()
+            self.world.playerMoved(self, (loc.x, loc.y))
 
 
     def handle_rightArrow(self, ctx, ctrl):
         loc = ILocated(self.original)
-        if self.dispX < VIEWPORT_X - 1:
-            self.dispX += 1
-            loc.x += 1
-            yield self.updateMyPosition()
-        elif loc.x < self.world.width - 1:
-            loc.x += 1
-            yield self.scrollLeft()
-        else:
-            return
-        self.world.playerMoved(self, (loc.x, loc.y))
+        if loc.moveEast():
+            if self.dispX < VIEWPORT_X - 1:
+                self.dispX += 1
+                yield self.updateMyPosition()
+            else:
+                yield self.scrollLeft()
+            self.world.playerMoved(self, (loc.x, loc.y))
 
 
 registerAdapter(RadicalGame, RadicalCharacter, INavigableFragment)

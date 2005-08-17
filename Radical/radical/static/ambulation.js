@@ -39,6 +39,7 @@ function notify(message) {
     var notification = document.getElementById('notification');
     var d = document.createElement('div');
     var t = document.createTextNode(message);
+
     d.appendChild(t);
     notification.appendChild(d);
     messageCount++;
@@ -51,7 +52,7 @@ function notify(message) {
 // Kind of like Python's vars() builtin
 function strvars(obj) {
     var accum = [];
-    for (e in obj) {
+    for (var e in obj) {
         accum.push(e + ': ' + obj[e]);
     }
     return '{' + accum.join(', ') + '}';
@@ -85,11 +86,11 @@ function absoluteObjectPositionFromCoordinates(row, col) {
     // image in the middle of the tile it occupies.  These coordinates
     // are for the top-left of the image, though.
 
-    tileCenterX = tilePos[0] + TILE_WIDTH_PX / 2;
-    tileCenterY = tilePos[1] + TILE_HEIGHT_PX / 2;
+    var tileCenterX = tilePos[0] + TILE_WIDTH_PX / 2;
+    var tileCenterY = tilePos[1] + TILE_HEIGHT_PX / 2;
 
-    objLeft = tileCenterX - OBJECT_WIDTH_PX / 2;
-    objTop = tileCenterY - OBJECT_HEIGHT_PX;
+    var objLeft = tileCenterX - OBJECT_WIDTH_PX / 2;
+    var objTop = tileCenterY - OBJECT_HEIGHT_PX;
 
     return [objLeft, objTop];
 };
@@ -100,9 +101,9 @@ function GameMap_erase() {
 
 function GameMap_redraw() {
     var idx = 0;
-    for (row = 0; row < this.terrain.length; row++) {
-        for (col = 0; col < this.terrain[row].length; col++) {
-            imgSrc = mapTileImageSource(this.terrain[row][col]);
+    for (var row = 0; row < this.terrain.length; row++) {
+        for (var col = 0; col < this.terrain[row].length; col++) {
+            var imgSrc = mapTileImageSource(this.terrain[row][col]);
             this.tiles[idx].firstChild.src = imgSrc;
             idx++;
         }
@@ -110,8 +111,8 @@ function GameMap_redraw() {
 
     var pos = null;
     for (var n = 0; n < this.contents.length; n++) {
-        obj = this.contents[n];
-        pos = absoluteObjectPositionFromCoordinates(obj.row, obj.col);
+        var obj = this.contents[n];
+        var pos = absoluteObjectPositionFromCoordinates(obj.row, obj.col);
         setNodePosition(obj, pos[0], pos[1]);
         debug("Rendering " + new String(obj.id) + " at " + pos.join(', '));
     }
@@ -123,9 +124,9 @@ function GameMap_insertTopRow(terrain, items) {
      */
     notify('Insert top row: ' + JSON.stringify(items));
 
-    contents = this.contents;
+    var contents = this.contents;
     this.contents = [this.contents[0]];
-    for (n = 1; n < contents.length; n++) {
+    for (var n = 1; n < contents.length; n++) {
         contents[n].col += 1;
         debug('Shifting ' + new String(contents[n].id) + ' right.');
         if (contents[n].col < VIEWPORT_Y) {
@@ -136,11 +137,11 @@ function GameMap_insertTopRow(terrain, items) {
         }
     }
 
-    for (n = 0; n < terrain.length; n++) {
+    for (var n = 0; n < terrain.length; n++) {
         this.terrain[n].unshift(terrain[n]);
         this.terrain[n].pop();
         if (items[n]) {
-            for (m = 0; m < items[n].length; m++) {
+            for (var m = 0; m < items[n].length; m++) {
                 var itemNode = createItemTile(n, 0, m, items[n][m]);
                 this.contents.push(itemNode);
                 this.element.appendChild(itemNode);
@@ -155,9 +156,9 @@ function GameMap_insertBottomRow(terrain, items) {
      */
     notify('Insert bottom row: ' + JSON.stringify(items));
 
-    contents = this.contents;
+    var contents = this.contents;
     this.contents = [this.contents[0]];
-    for (n = 1; n < contents.length; n++) {
+    for (var n = 1; n < contents.length; n++) {
         contents[n].col -= 1;
         debug('Shifting ' + new String(contents[n]) + ' left.');
         if (contents[n].col >= 0) {
@@ -168,11 +169,11 @@ function GameMap_insertBottomRow(terrain, items) {
         }
     }
 
-    for (n = 0; n < terrain.length; n++) {
+    for (var n = 0; n < terrain.length; n++) {
         this.terrain[n].push(terrain[n]);
         this.terrain[n].shift();
         if (items[n]) {
-            for (m = 0; m < items[n].length; m++) {
+            for (var m = 0; m < items[n].length; m++) {
                 var itemNode = createItemTile(n, VIEWPORT_Y - 1, m, items[n][m]);
                 this.contents.push(itemNode);
                 this.element.appendChild(itemNode);
@@ -186,9 +187,9 @@ function GameMap_insertLeftColumn(terrain, items) {
     /* Move everything to the right and insert the given terrain in the
      * new empty column.
      */
-    contents = this.contents;
+    var contents = this.contents;
     this.contents = [this.contents[0]];
-    for (n = 1; n < contents.length; n++) {
+    for (var n = 1; n < contents.length; n++) {
         debug('Shifting ' + new String(contents[n].id) + ' down.');
         contents[n].row += 1;
         if (contents[n].row < VIEWPORT_Y) {
@@ -202,9 +203,9 @@ function GameMap_insertLeftColumn(terrain, items) {
     this.terrain.unshift(terrain);
     this.terrain.pop();
 
-    for (n = 0; n < terrain.length; n++) {
+    for (var n = 0; n < terrain.length; n++) {
         if (items[n]) {
-            for (m = 0; m < items[n].length; m++) {
+            for (var m = 0; m < items[n].length; m++) {
                 var itemNode = createItemTile(0, n, m, items[n][m]);
                 this.contents.push(itemNode);
                 this.element.appendChild(itemNode);
@@ -220,9 +221,9 @@ function GameMap_insertRightColumn(terrain, items) {
     /* Move everything to the left and insert the given terrain in the
      * new empty column.
      */
-    contents = this.contents;
+    var contents = this.contents;
     this.contents = [this.contents[0]];
-    for (n = 1; n < contents.length; n++) {
+    for (var n = 1; n < contents.length; n++) {
         contents[n].row -= 1;
         debug('Shifting ' + new String(contents[n].id) + ' up.');
         if (contents[n].row >= 0) {
@@ -236,9 +237,9 @@ function GameMap_insertRightColumn(terrain, items) {
     this.terrain.push(terrain);
     this.terrain.shift();
 
-    for (n = 0; n < terrain.length; n++) {
+    for (var n = 0; n < terrain.length; n++) {
         if (items[n]) {
-            for (m = 0; m < items[n].length; m++) {
+            for (var m = 0; m < items[n].length; m++) {
                 var itemNode = createItemTile(VIEWPORT_X - 1, n, m, items[n][m]);
                 this.contents.push(itemNode);
                 this.element.appendChild(itemNode);
@@ -260,9 +261,9 @@ function GameMap(terrain) {
     this.element = document.getElementById('map-node');
 
     this.tiles = [];
-    for (row = 0; row < this.terrain.length; row++) {
-        for (col = 0; col < this.terrain[row].length; col++) {
-            tile = createMapTile(row, col, this.terrain[row][col]);
+    for (var row = 0; row < this.terrain.length; row++) {
+        for (var col = 0; col < this.terrain[row].length; col++) {
+            var tile = createMapTile(row, col, this.terrain[row][col]);
             this.tiles[this.tiles.length] = tile;
             this.element.appendChild(tile);
         }
@@ -351,21 +352,31 @@ function characterTileImageSource(image) {
     return '/static/radical/' + image + '.png';
 };
 
-function createCharacterTile(charId, charImageURL) {
+function createCharacterTile(charName, charImageURL) {
     var node = document.createElement('span');
     var charImage = document.createElement('img');
     var charMessage = document.createElement('div');
+    var charLabel = document.createElement('div');
 
-    node.id = charId;
-    node.style.cssText = 'position: absolute; z-index: 2';
+    node.id = characterId(charName);
+    node.style.position = 'absolute';
+    node.style.zIndex = 2;
+
     charImage.src = charImageURL;
     charImage.height = OBJECT_HEIGHT_PX;
     charImage.width = OBJECT_WIDTH_PX;
 
-    charMessage.style.cssText = 'background-color: white; opacity: 100; visibility: hidden; border-style: solid; border-color: red';
+    charMessage.style.visibility = 'hidden';
+    charMessage.style.backgroundColor = 'white';
+    charMessage.style.opacity = 0.75;
+    charMessage.style.borderStyle = 'solid';
+    charMessage.style.borderColor = 'red';
+
+    charLabel.appendChild(document.createTextNode(charName));
 
     node.appendChild(charMessage);
     node.appendChild(charImage);
+    node.appendChild(charLabel);
 
     return node;
 };
@@ -384,12 +395,12 @@ function characterId(charId) {
     return 'character-' + charId;
 };
 
-function eraseCharacter(charId) {
-    var node = document.getElementById(characterId(charId));
+function eraseCharacter(charName) {
+    var node = document.getElementById(characterId(charName));
     if (node) {
-        debug('Erasing character ' + charId + '.');
+        debug('Erasing character ' + charName + '.');
         theMap.element.removeChild(node);
-        for (n = 0; n < theMap.contents.length; n++) {
+        for (var n = 0; n < theMap.contents.length; n++) {
             if (theMap.contents[n] == node) {
                 debug('Removing ' + new String(theMap.contents[n].id) + ' from the map.');
                 debug('Contents is now ' + new String(theMap.contents));
@@ -398,26 +409,26 @@ function eraseCharacter(charId) {
             }
         }
     } else {
-        debug('Bogus erase request: ' + charId + '.');
+        debug('Bogus erase request: ' + charName + '.');
     }
 };
 
 
-function moveCharacter(charId, row, col, charImage) {
-    var node = document.getElementById(characterId(charId));
+function moveCharacter(charName, row, col, charImage) {
+    var node = document.getElementById(characterId(charName));
     if (!node) {
-        node = createCharacterTile(characterId(charId), characterTileImageSource(charImage));
+        node = createCharacterTile(charName, characterTileImageSource(charImage));
         theMap.element.appendChild(node);
         theMap.contents.push(node);
-        debug('Creating a new character ' + charId);
+        debug('Creating a new character ' + charName);
         debug('Contents is now ' + new String(theMap.contents));
     }
-    debug('Moving ' + charId + ' to row ' + new String(row) + ', ' + new String(col) + '.');
+    debug('Moving ' + charName + ' to row ' + new String(row) + ', ' + new String(col) + '.');
     moveCharacterTile(node, row, col);
 };
 
-function appendMessage(charId, message) {
-    var node = document.getElementById(characterId(charId));
+function appendMessage(charName, message) {
+    var node = document.getElementById(characterId(charName));
     var messageNode = node.firstChild;
 
     messageNode.innerHTML = message;
@@ -425,9 +436,11 @@ function appendMessage(charId, message) {
     window.setTimeout(function() {
                           if (messageNode.innerHTML == message) {
                               messageNode.style.visibility = 'hidden';
-                          };
+                          } else {
+                              notify('Text changed from ' + message + ' to ' + messageNode.innerHTML + ' so not hiding.');
+                          }
                       }, 10000);
-    notify(charId + ' says ' + message);
+    notify(charName + ' says ' + message);
 };
 
 
@@ -519,13 +532,10 @@ function radical_onLoad() {
         radical_oldOnLoad();
     }
 
-    notification = document.getElementById('notification');
+    var notification = document.getElementById('notification');
     setNodePosition(notification, MAP_LEFT_PX + (TILE_WIDTH_PX * VIEWPORT_X), MAP_TOP_PX);
 
-    inputForm = document.getElementById('input-form');
+    var inputForm = document.getElementById('input-form');
     setNodePosition(inputForm, MAP_LEFT_PX, MAP_TOP_PX + (TILE_HEIGHT_PX * VIEWPORT_Y));
-
-    inventoryNode = document.getElementById('inventory');
-    setNodePosition(inventoryNode, MAP_LEFT_PX + (TILE_WIDTH_PX * VIEWPORT_X), MAP_TOP_PX + (TILE_HEIGHT_PX * (VIEWPORT_Y - 1)));
 }
 window.onload = radical_onLoad;

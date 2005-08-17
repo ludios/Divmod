@@ -265,21 +265,45 @@ class RadicalGame(rend.Fragment):
 
     _charCounter = 0
 
+    # Game event callbacks
+    def observeMovement(self, who, where):
+        loc = ILocated(self.original)
+        wloc = ILocated(who.original)
+
+        if self.inRange(who):
+            if who not in self._otherPeople:
+                self._otherPeople.append(who)
+            row = wloc.x - (loc.x - self.dispX)
+            col = wloc.y - (loc.y - self.dispY)
+            self.client.send(self.moveCharacter(who, row, col))
+        else:
+            if who in self._otherPeople:
+                self._otherPeople.remove(who)
+                self.client.send(self.eraseCharacter(who))
+
+    def observeMessage(self, who, what):
+        if self.inRange(who) and who in self._otherPeople:
+            self.client.send(self.appendMessage(who, what))
+
+    def observeDisappearance(self, who):
+        if self.inRange(who) and who in self._otherPeople:
+            self._otherPeople.remove(who)
+            self.client.send(self.eraseCharacter(who))
+
+    # Other stuff
     def head(self):
         return [
             T.script(language='javascript', src='/static/radical/ambulation.js'),
             T.script(language='javascript', src='/static/radical/json.js'),
             ]
 
-    def newCharacter(self, image):
-        self._charCounter += 1
-        self._charImages[self._charCounter] = image
-        return self._charCounter
-
     def getWorld(self):
         for world in self.original.store.parent.query(RadicalWorld):
             return world
         raise RuntimeError("No world found")
+
+    name = property(lambda self: str(self.original.store.dbdir.split('/')[-1]))
+    image = property(lambda self: IVisible(self.original).image)
 
     def _closed(self, ignored):
         self.world.removePlayer(self)
@@ -288,9 +312,7 @@ class RadicalGame(rend.Fragment):
         self.client = client
         self.world = self.getWorld()
 
-        self._charImages = {}
-        self.me = self.newCharacter(IVisible(self.original).image)
-        self._otherPeople = {self: self.me}
+        self._otherPeople = [self]
 
         loc = ILocated(self.original)
 
@@ -315,39 +337,17 @@ class RadicalGame(rend.Fragment):
             (baseX <= oloc.x < baseX + VIEWPORT_X) and
             (baseY <= oloc.y < baseY + VIEWPORT_Y))
 
-    def observeMovement(self, who, where):
-        loc = ILocated(self.original)
-        wloc = ILocated(who.original)
-
-        if self.inRange(who):
-            if who not in self._otherPeople:
-                self._otherPeople[who] = self.newCharacter(IVisible(who.original).image)
-            row = wloc.x - (loc.x - self.dispX)
-            col = wloc.y - (loc.y - self.dispY)
-            self.client.send(self.moveCharacter(self._otherPeople[who], row, col))
-        else:
-            if who in self._otherPeople:
-                self.client.send(self.eraseCharacter(self._otherPeople.pop(who)))
-
-    def observeMessage(self, who, what):
-        if self.inRange(who) and who in self._otherPeople:
-            self.client.send(self.appendMessage(who, what))
-
-    def observeDisappearance(self, who):
-        if self.inRange(who) and who in self._otherPeople:
-            self.client.send(self.eraseCharacter(self._otherPeople.pop(who)))
-
     def appendMessage(self, who, what):
-        return livepage.js.appendMessage(self._otherPeople[who], what), livepage.eol
+        return livepage.js.appendMessage(who.name, what), livepage.eol
 
-    def eraseCharacter(self, id):
-        return livepage.js.eraseCharacter(id)
+    def eraseCharacter(self, who):
+        return livepage.js.eraseCharacter(who.name)
 
-    def moveCharacter(self, id, row, col):
-        return livepage.js.moveCharacter(id, row, col, self._charImages[id]), livepage.eol
+    def moveCharacter(self, who, row, col):
+        return livepage.js.moveCharacter(who.name, row, col, who.image), livepage.eol
 
     def updateMyPosition(self):
-        return self.moveCharacter(self.me, self.dispX, self.dispY)
+        return self.moveCharacter(self, self.dispX, self.dispY)
 
     def sendCompleteTerrain(self):
         """
@@ -368,7 +368,7 @@ class RadicalGame(rend.Fragment):
         self.client.send([
                 livepage.js.initializeMap(livepage.js(json.serialize(visTerr))),
                 livepage.eol,
-                self.moveCharacter(self.me, self.dispX, self.dispY),
+                self.moveCharacter(self, self.dispX, self.dispY),
                 livepage.eol,
                 ])
 
@@ -389,12 +389,12 @@ class RadicalGame(rend.Fragment):
 
     def scrollDown(self):
         loc = ILocated(self.original)
-        return self._vertScroll(theMap.insertTopRow, loc.y - 1 - self.dispY)
+        return self._vertScroll(theMap.insertTopRow, loc.y - self.dispY)
 
 
     def scrollUp(self):
         loc = ILocated(self.original)
-        return self._vertScroll(theMap.insertBottomRow, loc.y + 1 + (VIEWPORT_Y - self.dispY))
+        return self._vertScroll(theMap.insertBottomRow, loc.y + (VIEWPORT_Y - self.dispY))
 
 
     def _horizScroll(self, func):

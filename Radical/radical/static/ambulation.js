@@ -468,17 +468,21 @@ function onKeyPress(event) {
 
     if (event.keyCode == event.DOM_VK_LEFT) {
         server.handle('leftArrow', event.ctrlKey);
+        event.cancelBubble = true;
     } else if (event.keyCode == event.DOM_VK_RIGHT) {
         server.handle('rightArrow', event.ctrlKey);
+        event.cancelBubble = true;
     } else if (event.keyCode == event.DOM_VK_UP) {
         server.handle('upArrow', event.ctrlKey);
+        event.cancelBubble = true;
     } else if (event.keyCode == event.DOM_VK_DOWN) {
         server.handle('downArrow', event.ctrlKey);
+        event.cancelBubble = true;
     } else if (event.which == 39) {
         // Single-quote
         debug("Doing it");
         var form = document.getElementById('input-form');
-        debug(form.firstChild.nextSibling);
+        form.style.visibility = 'visible';
         form.firstChild.nextSibling.focus();
         event.cancelBubble = true;
     } else {
@@ -494,12 +498,14 @@ function onKeyPress(event) {
     return true;
 };
 
-function inputSubmitted(event, inputNode) {
+function inputSubmitted(event, form, inputNode) {
     var message = inputNode.value;
 
     inputNode.value = '';
     server.handle('sendMessage', message);
     inputNode.blur();
+
+    form.style.visibility = 'hidden';
 
     return false;
 }

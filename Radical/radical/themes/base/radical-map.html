@@ -7,14 +7,6 @@
   <!-- This is an area where events are announced -->
   <div id="notification" />
 
-  <!-- Stuff you are carrying will be displayed inside this -->
-  <div id="inventory" onmouseover="displayInventory()" onmouseout="hideInventory()">
-    <img id="inventory-image" src="/static/radical/inventory.png" />
-    <div id="inventory-items" style="visiblity: hidden">
-      <span>Inventory</span>
-    </div>
-  </div>
-
   <!-- Wrap the form in an element that prevent events from getting
        any higher in the document - this lets us use normal input
        handling to edit the value of the text input without also
@@ -25,7 +17,8 @@
     <!-- A nicer way of finding the input element would be... nicer -->
     <form
        id="input-form"
-       onsubmit="return inputSubmitted(event, this.firstChild.nextSibling)">
+       style="visibility: hidden"
+       onsubmit="return inputSubmitted(event, this, this.firstChild.nextSibling)">
       Say<input type="text" />
     </form>
 

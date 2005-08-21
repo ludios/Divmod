@@ -495,7 +495,7 @@ class RadicalGame(rend.Fragment):
             yield self.updateMyPosition()
 
 
-    def handle_leftArrow(self, ctx, ctrl):
+    def handle_rightArrow(self, ctx, ctrl):
         loc = ILocated(self.original)
         if loc.moveWest():
             if self.dispX > 0:
@@ -506,7 +506,7 @@ class RadicalGame(rend.Fragment):
             self.world.playerMoved(self, (loc.x, loc.y))
 
 
-    def handle_rightArrow(self, ctx, ctrl):
+    def handle_leftArrow(self, ctx, ctrl):
         loc = ILocated(self.original)
         if loc.moveEast():
             if self.dispX < VIEWPORT_X - 1:

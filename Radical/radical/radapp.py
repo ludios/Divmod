@@ -131,7 +131,7 @@ class RadicalApplication(Item, website.PrefixURLMixin):
         self.character = RadicalCharacter.create(self.store, 10, 10, u'player')
 
     def getTabs(self):
-        return [webnav.Tab('Games', self.storeID, 0.0,
+        return [webnav.Tab('Games', self.character.storeID, 0.0,
                            [webnav.Tab('Radical',
                                        self.character.storeID,
                                        0.0)],

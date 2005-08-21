@@ -11,8 +11,8 @@ var MAP_TOP_PX = 75;
 var MAP_LEFT_PX = 175;
 
 // Pixel size of each tile
-var TILE_WIDTH_PX = 128;
-var TILE_HEIGHT_PX = 96;
+var TILE_WIDTH_PX = 64;
+var TILE_HEIGHT_PX = 32;
 
 // Pixel size of each object which can occupy a tile
 var OBJECT_WIDTH_PX = 128;
@@ -74,9 +74,34 @@ function mapTileImageSource(kind) {
 };
 
 // Position of a tile at the given tile-based coordinate
-function absolutePositionFromCoordinates(row, col) {
+function square_absolutePositionFromCoordinates(row, col) {
     return [MAP_LEFT_PX + row * TILE_WIDTH_PX, MAP_TOP_PX + col * TILE_HEIGHT_PX];
 };
+
+// col,row                      col-row             col+row
+//              1,1                      0                  2
+//           1,2   2,1                 -1  1              3   3
+//        1,3   2,2   3,1            -2  0   2          4   4   4
+//     1,4   2,3   3,2   4,1       -3  -1  1   3      5   5   5   5
+//  1,5   2,4   3,3   4,2   5,1  -4  -2  0   2   4  6   6   6   6   6
+//     2,5   3,4   4,3   5,2       -3  -1  1   3      7   7   7   7
+//        3,5   4,4   5,3            -2  0   2          8   8   8
+//           4,5   5,4                 -1  1              9   9
+//              5,5                      0                 10
+function diamond_absolutePositionFromCoordinates(row, col) {
+    var baseX = MAP_LEFT_PX + (VIEWPORT_Y / 2 * TILE_WIDTH_PX);
+    var baseY = MAP_TOP_PX;
+
+    var pixelX = (col - row) * TILE_WIDTH_PX;
+    var pixelY = (col + row) * TILE_HEIGHT_PX;
+
+    var result = [MAP_LEFT_PX + pixelX + baseX, MAP_TOP_PX + pixelY + baseY];
+
+    notify('Coordinates for ' + row + ' ' + col + ':' + pixelX + ' ' + pixelY);
+    return result;
+};
+
+var absolutePositionFromCoordinates = diamond_absolutePositionFromCoordinates;
 
 // Position of an object occupying a tile at the given tile-based coordinate
 function absoluteObjectPositionFromCoordinates(row, col) {

@@ -9,8 +9,7 @@ from twisted.python import util
 
 from nevow import rend, loaders, livepage, flat, static, json, tags as T
 
-from axiom import store, extime
-from axiom.item import Item
+from axiom import store, extime, item
 from axiom.attributes import reference, integer, text, timestamp, inmemory
 
 from xmantissa.ixmantissa import INavigableFragment, INavigableElement, ISessionlessSiteRootPlugin, ISiteRootPlugin
@@ -42,8 +41,31 @@ class Location(object):
     def getObjects(self):
         return self.contents
 
+class IBrain(Interface):
+    pass
 
-class RadicalWorld(Item, website.PrefixURLMixin):
+class DrunkenWalkComponent(item.Item):
+    implements(IBrain)
+
+    original = reference(allowNone=False)
+
+    def __init__(self, **kw):
+        super(DrunkenWalkComponent, self).__init__(**kw)
+        self._schedule()
+
+    def _schedule(self):
+        t = extime.Time() + extime.FixedOffset(0, 1.0 / 360.0)
+        iaxiom.IScheduler(self.store).schedule(self, t)
+
+    def run(self):
+        loc = ILocated(self.original)
+        direction = random.choice(['North', 'South', 'West', 'East'])
+        getattr(loc, 'move' + direction)()
+        print 'Now at', loc.x, ',', loc.y
+        self.original.world.playerMoved(self, (loc.x, loc.y))
+        self._schedule()
+
+class RadicalWorld(item.Item, website.PrefixURLMixin):
     implements(ISessionlessSiteRootPlugin)
 
     schemaVersion = 1
@@ -64,6 +86,9 @@ class RadicalWorld(Item, website.PrefixURLMixin):
 
         sword = RadicalObject.create(self.store, u'sword')
         sword.powerUp(LocationComponent(store=self.store, original=sword, x=15, y=15), ILocated)
+
+        monster = RadicalCharacter.create(self.store, 5, 5, u'monster')
+        monster.powerUp(DrunkenWalkComponent(store=self.store, original=monster), IBrain)
 
     def getLocationMatrix(self):
         if not hasattr(self, 'terrain'):
@@ -116,7 +141,7 @@ class RadicalWorld(Item, website.PrefixURLMixin):
         return static.File(util.sibpath(__file__, 'static'))
 
 
-class RadicalApplication(Item, website.PrefixURLMixin):
+class RadicalApplication(item.Item, website.PrefixURLMixin):
     implements(INavigableElement)
 
     schemaVersion = 1
@@ -149,7 +174,7 @@ class ICarryable(Interface):
     pass
 
 
-class VisibilityComponent(Item):
+class VisibilityComponent(item.Item):
     typeName = 'radical_visibility_component'
     schemaVersion = 1
 
@@ -157,7 +182,7 @@ class VisibilityComponent(Item):
     original = reference(allowNone=False)
 
 
-class LocationComponent(Item):
+class LocationComponent(item.Item):
     typeName = 'radical_location_component'
     schemaVersion = 1
 
@@ -190,7 +215,7 @@ class LocationComponent(Item):
         return False
 
 
-class CarriedComponent(Item):
+class CarriedComponent(item.Item):
     typeName = 'radical_carried_component'
     schemaVersion = 1
 
@@ -198,7 +223,7 @@ class CarriedComponent(Item):
     original = reference(allowNone=False)
 
 
-class RadicalCharacter(Item):
+class RadicalCharacter(item.Item):
     schemaVersion = 1
     typeName = 'radical_character'
 
@@ -220,7 +245,7 @@ class RadicalCharacter(Item):
     create = classmethod(create)
 
 
-class RadicalObject(Item):
+class RadicalObject(item.Item):
     schemaVersion = 1
     typeName = 'radical_object'
 
@@ -440,10 +465,8 @@ class RadicalGame(rend.Fragment):
         print 'Display', self.dispX, self.dispY
         print 'Actual', loc.x, loc.y
 
-
     def handle_sendMessage(self, ctx, message):
         self.sendMessage(message)
-
 
     def handle_upArrow(self, ctx, ctrl):
         ctrl = ctrl == 'true'

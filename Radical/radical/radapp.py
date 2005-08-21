@@ -1,5 +1,5 @@
 
-import random
+import random, datetime
 
 from zope.interface import implements, Interface
 
@@ -9,7 +9,7 @@ from twisted.python import util
 
 from nevow import rend, loaders, livepage, flat, static, json, tags as T
 
-from axiom import store, extime, item
+from axiom import iaxiom, store, extime, item
 from axiom.attributes import reference, integer, text, timestamp, inmemory
 
 from xmantissa.ixmantissa import INavigableFragment, INavigableElement, ISessionlessSiteRootPlugin, ISiteRootPlugin
@@ -47,6 +47,12 @@ class IBrain(Interface):
 class DrunkenWalkComponent(item.Item):
     implements(IBrain)
 
+    schemaVersion = 1
+    typeName = 'radical_drunken_walk_component'
+
+    name = 'drunken walker'
+    image = property(lambda self: IVisible(self.original).image)
+
     original = reference(allowNone=False)
 
     def __init__(self, **kw):
@@ -54,7 +60,7 @@ class DrunkenWalkComponent(item.Item):
         self._schedule()
 
     def _schedule(self):
-        t = extime.Time() + extime.FixedOffset(0, 1.0 / 360.0)
+        t = extime.Time() + datetime.timedelta(microseconds=2000000)
         iaxiom.IScheduler(self.store).schedule(self, t)
 
     def run(self):
@@ -90,6 +96,10 @@ class RadicalWorld(item.Item, website.PrefixURLMixin):
         monster = RadicalCharacter.create(self.store, 5, 5, u'monster')
         monster.powerUp(DrunkenWalkComponent(store=self.store, original=monster), IBrain)
 
+    def activate(self):
+        self.players = []
+
+
     def getLocationMatrix(self):
         if not hasattr(self, 'terrain'):
             rnd = random.Random()
@@ -112,8 +122,6 @@ class RadicalWorld(item.Item, website.PrefixURLMixin):
         return t[y * self.width + x]
 
     def addPlayer(self, player):
-        if not hasattr(self, 'players'):
-            self.players = []
         self.players.append(player)
         for p in self.players:
             if p is not player:
@@ -231,7 +239,10 @@ class RadicalCharacter(item.Item):
 
     def world():
         def get(self):
-            for world in self.store.parent.query(RadicalWorld):
+            s = self.store
+            if s.parent is not None:
+                s = s.parent
+            for world in s.query(RadicalWorld):
                 return world
             raise RuntimeError("Character is not in any world, it seems.")
         return get,
@@ -266,20 +277,6 @@ def _pickDisplayCoordinate(pos, viewport, max):
     if pos > max - viewport / 2:
         return viewport - (max - pos)
     return viewport / 2
-
-
-MOVEMENT, ATTACK = 'MOVEMENT', 'ATTACK'
-
-class UserInput(object):
-    """Handle input from the user based on the current game state.
-    """
-    state = MOVEMENT
-
-    def dispatch(self, event, *a, **kw):
-        return getattr(self, self.state + '_' + event)(*a, **kw)
-
-    def MOVEMENT_WEST(self):
-        pass
 
 
 class RadicalGame(rend.Fragment):

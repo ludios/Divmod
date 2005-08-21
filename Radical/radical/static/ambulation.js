@@ -109,13 +109,14 @@ function absoluteObjectPositionFromCoordinates(row, col) {
 
     // The goal here is to center the middle of the bottom of the
     // image in the middle of the tile it occupies.  These coordinates
-    // are for the top-left of the image, though.
+    // are for the top-left of the image, though.  The math below
+    // doesn't bear this goal out either.  Fix it someday.
 
     var tileCenterX = tilePos[0] + TILE_WIDTH_PX / 2;
     var tileCenterY = tilePos[1] + TILE_HEIGHT_PX / 2;
 
-    var objLeft = tileCenterX - OBJECT_WIDTH_PX / 2;
-    var objTop = tileCenterY - OBJECT_HEIGHT_PX;
+    var objLeft = tileCenterX;
+    var objTop = tileCenterY - OBJECT_HEIGHT_PX / 6 * 5;
 
     return [objLeft, objTop];
 };
@@ -323,8 +324,10 @@ function createMapTile(row, col, kind) {
      */
     var image = document.createElement('img');
     image.src = mapTileImageSource(kind);
-    image.height = TILE_HEIGHT_PX;
-    image.width = TILE_WIDTH_PX;
+
+    // XXX These multipliers should /not/ be here - the images need to be pre-scaled.
+    image.height = TILE_HEIGHT_PX * 2.07;
+    image.width = TILE_WIDTH_PX * 2.07;
 
     var pos = absolutePositionFromCoordinates(row, col);
 
@@ -393,9 +396,9 @@ function createCharacterTile(charName, charImageURL) {
 
     charMessage.style.visibility = 'hidden';
     charMessage.style.backgroundColor = 'white';
-    charMessage.style.opacity = 0.75;
+    charMessage.style.opacity = 0.6;
     charMessage.style.borderStyle = 'solid';
-    charMessage.style.borderColor = 'red';
+    charMessage.style.borderColor = 'white';
 
     charLabel.appendChild(document.createTextNode(charName));
 
@@ -410,10 +413,8 @@ function moveCharacterTile(charNode, row, col) {
     var pos = absoluteObjectPositionFromCoordinates(row, col);
     setNodePosition(charNode, pos[0], pos[1]);
     charNode.row = row;
-    if (col != charNode.col) {
-        charNode.col = col;
-        charNode.style.zIndex = col;
-    }
+    charNode.col = col;
+    charNode.style.zIndex = col;
 };
 
 function characterId(charId) {
@@ -558,9 +559,9 @@ function radical_onLoad() {
     }
 
     var notification = document.getElementById('notification');
-    setNodePosition(notification, MAP_LEFT_PX + (TILE_WIDTH_PX * VIEWPORT_X), MAP_TOP_PX);
+    setNodePosition(notification, MAP_LEFT_PX + (TILE_WIDTH_PX * VIEWPORT_X * 1.5), MAP_TOP_PX);
 
     var inputForm = document.getElementById('input-form');
-    setNodePosition(inputForm, MAP_LEFT_PX, MAP_TOP_PX + (TILE_HEIGHT_PX * VIEWPORT_Y));
+    setNodePosition(inputForm, MAP_LEFT_PX, MAP_TOP_PX + (TILE_HEIGHT_PX * VIEWPORT_Y * 2));
 }
 window.onload = radical_onLoad;

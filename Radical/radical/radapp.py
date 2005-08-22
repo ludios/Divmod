@@ -55,9 +55,15 @@ class DrunkenWalkComponent(item.Item):
 
     original = reference(allowNone=False)
 
+    visible = inmemory()
+
     def __init__(self, **kw):
         super(DrunkenWalkComponent, self).__init__(**kw)
         self._schedule()
+
+    def activate(self):
+        self.visible = []
+        self.original.world.addPlayer(self)
 
     def _schedule(self):
         t = extime.Time() + datetime.timedelta(microseconds=2000000)
@@ -70,6 +76,25 @@ class DrunkenWalkComponent(item.Item):
         print 'Now at', loc.x, ',', loc.y
         self.original.world.playerMoved(self, (loc.x, loc.y))
         self._schedule()
+
+    def observeMovement(self, who, where):
+        a = ILocated(self.original)
+        b = ILocated(who.original)
+        if (a.x - b.x) ** 2 + (a.y - b.y) ** 2 <= 4:
+            if who not in self.visible:
+                self.original.world.playerMessage(self, 'Grrr.  Argg.')
+                self.visible.append(who)
+        else:
+            if who in self.visible:
+                self.visible.remove(who)
+
+    def observeDisappearance(self, who):
+        if who in self.visible:
+            self.visible.remove(who)
+
+    def observeMessage(self, who, what):
+        pass
+
 
 class RadicalWorld(item.Item, website.PrefixURLMixin):
     implements(ISessionlessSiteRootPlugin)
@@ -287,6 +312,17 @@ class RadicalGame(rend.Fragment):
 
     _charCounter = 0
 
+    def inRange(self, other):
+        loc = ILocated(self.original)
+        oloc = ILocated(other.original)
+
+        baseX = loc.x - self.dispX
+        baseY = loc.y - self.dispY
+        return (
+            (baseX <= oloc.x < baseX + VIEWPORT_X) and
+            (baseY <= oloc.y < baseY + VIEWPORT_Y))
+
+
     # Game event callbacks
     def observeMovement(self, who, where):
         loc = ILocated(self.original)
@@ -348,16 +384,6 @@ class RadicalGame(rend.Fragment):
         print 'I am at', (loc.x, loc.y), 'and viewport selected was', (self.dispX, self.dispY)
         self.world.playerMoved(self, (loc.x, loc.y))
 
-
-    def inRange(self, other):
-        loc = ILocated(self.original)
-        oloc = ILocated(other.original)
-
-        baseX = loc.x - self.dispX
-        baseY = loc.y - self.dispY
-        return (
-            (baseX <= oloc.x < baseX + VIEWPORT_X) and
-            (baseY <= oloc.y < baseY + VIEWPORT_Y))
 
     def appendMessage(self, who, what):
         return livepage.js.appendMessage(who.name, what), livepage.eol

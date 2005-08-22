@@ -9,7 +9,9 @@ from twisted.python import util
 
 from nevow import rend, loaders, livepage, flat, static, json, tags as T
 
-from axiom import iaxiom, store, extime, item
+from epsilon import extime
+
+from axiom import iaxiom, store, item
 from axiom.attributes import reference, integer, text, timestamp, inmemory
 
 from xmantissa.ixmantissa import INavigableFragment, INavigableElement, ISessionlessSiteRootPlugin, ISiteRootPlugin

@@ -507,34 +507,32 @@ function onKeyPress(event) {
 
     if (event.keyCode == event.DOM_VK_LEFT) {
         server.handle('leftArrow', event.ctrlKey);
-        event.cancelBubble = true;
+        return false;
     } else if (event.keyCode == event.DOM_VK_RIGHT) {
         server.handle('rightArrow', event.ctrlKey);
-        event.cancelBubble = true;
+        return false;
     } else if (event.keyCode == event.DOM_VK_UP) {
         server.handle('upArrow', event.ctrlKey);
-        event.cancelBubble = true;
+        return false;
     } else if (event.keyCode == event.DOM_VK_DOWN) {
         server.handle('downArrow', event.ctrlKey);
-        event.cancelBubble = true;
+        return false;
     } else if (event.which == 39) {
         // Single-quote
         debug("Doing it");
         var form = document.getElementById('input-form');
         form.style.visibility = 'visible';
         form.firstChild.nextSibling.focus();
-        event.cancelBubble = true;
+        return false;
+    } else if (event.keyCode == event.DOM_VK_BACK_SPACE) {
+        return false;
     } else {
         server.handle('keyPress',
                       String.fromCharCode(event.which),
                       event.altKey, event.ctrlKey, event.metaKey,
                       event.shiftKey);
+        return true;
     }
-
-    if (event.keyCode == event.DOM_VK_BACK_SPACE) {
-        return false;
-    }
-    return true;
 };
 
 function inputSubmitted(event, form, inputNode) {

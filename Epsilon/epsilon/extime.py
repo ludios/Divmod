@@ -1,4 +1,4 @@
-# -*- test-case-name: axiom.test.test_extime -*-
+# -*- test-case-name: epsilon.test.test_extime -*-
 """
 Extended date/time formatting and miscellaneous functionality.
 

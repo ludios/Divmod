@@ -5,7 +5,7 @@ import operator
 
 from twisted.trial import unittest
 
-from axiom import extime
+from epsilon import extime
 
 class TestTime(unittest.TestCase):
     class MST(datetime.tzinfo):

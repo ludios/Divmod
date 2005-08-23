@@ -29,8 +29,8 @@ TERRAIN_NAMES = {
     VOID: u'void',
     }
 
-VIEWPORT_X = 8
-VIEWPORT_Y = 8
+VIEWPORT_X = 16
+VIEWPORT_Y = 16
 
 class Location(object):
     def __init__(self, terrain, contents):

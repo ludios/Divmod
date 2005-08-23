@@ -1,7 +1,7 @@
 
 // Width and height, in tiles, of the viewport onto the world map
-var VIEWPORT_X = 8;
-var VIEWPORT_Y = 8;
+var VIEWPORT_X = 16;
+var VIEWPORT_Y = 16;
 
 // Reference to the single instance of GameMap
 var theMap = null;
@@ -11,8 +11,8 @@ var MAP_TOP_PX = 75;
 var MAP_LEFT_PX = 175;
 
 // Pixel size of each tile
-var TILE_WIDTH_PX = 64;
-var TILE_HEIGHT_PX = 32;
+var TILE_WIDTH_PX = 48;
+var TILE_HEIGHT_PX = 24;
 
 // Pixel size of each object which can occupy a tile
 var OBJECT_WIDTH_PX = 128;
@@ -103,24 +103,6 @@ function diamond_absolutePositionFromCoordinates(row, col) {
 
 var absolutePositionFromCoordinates = diamond_absolutePositionFromCoordinates;
 
-// Position of an object occupying a tile at the given tile-based coordinate
-function absoluteObjectPositionFromCoordinates(row, col) {
-    var tilePos = absolutePositionFromCoordinates(row, col);
-
-    // The goal here is to center the middle of the bottom of the
-    // image in the middle of the tile it occupies.  These coordinates
-    // are for the top-left of the image, though.  The math below
-    // doesn't bear this goal out either.  Fix it someday.
-
-    var tileCenterX = tilePos[0] + TILE_WIDTH_PX / 2;
-    var tileCenterY = tilePos[1] + TILE_HEIGHT_PX / 2;
-
-    var objLeft = tileCenterX;
-    var objTop = tileCenterY - OBJECT_HEIGHT_PX / 6 * 5;
-
-    return [objLeft, objTop];
-};
-
 function GameMap_erase() {
     this.element.innerHTML = '';
 };
@@ -138,7 +120,7 @@ function GameMap_redraw() {
     var pos = null;
     for (var n = 0; n < this.contents.length; n++) {
         var obj = this.contents[n];
-        var pos = absoluteObjectPositionFromCoordinates(obj.row, obj.col);
+        var pos = absolutePositionFromCoordinates(obj.row, obj.col);
         setNodePosition(obj, pos[0], pos[1]);
         debug("Rendering " + new String(obj.id) + " at " + pos.join(', '));
     }
@@ -326,8 +308,8 @@ function createMapTile(row, col, kind) {
     image.src = mapTileImageSource(kind);
 
     // XXX These multipliers should /not/ be here - the images need to be pre-scaled.
-    image.height = TILE_HEIGHT_PX * 2.07;
-    image.width = TILE_WIDTH_PX * 2.07;
+//     image.height = TILE_HEIGHT_PX * 2.07;
+//     image.width = TILE_WIDTH_PX * 2.07;
 
     var pos = absolutePositionFromCoordinates(row, col);
 
@@ -355,7 +337,7 @@ function createItemTile(row, col, idx, kind) {
 //     image.height = TILE_HEIGHT_PX;
 //     image.width = TILE_WIDTH_PX;
 
-    var pos = absoluteObjectPositionFromCoordinates(row, col);
+    var pos = absolutePositionFromCoordinates(row, col);
     var tile = document.createElement('span');
     tile.id = 'item-' + row + '-' + col + '-' + idx;
     setNodePosition(tile, pos[0], pos[1]);
@@ -410,7 +392,7 @@ function createCharacterTile(charName, charImageURL) {
 };
 
 function moveCharacterTile(charNode, row, col) {
-    var pos = absoluteObjectPositionFromCoordinates(row, col);
+    var pos = absolutePositionFromCoordinates(row, col);
     setNodePosition(charNode, pos[0], pos[1]);
     charNode.row = row;
     charNode.col = col;

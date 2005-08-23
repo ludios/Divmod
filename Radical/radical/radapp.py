@@ -15,7 +15,7 @@ from axiom import iaxiom, store, item
 from axiom.attributes import reference, integer, text, timestamp, inmemory
 
 from xmantissa.ixmantissa import INavigableFragment, INavigableElement, ISessionlessSiteRootPlugin, ISiteRootPlugin
-from xmantissa import webnav, website
+from xmantissa import webnav, website, webapp, signup
 
 VOID, MOUNTAIN, GRASS, WATER, FOREST, DESERT = range(6)
 TERRAIN_TYPES = (MOUNTAIN, GRASS, WATER, FOREST, DESERT)
@@ -116,12 +116,31 @@ class RadicalWorld(item.Item, website.PrefixURLMixin):
 
     def install(self):
         self.store.powerUp(self, ISessionlessSiteRootPlugin)
+        self.store.checkpoint()
 
+        # Make sure people can sign up
+        for booth in self.store.query(signup.TicketBooth):
+            break
+        else:
+            booth = signup.TicketBooth(store=self.store)
+            booth.install()
+
+        start = LocationComponent(store=self.store, original=self, x=10, y=10)
+        bene = RadicalBenefactor(store=self.store, startLocation=start)
+        gameSignup = signup.FreeTicketSignup(
+            store=self.store,
+            benefactor=bene,
+            prefixURL=u'radical-signup',
+            booth=booth)
+        gameSignup.install()
+
+        # Put some junk in the world
         sword = RadicalObject.create(self.store, u'sword')
         sword.powerUp(LocationComponent(store=self.store, original=sword, x=15, y=15), ILocated)
 
         monster = RadicalCharacter.create(self.store, 5, 5, u'monster')
         monster.powerUp(DrunkenWalkComponent(store=self.store, original=monster), IBrain)
+
 
     def activate(self):
         self.players = []
@@ -186,9 +205,9 @@ class RadicalApplication(item.Item, website.PrefixURLMixin):
 
     prefixURL = 'private/radical'
 
-    def install(self):
+    def install(self, (x, y) = (10, 10)):
         self.store.powerUp(self, INavigableElement)
-        self.character = RadicalCharacter.create(self.store, 10, 10, u'player')
+        self.character = RadicalCharacter.create(self.store, x, y, u'player')
 
     def getTabs(self):
         return [webnav.Tab('Games', self.character.storeID, 0.0,
@@ -566,3 +585,20 @@ class RadicalGame(rend.Fragment):
 
 
 registerAdapter(RadicalGame, RadicalCharacter, INavigableFragment)
+
+class RadicalBenefactor(item.Item):
+    schemaVersion = 1
+    typeName = 'radical_benefactor'
+
+    startLocation = reference(allowNone=False)
+
+    def endow(self, avatar):
+        app = RadicalApplication(store=avatar)
+        app.install((self.startLocation.x, self.startLocation.y))
+
+        # Make sure the private web application will work and junk
+        for App in website.WebSite, webapp.PrivateApplication:
+            for existing in avatar.query(App):
+                break
+            else:
+                App(store=avatar).install()

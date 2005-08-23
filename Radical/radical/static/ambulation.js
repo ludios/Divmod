@@ -97,7 +97,7 @@ function diamond_absolutePositionFromCoordinates(row, col) {
 
     var result = [MAP_LEFT_PX + pixelX + baseX, MAP_TOP_PX + pixelY + baseY];
 
-    notify('Coordinates for ' + row + ' ' + col + ':' + pixelX + ' ' + pixelY);
+    debug('Coordinates for ' + row + ' ' + col + ':' + pixelX + ' ' + pixelY);
     return result;
 };
 
@@ -130,7 +130,7 @@ function GameMap_insertTopRow(terrain, items) {
     /* Move everything on the screen down one.  Insert the given
      * terrain in the new, empty row at the top.
      */
-    notify('Insert top row: ' + JSON.stringify(items));
+    debug('Insert top row: ' + JSON.stringify(items));
 
     var contents = this.contents;
     this.contents = [this.contents[0]];
@@ -138,6 +138,7 @@ function GameMap_insertTopRow(terrain, items) {
         contents[n].col += 1;
         debug('Shifting ' + new String(contents[n].id) + ' right.');
         if (contents[n].col < VIEWPORT_Y) {
+            contents[n].style.zIndex = objectZIndex(contents[n].row, contents[n].col);
             this.contents.push(contents[n]);
         } else {
             this.element.removeChild(contents[n]);
@@ -150,9 +151,7 @@ function GameMap_insertTopRow(terrain, items) {
         this.terrain[n].pop();
         if (items[n]) {
             for (var m = 0; m < items[n].length; m++) {
-                var itemNode = createItemTile(n, 0, m, items[n][m]);
-                this.contents.push(itemNode);
-                this.element.appendChild(itemNode);
+                this.addObject(n, 0, items[n][m]);
             }
         }
     }
@@ -162,7 +161,7 @@ function GameMap_insertTopRow(terrain, items) {
 function GameMap_insertBottomRow(terrain, items) {
     /* Opposite of insertTopRow
      */
-    notify('Insert bottom row: ' + JSON.stringify(items));
+    debug('Insert bottom row: ' + JSON.stringify(items));
 
     var contents = this.contents;
     this.contents = [this.contents[0]];
@@ -170,6 +169,7 @@ function GameMap_insertBottomRow(terrain, items) {
         contents[n].col -= 1;
         debug('Shifting ' + new String(contents[n]) + ' left.');
         if (contents[n].col >= 0) {
+            contents[n].style.zIndex = objectZIndex(contents[n].row, contents[n].col);
             this.contents.push(contents[n]);
         } else {
             this.element.removeChild(contents[n]);
@@ -182,9 +182,7 @@ function GameMap_insertBottomRow(terrain, items) {
         this.terrain[n].shift();
         if (items[n]) {
             for (var m = 0; m < items[n].length; m++) {
-                var itemNode = createItemTile(n, VIEWPORT_Y - 1, m, items[n][m]);
-                this.contents.push(itemNode);
-                this.element.appendChild(itemNode);
+                this.addObject(n, VIEWPORT_Y - 1, items[n][m]);
             }
         }
     }
@@ -195,12 +193,15 @@ function GameMap_insertLeftColumn(terrain, items) {
     /* Move everything to the right and insert the given terrain in the
      * new empty column.
      */
+    debug('Insert left column: ' + JSON.stringify(items));
+
     var contents = this.contents;
     this.contents = [this.contents[0]];
     for (var n = 1; n < contents.length; n++) {
         debug('Shifting ' + new String(contents[n].id) + ' down.');
         contents[n].row += 1;
         if (contents[n].row < VIEWPORT_Y) {
+            contents[n].style.zIndex = objectZIndex(contents[n].row, contents[n].col);
             this.contents.push(contents[n]);
         } else {
             this.element.removeChild(contents[n]);
@@ -214,9 +215,7 @@ function GameMap_insertLeftColumn(terrain, items) {
     for (var n = 0; n < terrain.length; n++) {
         if (items[n]) {
             for (var m = 0; m < items[n].length; m++) {
-                var itemNode = createItemTile(0, n, m, items[n][m]);
-                this.contents.push(itemNode);
-                this.element.appendChild(itemNode);
+                this.addObject(0, n, items[n][m]);
             }
         }
     }
@@ -229,12 +228,15 @@ function GameMap_insertRightColumn(terrain, items) {
     /* Move everything to the left and insert the given terrain in the
      * new empty column.
      */
+    debug('Insert right column: ' + JSON.stringify(items));
+
     var contents = this.contents;
     this.contents = [this.contents[0]];
     for (var n = 1; n < contents.length; n++) {
         contents[n].row -= 1;
         debug('Shifting ' + new String(contents[n].id) + ' up.');
         if (contents[n].row >= 0) {
+            contents[n].style.zIndex = objectZIndex(contents[n].row, contents[n].col);
             this.contents.push(contents[n]);
         } else {
             this.element.removeChild(contents[n]);
@@ -248,9 +250,7 @@ function GameMap_insertRightColumn(terrain, items) {
     for (var n = 0; n < terrain.length; n++) {
         if (items[n]) {
             for (var m = 0; m < items[n].length; m++) {
-                var itemNode = createItemTile(VIEWPORT_X - 1, n, m, items[n][m]);
-                this.contents.push(itemNode);
-                this.element.appendChild(itemNode);
+                this.addObject(VIEWPORT_X - 1, n, items[n][m]);
             }
         }
     }
@@ -258,7 +258,13 @@ function GameMap_insertRightColumn(terrain, items) {
     this.redraw();
 };
 
-
+var objectCounter = 0;
+function GameMap_addObject(x, y, obj) {
+    var itemNode = createItemTile(x, y, objectCounter, obj);
+    objectCounter += 1;
+    this.contents.push(itemNode);
+    this.element.appendChild(itemNode);
+}
 
 function GameMap(terrain) {
     this.terrain = terrain;
@@ -279,6 +285,7 @@ function GameMap(terrain) {
 
     this.erase = GameMap_erase;
     this.redraw = GameMap_redraw;
+    this.addObject = GameMap_addObject;
     this.insertTopRow = GameMap_insertTopRow;
     this.insertBottomRow = GameMap_insertBottomRow;
     this.insertLeftColumn = GameMap_insertLeftColumn;
@@ -286,6 +293,10 @@ function GameMap(terrain) {
 
     notify(introductoryInstructions);
 };
+
+function initializeMap(terrain) {
+    theMap = new GameMap(terrain);
+}
 
 function mapTileNodeId(x, y) {
     /* Return the node ID of the map tile at the given location. */
@@ -299,6 +310,14 @@ function setTerrain(x, y, kind) {
     var tileId = mapTileNodeId(x, y);
     document.getElementById(tileId).src = mapTileImageSource(kind);
 };
+
+function objectZIndex(row, col) {
+    return col;
+}
+
+function characterZIndex(row, col) {
+    return col + 1;
+}
 
 function createMapTile(row, col, kind) {
     /* Create a completely initialized map tile at the given location
@@ -330,7 +349,6 @@ function createItemTile(row, col, idx, kind) {
     /* Create a completely initialized item tile at the given
      * location.
      */
-    notify('Creating an item tile at ' + row + ' ' + col + ' of type ' + kind);
 
     var image = document.createElement('img');
     image.src = itemTileImageSource(kind);
@@ -341,22 +359,16 @@ function createItemTile(row, col, idx, kind) {
     var tile = document.createElement('span');
     tile.id = 'item-' + row + '-' + col + '-' + idx;
     setNodePosition(tile, pos[0], pos[1]);
-    tile.style.zIndex = row + 1;
+    tile.style.zIndex = objectZIndex(row, col);
     tile.appendChild(image);
 
     tile.row = row;
     tile.col = col;
 
+    notify('Creating an item tile at ' + row + ' ' + col + ' of type ' + kind + ' with zIndex ' + tile.style.zIndex);
+
     return tile;
 }
-
-function initializeMap(terrain) {
-    /* Create a game map by creating a bunch of divs at particular
-     * locations.  For now, the divs each contain only an img.
-     */
-    theMap = new GameMap(terrain);
-    theMap.redraw();
-};
 
 function characterTileImageSource(image) {
     return '/static/radical/' + image + '.png';
@@ -370,7 +382,6 @@ function createCharacterTile(charName, charImageURL) {
 
     node.id = characterId(charName);
     node.style.position = 'absolute';
-    node.style.zIndex = 2;
 
     charImage.src = charImageURL;
     charImage.height = OBJECT_HEIGHT_PX;
@@ -396,7 +407,7 @@ function moveCharacterTile(charNode, row, col) {
     setNodePosition(charNode, pos[0], pos[1]);
     charNode.row = row;
     charNode.col = col;
-    charNode.style.zIndex = col;
+    charNode.style.zIndex = characterZIndex(row, col);
 };
 
 function characterId(charId) {
@@ -482,22 +493,29 @@ function hideInventory() {
 }
 
 
+var ignoringArrowKeys = false;
+
+var arrowFunctions = null;
+
 function onKeyPress(event) {
     /* Capture keystrokes and report them to the server.
      */
-    // debug(strvars(event));
 
-    if (event.keyCode == event.DOM_VK_LEFT) {
-        server.handle('leftArrow', event.ctrlKey);
-        return false;
-    } else if (event.keyCode == event.DOM_VK_RIGHT) {
-        server.handle('rightArrow', event.ctrlKey);
-        return false;
-    } else if (event.keyCode == event.DOM_VK_UP) {
-        server.handle('upArrow', event.ctrlKey);
-        return false;
-    } else if (event.keyCode == event.DOM_VK_DOWN) {
-        server.handle('downArrow', event.ctrlKey);
+    if (arrowFunctions == null) {
+        arrowFunctions = [];
+        arrowFunctions[event.DOM_VK_LEFT] = 'leftArrow';
+        arrowFunctions[event.DOM_VK_RIGHT] = 'rightArrow';
+        arrowFunctions[event.DOM_VK_UP] = 'upArrow';
+        arrowFunctions[event.DOM_VK_DOWN] = 'downArrow';
+    }
+
+    var arrowFunc = arrowFunctions[event.keyCode];
+    if (arrowFunc != undefined) {
+        if (!ignoringArrowKeys) {
+            server.handle(arrowFunc, event.ctrlKey);
+            ignoringArrowKeys = true;
+            setTimeout(function() { ignoringArrowKeys = false; }, 20);
+        }
         return false;
     } else if (event.which == 39) {
         // Single-quote

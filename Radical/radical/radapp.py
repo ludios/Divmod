@@ -141,6 +141,13 @@ class RadicalWorld(item.Item, website.PrefixURLMixin):
         monster = RadicalCharacter.create(self.store, 5, 5, u'monster')
         monster.powerUp(DrunkenWalkComponent(store=self.store, original=monster), IBrain)
 
+        for i in range(20, 30):
+            wall = RadicalObject.create(self.store, u'east-west-wall')
+            wall.powerUp(LocationComponent(store=self.store, original=wall, x=i, y=25), ILocated)
+            wall = RadicalObject.create(self.store, u'north-south-wall')
+            wall.powerUp(LocationComponent(store=self.store, original=wall, x=25, y=i), ILocated)
+
+
 
     def activate(self):
         self.players = []
@@ -398,7 +405,9 @@ class RadicalGame(rend.Fragment):
         self.dispX = _pickDisplayCoordinate(loc.x, VIEWPORT_X, self.world.width)
         self.dispY = _pickDisplayCoordinate(loc.y, VIEWPORT_Y, self.world.height)
 
-        self.sendCompleteTerrain()
+        self.sendVisibleTerrain()
+        self.sendVisibleObjects()
+
         self.world.addPlayer(self)
         client.notifyOnClose().addBoth(self._closed)
 
@@ -418,21 +427,33 @@ class RadicalGame(rend.Fragment):
     def updateMyPosition(self):
         return self.moveCharacter(self, self.dispX, self.dispY)
 
-    def sendCompleteTerrain(self):
+    def baseWorldCoords(self):
+        loc = ILocated(self.original)
+        xBase = loc.x - self.dispX
+        yBase = loc.y - self.dispY
+        return xBase, yBase
+
+    def iterViewportCoords(self):
+        for visY in range(VIEWPORT_Y):
+            for visX in range(VIEWPORT_X):
+                yield visX, visY
+
+    def iterWorldCoords(self):
+        xBase, yBase = self.baseWorldCoords()
+        for (visX, visY) in self.iterViewportCoords():
+            yield xBase + visX, yBase + visY
+
+
+    def sendVisibleTerrain(self):
         """
         Send an entire screen's worth of terrain to the client,
         centered at the client's current position.
         """
-        loc = ILocated(self.original)
         visTerr = [[None] * VIEWPORT_Y for n in range(VIEWPORT_X)]
-        xBase = loc.x - self.dispX
-        yBase = loc.y - self.dispY
-        for visY in range(VIEWPORT_Y):
-            yPos = yBase + visY
-            for visX in range(VIEWPORT_X):
-                xPos = xBase + visX
-                loc = self.world.getLocationAt(xPos, yPos)
-                visTerr[visX][visY] = loc.getTerrain()
+        xBase, yBase = self.baseWorldCoords()
+        for (xPos, yPos) in self.iterViewportCoords():
+            loc = self.world.getLocationAt(xPos + xBase, yPos + yBase)
+            visTerr[xPos][yPos] = loc.getTerrain()
 
         self.client.send([
                 livepage.js.initializeMap(livepage.js(json.serialize(visTerr))),
@@ -440,6 +461,18 @@ class RadicalGame(rend.Fragment):
                 self.moveCharacter(self, self.dispX, self.dispY),
                 livepage.eol,
                 ])
+
+
+    def sendVisibleObjects(self):
+        L = []
+        xBase, yBase = self.baseWorldCoords()
+        for (xPos, yPos) in self.iterViewportCoords():
+            loc = self.world.getLocationAt(xPos + xBase, yPos + yBase)
+            for obj in loc.contents:
+                L.append(livepage.js.theMap.addObject(xPos, yPos, IVisible(obj).image))
+                L.append(livepage.eol)
+        if L:
+            self.client.send(L)
 
 
     def _vertScroll(self, func, row):

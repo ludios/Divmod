@@ -625,7 +625,7 @@ class RadicalBenefactor(item.Item):
 
     startLocation = reference(allowNone=False)
 
-    def endow(self, avatar):
+    def endow(self, ticket, avatar):
         app = RadicalApplication(store=avatar)
         app.install((self.startLocation.x, self.startLocation.y))
 

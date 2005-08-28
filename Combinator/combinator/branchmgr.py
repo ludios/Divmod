@@ -24,6 +24,15 @@ from xml.dom.minidom import parse
 # not.  this module really can't use *anything* outside the stdlib, because one
 # of its primary purposes is managing the path of your Twisted install!!
 
+def addSiteDir(fsPath):
+    if fsPath not in sys.path:
+        sys.path.insert(0, fsPath)
+        site.addsitedir(fsPath)
+    else:
+        warnings.warn("Duplicate path entry %r" % (projName,),
+                      UserWarning )
+
+
 
 class BranchManager:
     def __init__(self, svnProjectsDir, sitePathsPath):
@@ -74,9 +83,11 @@ class BranchManager:
         return os.path.abspath(
             os.path.join(self.svnProjectsDir, projectName, 'branches', branchPath))
 
+
     def addPaths(self):
         """
-        Add all .bch-file paths as site paths.
+        Add all .bch-file paths as site paths, as well as a locally-installed
+        directory.
         """
         for yth in glob.glob(os.path.join(self.sitePathsPath, "*.bch")):
             projName = os.path.splitext(os.path.split(yth)[-1])[0]
@@ -91,15 +102,21 @@ class BranchManager:
                         projName, branchPath, fsPath))
                     trunkFsPath = self.projectBranchDir(projName)
             if os.path.isdir(fsPath):
-                if fsPath not in sys.path:
-                    sys.path.insert(0, fsPath)
-                    site.addsitedir(fsPath)
-                else:
-                    warnings.warn("Duplicate path entry %r" % (projName,),
-                                  UserWarning )
+                addSiteDir(fsPath)
             else:
                 warnings.warn('Not even trunk existed for %r' % (projName,),
                               UserWarning )
+
+        # platform-specific entry
+
+        majorMinor = sys.version[0:3]
+        if sys.platform.startswith('win'):
+            addSiteDir(os.path.abspath(
+                    os.path.expanduser("~/Python/Lib/site-packages")))
+        elif sys.platform != 'darwin':
+            # Darwin already has appropriate user-installation directories set up.
+            addSiteDir(os.path.abspath(
+                    os.path.expanduser("~/.local/lib/python%s/site-packages" % (majorMinor,))))
 
 
 

@@ -29,7 +29,7 @@ def addSiteDir(fsPath):
         sys.path.insert(0, fsPath)
         site.addsitedir(fsPath)
     else:
-        warnings.warn("Duplicate path entry %r" % (projName,),
+        warnings.warn("Duplicate path entry %r" % (fsPath,),
                       UserWarning )
 
 
@@ -85,9 +85,11 @@ class BranchManager:
 
 
     def addPaths(self):
-        """
-        Add all .bch-file paths as site paths, as well as a locally-installed
-        directory.
+        for fsp in self.getPaths():
+            addSiteDir(fsp)
+
+    def getPaths(self):
+        """ Yield all .bch-file paths as well as a locally-installed directory.
         """
         for yth in glob.glob(os.path.join(self.sitePathsPath, "*.bch")):
             projName = os.path.splitext(os.path.split(yth)[-1])[0]
@@ -102,7 +104,7 @@ class BranchManager:
                         projName, branchPath, fsPath))
                     trunkFsPath = self.projectBranchDir(projName)
             if os.path.isdir(fsPath):
-                addSiteDir(fsPath)
+                yield fsPath
             else:
                 warnings.warn('Not even trunk existed for %r' % (projName,),
                               UserWarning )
@@ -111,14 +113,35 @@ class BranchManager:
 
         majorMinor = sys.version[0:3]
         if sys.platform.startswith('win'):
-            addSiteDir(os.path.abspath(
+            yield (os.path.abspath(
                     os.path.expanduser("~/Python/Lib/site-packages")))
         elif sys.platform != 'darwin':
             # Darwin already has appropriate user-installation directories set up.
-            addSiteDir(os.path.abspath(
+            yield (os.path.abspath(
                     os.path.expanduser("~/.local/lib/python%s/site-packages" % (majorMinor,))))
 
+    def currentBranchFor(self, projectName):
+        return file(os.path.join(self.sitePathsPath, projectName)+'.bch').read().strip()
 
+    def mergeProjectBranch(self, projectName):
+        currentBranch = self.currentBranchFor(projectName)
+        branchDir = self.projectBranchDir(projectName, currentBranch)
+        os.chdir(branchDir)
+        rev = None
+        for node in parse(os.popen("svn log --stop-on-copy --xml")
+                          ).documentElement.childNodes:
+            if hasattr(node, 'getAttribute'):
+                rev = node.getAttribute("revision")
+        if rev is None:
+            raise IOError("No revision found")
+        trunkDir = self.projectBranchDir(projectName)
+        print 'Swaping to', trunkDir
+        os.chdir(trunkDir)
+        work(popenl('svn', 'up'))
+        work(popenl('svn', 'merge',
+                    branchDir + "/@" + rev,
+                    branchDir + "/@HEAD"))
+        self.changeProjectBranch(projectName, 'trunk')
 
     def changeProjectBranch(self, projectName, branchRelativePath, branchURI=None):
         """
@@ -195,10 +218,32 @@ cycle = '-\\|/*'
 
 theBranchManager = None
 
-def init(svnProjectsDir, sitePathsPath=None):
+def splitall(p):
+    car, cdr = os.path.split(p)
+    if not cdr:
+        return [car]
+    else:
+        return splitall(car) + [cdr]
+
+def getDefaultPath():
+    # Am I somewhere I recognize?
+    saf = splitall(__file__)
+    if not saf[-5:-2] == ['Divmod', 'trunk', 'Combinator']:
+        warnings.warn(
+            'Combinator sitecustomize located outside of Combinator directory, aborting')
+        return
+
+    return os.path.join(*saf[:-5])
+
+def init(svnProjectsDir=None, sitePathsPath=None):
     global theBranchManager
+    if theBranchManager is not None:
+        return theBranchManager
+    if svnProjectsDir is None:
+        svnProjectsDir = getDefaultPath()
     if sitePathsPath is None:
         sitePathsPath = os.path.join(svnProjectsDir, "combinator_paths")
     theBranchManager = BranchManager(svnProjectsDir, sitePathsPath)
     theBranchManager.addPaths()
+    return theBranchManager
 

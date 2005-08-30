@@ -1,0 +1,6 @@
+#!/usr/bin/python
+
+from combinator.branchmgr import theBranchManager
+
+for k, v in theBranchManager.getCurrentBranches():
+    print k+":", v

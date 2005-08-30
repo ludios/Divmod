@@ -88,12 +88,16 @@ class BranchManager:
         for fsp in self.getPaths():
             addSiteDir(fsp)
 
-    def getPaths(self):
-        """ Yield all .bch-file paths as well as a locally-installed directory.
-        """
+    def getCurrentBranches(self):
         for yth in glob.glob(os.path.join(self.sitePathsPath, "*.bch")):
             projName = os.path.splitext(os.path.split(yth)[-1])[0]
             branchPath = file(yth).read().strip()
+            yield projName, branchPath
+
+    def getPaths(self):
+        """ Yield all .bch-file paths as well as a locally-installed directory.
+        """
+        for projName, branchPath in self.getCurrentBranches():
             fsPath = self.projectBranchDir(projName, branchPath)
             noTrunk = False
             if not os.path.exists(fsPath):

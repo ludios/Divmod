@@ -1,0 +1,7 @@
+#!/usr/bin/python
+
+import sys
+from combinator.branchmgr import theBranchManager
+
+theBranchManager.newProjectBranch(*sys.argv[1:])
+

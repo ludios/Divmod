@@ -123,6 +123,13 @@ class BranchManager:
     def currentBranchFor(self, projectName):
         return file(os.path.join(self.sitePathsPath, projectName)+'.bch').read().strip()
 
+    def newProjectBranch(self, projectName, branchName):
+        trunkURI = self.projectBranchURI(projectName, 'trunk')
+        branchURI = self.projectBranchURI(projectName, branchName)
+        work(popenl('svn', 'cp', trunkURI, branchURI, '-m',
+                    'Branching to %r' % (branchName,)))
+        self.changeProjectBranch(projectName, branchName, revert=False)
+
     def mergeProjectBranch(self, projectName):
         currentBranch = self.currentBranchFor(projectName)
         branchDir = self.projectBranchDir(projectName, currentBranch)
@@ -143,7 +150,8 @@ class BranchManager:
                     branchDir + "/@HEAD"))
         self.changeProjectBranch(projectName, 'trunk')
 
-    def changeProjectBranch(self, projectName, branchRelativePath, branchURI=None):
+    def changeProjectBranch(self, projectName, branchRelativePath,
+                            branchURI=None, revert=True):
         """
         Swap which branch of a particular project we are 'working on'.  Adjust
         path files to note this difference.
@@ -168,17 +176,18 @@ class BranchManager:
                 os.makedirs(ftd)
             shutil.copytree(trunkDirectory, tempname)
             os.chdir(tempname)
-            work(popenl("svn", "revert", ".", '-R'))
-            # no really, revert
-            statusf = popenl('svn','status')
-            for line in statusf.readlines():
-                if line[0] == '?':
-                    unknownFile = line[7:-1]
-                    print 'removing unknown:', unknownFile
-                    if os.path.isdir(unknownFile):
-                        shutil.rmtree(unknownFile)
-                    else:
-                        os.remove(unknownFile)
+            if revert:
+                work(popenl("svn", "revert", ".", '-R'))
+                # no really, revert
+                statusf = popenl('svn','status')
+                for line in statusf.readlines():
+                    if line[0] == '?':
+                        unknownFile = line[7:-1]
+                        print 'removing unknown:', unknownFile
+                        if os.path.isdir(unknownFile):
+                            shutil.rmtree(unknownFile)
+                        else:
+                            os.remove(unknownFile)
             work(popenl("svn", "switch", branchURI))
             os.chdir('..')
             os.rename(tempname, branchDirectory)

@@ -67,7 +67,36 @@ class ClickChronicleFragment( rend.Fragment ):
     head = static( "" )
    
 registerAdapter( ClickChronicleFragment, ClickChronicleApplication, INavigableFragment )
-  
+from nevow import inevow
+
+class URLGrabber( rend.Page ):
+    def __init__( self, store ):
+        self.store = store
+        
+    def renderHTTP( self, ctx ):
+        urlpath = inevow.IRequest( ctx ).URLPath()
+        url = dict( urlpath.queryList() ).get( 'url' )
+        if url is not None:
+            # put url as Visit in self.store
+            print '** got', url
+        else:
+            # explode
+            print '** missing query param "url"'
+from xmantissa.website import PrefixURLMixin
+from xmantissa.ixmantissa import ISiteRootPlugin
+class ClickRecorder( Item, PrefixURLMixin ):
+    schemaVersion = 1
+    implements( ISiteRootPlugin )
+    typeName = 'clickrecorder'
+    someAttribute = attributes.integer( default = 0 )
+    prefixURL = 'private/record'
+
+    def install( self ):
+        self.store.powerUp( self, ISiteRootPlugin )
+
+    def createResource( self ):
+        return URLGrabber( self.store )
+
 class ClickChronicleBenefactor( Item ):
     implements( IBenefactor )
     typeName = 'clickchronicle_benefactor'
@@ -80,5 +109,6 @@ class ClickChronicleBenefactor( Item ):
         WebSite( store = avatar ).install()
         PrivateApplication( store = avatar ).install()
         ClickChronicleApplication( store = avatar ).install()
+        ClickRecorder( store = avatar ).install()
         #for item in ( WebSite, PrivateApplication ):
         #    item( store = avatar ).install()

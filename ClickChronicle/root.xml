@@ -1,0 +1,9 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:nevow="http://nevow.com/ns/nevow/0.1">
+  <head>
+    <title>hello</title>
+  </head>
+  
+  <body>
+    hello!  you can <a href="/signup">signup</a> if you want
+  </body>
+</html>

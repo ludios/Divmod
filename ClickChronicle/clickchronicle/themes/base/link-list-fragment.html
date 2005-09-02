@@ -1,0 +1,10 @@
+<div xmlns="http://www.w3.org/1999/xhtml" xmlns:nevow="http://nevow.com/ns/nevow/0.1"
+  nevow:render="sequence" nevow:data="links">
+  <span nevow:pattern="item" nevow:render="mapping">
+    <nevow:slot name="timestamp"/>
+    <a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a>
+  </span>
+  <br nevow:pattern="divider"/>
+</div>
+    
+    

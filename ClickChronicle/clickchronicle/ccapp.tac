@@ -4,8 +4,7 @@ from axiom import store
 import xmantissa.website
 import xmantissa.webadmin
 import xmantissa.signup
-from ccsite import ClickChronicleWebSite
-from cc import ClickChronicleBenefactor
+import signup_hack, ccsite, cc
 
 application = service.Application('ClickChronicle')
 store.StorageService( 'cchronicle.axiom' ).setServiceParent(application)

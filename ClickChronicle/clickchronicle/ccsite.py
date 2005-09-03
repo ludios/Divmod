@@ -9,19 +9,13 @@ class RootResource( rend.Page ):
     docFactory = loaders.xmlfile( 'root.xml' )
     addSlash = True
 
-    #def child_( self, ctx ):
-    #    return self
-    
-# not sure about this
 class ClickChronicleWebSite( Item, PrefixURLMixin ):
     implements( ISiteRootPlugin )
     typeName = 'clickchronicle_website'
     schemaVersion = 1
     prefixURL = ''
 
-    # ?
     users = attributes.integer( default = 0 )
 
     def createResource( self ):
-        print '....called....................'
         return RootResource()

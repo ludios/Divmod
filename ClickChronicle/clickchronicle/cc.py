@@ -29,11 +29,13 @@ class ClickChronicleApplication( Item, ParentCounterMixin ):
         self.store.powerUp( self, ixmantissa.INavigableElement )
 
     def getTabs( self ):
-        return [Tab('Admin', self.storeID, 0.0,
-                    [Tab('Magical', self.storeID, 0.0)])]
+        return [Tab('My Account', self.storeID, 0.0,
+                    [Tab('My Clicks', self.storeID, 0.0),
+                     Tab('My Something Else', self.storeID, 0.0)])]
         
 class LinkListFragment( rend.Fragment ):
     fragmentName = 'link-list-fragment'
+    title = ''
     live = True
     
     def head( self ):
@@ -45,7 +47,7 @@ class LinkListFragment( rend.Fragment ):
             yield dict( url = visit.url, 
                         timestamp = visit.timestamp.asHumanly(),
                         title = visit.title )
-   
+
 registerAdapter( LinkListFragment, 
                  ClickChronicleApplication, 
                  ixmantissa.INavigableFragment )

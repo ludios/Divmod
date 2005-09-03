@@ -1,13 +1,15 @@
 from axiom.store import Store
 from axiom.userbase import LoginSystem
+from axiom.item import Item
 from xmantissa.webapp import PrivateApplication
 from xmantissa.website import WebSite
-from xmantissa.signup import FreeTicketSignup, TicketBooth
+from xmantissa.signup import TicketBooth
 from cc import ClickChronicleBenefactor
 from ccsite import ClickChronicleWebSite
+from signup_hack import EmaillessTicketSignup
+
 siteStore = Store( 'cchronicle.axiom', debug = True )
 
-# not sure about this inheritance, it looks like it makes sense
 def installSite():
     LoginSystem( store = siteStore ).install()
     
@@ -21,9 +23,9 @@ def installSite():
 
     ccBenefactor = ClickChronicleBenefactor( store = siteStore )
 
-    FreeTicketSignup( store = siteStore,
-                      benefactor = ccBenefactor,
-                      prefixURL = u'signup',
-                      booth = booth ).install()
+    EmaillessTicketSignup( store = siteStore,
+                           benefactor = ccBenefactor,
+                           prefixURL = u'signup',
+                           booth = booth ).install()
 
 siteStore.transact( installSite )

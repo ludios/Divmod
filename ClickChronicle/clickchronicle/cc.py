@@ -19,9 +19,39 @@ class Visit( Item ):
     schemaVersion = 1
     typeName = 'visit'
 
-class ClickChronicleApplication( Item, ParentCounterMixin ):
+class Preferences( Item ):
     implements( ixmantissa.INavigableElement )
-    typeName = 'clickchronicle_application'
+    typeName = 'clickchronicle_preferences'
+    schemaVersion = 1
+
+    displayName = attributes.bytes( default = 'none set' )
+    homepage = attributes.bytes( default = 'http://www.clickchronicle.com' )
+
+    def install( self ):
+        self.store.powerUp( self, ixmantissa.INavigableElement )
+
+    def getTabs( self ):
+        return [Tab('Preferences', self.storeID, 0.0)]
+
+class PreferencesFragment( rend.Fragment ):
+    fragmentName = 'preferences-fragment'
+    title = ''
+    live = True
+
+    def head( self ):
+        return ''
+
+    def data_preferences( self, ctx, data ):
+        return dict( displayName = self.original.displayName,
+                     homepage = self.original.homepage )
+
+registerAdapter( PreferencesFragment,
+                 Preferences,
+                 ixmantissa.INavigableFragment )
+
+class LinkList( Item ):
+    implements( ixmantissa.INavigableElement )
+    typeName = 'clickchronicle_linklist'
     attribute = attributes.integer( default = 0 ) # ?
     schemaVersion = 1
 
@@ -29,10 +59,8 @@ class ClickChronicleApplication( Item, ParentCounterMixin ):
         self.store.powerUp( self, ixmantissa.INavigableElement )
 
     def getTabs( self ):
-        return [Tab('My Account', self.storeID, 0.0,
-                    [Tab('My Clicks', self.storeID, 0.0),
-                     Tab('My Something Else', self.storeID, 0.0)])]
-        
+        return [Tab('My Clicks', self.storeID, 0.0)]
+
 class LinkListFragment( rend.Fragment ):
     fragmentName = 'link-list-fragment'
     title = ''
@@ -49,7 +77,7 @@ class LinkListFragment( rend.Fragment ):
                         title = visit.title )
 
 registerAdapter( LinkListFragment, 
-                 ClickChronicleApplication, 
+                 LinkList,
                  ixmantissa.INavigableFragment )
 
 class URLGrabber( rend.Page ):
@@ -91,5 +119,5 @@ class ClickChronicleBenefactor( Item ):
     def endow(self, ticket, avatar):
         self.endowed += 1
         for item in (WebSite, PrivateApplication, 
-                     ClickChronicleApplication, ClickRecorder):
+                     LinkList, Preferences, ClickRecorder):
             item( store = avatar ).install()

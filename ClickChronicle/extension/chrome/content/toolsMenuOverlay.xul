@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+
+<overlay id="clickchronicle_toolsMenuOverlay" 
+  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+  <script src="chrome://clickchronicle/content/prefs.js" type="application/x-javascript"/>
+  
+  <menupopup id="menu_ToolsPopup">
+    <menuseparator/>
+    <menuitem id="clickchronicle-preferences" label="ClickChronicle Prefs" 
+      accesskey="C" onclick="openPrefs();"/>
+  </menupopup>
+</overlay>

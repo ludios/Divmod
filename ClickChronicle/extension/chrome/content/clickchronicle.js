@@ -15,34 +15,24 @@
         if www.google.com redirects to www.google.co.za, which should
         be recorded?  what about other status codes, like "not found",
         "forbidden", "temporarily unavailable"
-    - page information:
-        the server originally included a facility for the client to send
-        the page title along with the URL, i don't think this is realistic
-        as long as we're using the observer service to track hits because
-        as far as i know, we don't have access to the document attributes,
-        and they're pretty meaningless as the extension currently works 
-        across tabs and suchlike
     stuff to add, maybe:
     - make the recording toggle operate per-tab, so indiscretions can be
       perpetrated in a designated area
 */
 
-function recordableURI( URI ) {
-    return URI.schemeIs("http") && (URI.userPass == "");
-    /* todo: compare URI against user-supplied filters,
-       and common sense stuff like ignoring visits to clickchronicle */
-}
+var RDF = Components.classes["@mozilla.org/rdf/rdf-service;1"]
+            .getService( Components.interfaces.nsIRDFService );
+    
+var IO = Components.classes["@mozilla.org/network/io-service;1"]
+            .getService( Components.interfaces.nsIIOService );
 
-function recordResponse( channel ) {
-    var URI = channel.URI.QueryInterface( Components.interfaces.nsIURI );
-    if(recordableURI( URI ))
-        alert( URI.spec );
-}
+/* rdf:history observation */
 
-function ResponseObserver() {}
+function HistoryObserver() { this.queuedURIs = new Object() }
 
-ResponseObserver.prototype = {
-    /* observer boilerplate */
+HistoryObserver.prototype = {
+    /* we'll subclass QueryInterface so we can keep non-standard 
+      instance methods when we're adapted */
     QueryInterface : function( iid ) {
         with( Components.interfaces )
             if(iid.equals( nsIObserver ) || iid.equals( nsISupports ))
@@ -50,6 +40,93 @@ ResponseObserver.prototype = {
             else
                 throw Components.results.NS_ERROR_NO_INTERFACE;
     },
+
+    callOnTitleChange : function( URI, callback ) {
+        if( URI in this.queuedURIs )
+            return;
+        this.queuedURIs[URI] = callback;
+    },
+    
+    modifyingNameProperty : function( property ) {
+        var propURN = property.Value;
+        return (propURN.slice( propURN.indexOf("#") + 1 ) == "Name");
+    },
+
+    onAssert : function( DS, source, property, target ) {
+        if(this.modifyingNameProperty( property )) {
+            var thisURI = source.Value;
+            if( thisURI in this.queuedURIs ) {
+                var newTitle = target.QueryInterface( Components.interfaces.nsIRDFLiteral ).Value;
+                this.queuedURIs[thisURI]( newTitle );
+                delete( this.queuedURIs[thisURI] );
+            }
+        }
+    },
+
+    onChange : function( DS, source, property, ot, nt ) {}
+
+}
+
+/* see what we can do about modularizing this */
+var historyDS = RDF.GetDataSource("rdf:history");
+var historyObserver = new HistoryObserver();
+historyDS.AddObserver( historyObserver );
+
+/* http-on-examine-response observation */
+
+function recordableURI( URI ) {
+    return URI.schemeIs("http") && (URI.userPass == "");
+    /* todo: compare URI against user-supplied filters,
+       and common sense stuff like ignoring visits to clickchronicle */
+}
+
+function getNCResource( arcName ) {
+    return RDF.GetResource("http://home.netscape.com/NC-rdf#" + arcName);
+}
+
+function historyEntryForURI( URI, historyDataSource ) {
+    /* this whole process is disturbing */
+    var urlArc = getNCResource( "URL" );
+    var urlTarget = RDF.GetResource( URI );
+    
+    /* nsGlobalHistory::GetSource segfaults if passed an nsIRDFLiteral as
+     * the "target" argument, despite the API documentation */
+
+    return historyDataSource.GetSource( urlArc, urlTarget, true );
+}
+
+function recordHit( URI ) {
+    /* urgh, it seems that when a page is requested for the first time,
+     * mozilla makes a history entry listing the page title as a prettified
+     * version of the url ("divmod.com" for "x.y.divmod.com/z")..once the
+     * page has loaded, or on a repeat visit - i can't discern, the entry is
+     * overwritten with the real page title.  so if it's a first visit, we
+     * tell our rdf:history observer to call us back with the page title once 
+     * the datasource has been updated, otherwise just send the reported title
+     * to the server */
+    
+    var histDataSource = RDF.GetDataSource( "rdf:history" );
+    var histEntry = historyEntryForURI( URI.spec, histDataSource );
+    var visitCount = histDataSource.GetTarget( histEntry, getNCResource("VisitCount"), true )
+                        .QueryInterface( Components.interfaces.nsIRDFInt ).Value;
+    
+    function logToServer( title ) {
+        /* well, it will soon log to the server */
+        alert("logging: " + URI.spec + " title: " + title);
+    }
+
+    if( visitCount == 1 ) {
+        historyObserver.callOnTitleChange( URI.spec, logToServer );
+    } else {
+        var pageTitle = histDataSource.GetTarget( histEntry, getNCResource("Name"), true )
+                            .QueryInterface( Components.interfaces.nsIRDFLiteral ).Value;
+        logToServer( pageTitle );
+    }
+}
+     
+function ResponseObserver() {}
+
+ResponseObserver.prototype = {
     /* called upon receipt of http response headers */
     observe : function( subject, topic, data ) {
         var channel = subject.QueryInterface( Components.interfaces.nsIChannel );
@@ -57,8 +134,11 @@ ResponseObserver.prototype = {
            user interfaction, e.g. typed URL, link click, or HTTP redirect 
            arising from either of those - IOW it wont log stuff like iframes 
            or inline images */
-        if( channel.loadFlags & channel.LOAD_INITIAL_DOCUMENT_URI )
-            recordResponse( channel );
+        if( channel.loadFlags & channel.LOAD_INITIAL_DOCUMENT_URI ) {
+            var URI = channel.URI.QueryInterface( Components.interfaces.nsIURI );
+            if(recordableURI( URI ))
+                recordHit( URI );
+        }
     }
 }
 

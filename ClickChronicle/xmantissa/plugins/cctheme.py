@@ -1,2 +1,3 @@
 from clickchronicle import cctheme
-clickChronicleTheme = cctheme.XHTMLDirectoryTheme( 'base' )
+ccBase = cctheme.ClickChronicleTheme( 'cc-base' )
+ccSkin = cctheme.ClickChronicleTheme( 'cc-skin' )

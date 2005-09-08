@@ -30,14 +30,14 @@ class RadicalConfiguration(usage.Options):
                     break
                 else:
                     sch = scheduler.Scheduler(store=s)
-                    sch.install()
+                    sch.installOn(s)
                     sch.checkpoint()
                     s.checkpoint()
 
                 for world in s.store.query(radapp.RadicalWorld):
                     break
                 else:
-                    radapp.RadicalWorld(store=s).install()
+                    radapp.RadicalWorld(store=s).installOn(s)
             else:
-                radapp.RadicalApplication(store=s).install()
+                radapp.RadicalApplication(store=s).installOn(s)
         s.transact(postOptions)

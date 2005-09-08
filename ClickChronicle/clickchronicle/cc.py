@@ -11,28 +11,28 @@ from xmantissa.website import PrefixURLMixin
 from epsilon.extime import Time
 from datetime import datetime
 
-class Visit( Item ):
+class Visit(Item):
     '''i correspond to a webpage-visit logged by a clickchronicle user'''
     timestamp = attributes.timestamp()
-    url = attributes.bytes() 
+    url = attributes.bytes()
     title = attributes.bytes()
 
     schemaVersion = 1
     typeName = 'visit'
 
-class Preferences( Item ):
+class Preferences(Item):
     '''i represent storeable, per-user preference information.
        i implement INavigableElement, so PrivateApplication will
        look for me in the user's store'''
-    implements( ixmantissa.INavigableElement )
+    implements(ixmantissa.INavigableElement)
     typeName = 'clickchronicle_preferences'
     schemaVersion = 1
 
-    displayName = attributes.bytes( default = 'none set' )
-    homepage = attributes.bytes( default = 'http://www.clickchronicle.com' )
+    displayName = attributes.bytes(default='none set')
+    homepage = attributes.bytes(default='http://www.clickchronicle.com')
 
-    def install( self ):
-        self.store.powerUp( self, ixmantissa.INavigableElement )
+    def installOn(self, other):
+        other.powerUp(self, ixmantissa.INavigableElement)
 
     def getTabs( self ):
         return [Tab('Preferences', self.storeID, 0.2)]
@@ -67,8 +67,8 @@ class LinkList( Item ):
     links = attributes.integer( default = 0 )
     schemaVersion = 1
 
-    def install( self ):
-        self.store.powerUp( self, ixmantissa.INavigableElement )
+    def installOn(self, other):
+        other.powerUp( self, ixmantissa.INavigableElement )
 
     def getTabs( self ):
         '''show a link to myself in the navbar'''
@@ -129,8 +129,8 @@ class ClickRecorder( Item, PrefixURLMixin ):
     urlCount = attributes.integer( default = 0 )
     prefixURL = 'private/record'
 
-    def install( self ):
-        self.store.powerUp( self, ixmantissa.ISiteRootPlugin )
+    def installOn(self, other):
+        other.powerUp(self, ixmantissa.ISiteRootPlugin)
 
     def createResource( self ):
         return URLGrabber( self )
@@ -149,4 +149,4 @@ class ClickChronicleBenefactor( Item ):
         self.endowed += 1
         for item in (WebSite, PrivateApplication, 
                      LinkList, Preferences, ClickRecorder):
-            item( store = avatar ).install()
+            item( store = avatar ).installOn(avatar)

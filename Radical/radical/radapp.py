@@ -114,16 +114,15 @@ class RadicalWorld(item.Item, website.PrefixURLMixin):
     width = integer(default=100)
     height = integer(default=100)
 
-    def install(self):
-        self.store.powerUp(self, ISessionlessSiteRootPlugin)
-        self.store.checkpoint()
+    def installOn(self, other):
+        other.powerUp(self, ISessionlessSiteRootPlugin)
 
         # Make sure people can sign up
         for booth in self.store.query(signup.TicketBooth):
             break
         else:
             booth = signup.TicketBooth(store=self.store)
-            booth.install()
+            booth.installOn(self.store)
 
         start = LocationComponent(store=self.store, original=self, x=10, y=10)
         bene = RadicalBenefactor(store=self.store, startLocation=start)
@@ -132,7 +131,7 @@ class RadicalWorld(item.Item, website.PrefixURLMixin):
             benefactor=bene,
             prefixURL=u'radical-signup',
             booth=booth)
-        gameSignup.install()
+        gameSignup.installOn(self.store)
 
         # Put some junk in the world
         sword = RadicalObject.create(self.store, u'sword')
@@ -212,8 +211,8 @@ class RadicalApplication(item.Item, website.PrefixURLMixin):
 
     prefixURL = 'private/radical'
 
-    def install(self, (x, y) = (10, 10)):
-        self.store.powerUp(self, INavigableElement)
+    def installOn(self, other, (x, y) = (10, 10)):
+        other.powerUp(self, INavigableElement)
         self.character = RadicalCharacter.create(self.store, x, y, u'player')
 
     def getTabs(self):
@@ -627,11 +626,11 @@ class RadicalBenefactor(item.Item):
 
     def endow(self, ticket, avatar):
         app = RadicalApplication(store=avatar)
-        app.install((self.startLocation.x, self.startLocation.y))
+        app.installOn(avatar, (self.startLocation.x, self.startLocation.y))
 
         # Make sure the private web application will work and junk
         for App in website.WebSite, webapp.PrivateApplication:
             for existing in avatar.query(App):
                 break
             else:
-                App(store=avatar).install()
+                App(store=avatar).installOn(avatar)

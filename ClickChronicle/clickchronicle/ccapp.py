@@ -11,21 +11,21 @@ from signup_hack import EmaillessTicketSignup
 siteStore = Store( 'cchronicle.axiom', debug = True )
 
 def installSite():
-    LoginSystem( store = siteStore ).install()
-    
+    LoginSystem( store = siteStore ).installOn(siteStore)
+
     siteStore.checkpoint()
-     
-    WebSite( store = siteStore, portno = 8080 ).install()
-    ClickChronicleWebSite( store = siteStore ).install() 
-    
+
+    WebSite( store = siteStore, portno = 8080 ).installOn(siteStore)
+    ClickChronicleWebSite( store = siteStore ).installOn(siteStore)
+
     booth = TicketBooth( store = siteStore )
-    booth.install()
+    booth.installOn(siteStore)
 
     ccBenefactor = ClickChronicleBenefactor( store = siteStore )
 
     EmaillessTicketSignup( store = siteStore,
                            benefactor = ccBenefactor,
                            prefixURL = u'signup',
-                           booth = booth ).install()
+                           booth = booth ).installOn(siteStore)
 
 siteStore.transact( installSite )

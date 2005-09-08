@@ -2,7 +2,7 @@ from axiom.store import Store
 from axiom.userbase import LoginSystem
 from axiom.item import Item
 from xmantissa.webapp import PrivateApplication
-from xmantissa.website import WebSite
+from xmantissa.website import WebSite, StaticSite
 from xmantissa.signup import TicketBooth
 from cc import ClickChronicleBenefactor
 from ccsite import ClickChronicleWebSite
@@ -17,6 +17,8 @@ def installSite():
 
     WebSite( store = siteStore, portno = 8080 ).installOn(siteStore)
     ClickChronicleWebSite( store = siteStore ).installOn(siteStore)
+    StaticSite( store = siteStore, prefixURL = u'static', 
+                staticContentPath = u'static' ).installOn(siteStore)
 
     booth = TicketBooth( store = siteStore )
     booth.installOn(siteStore)

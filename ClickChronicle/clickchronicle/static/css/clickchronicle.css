@@ -1,0 +1,9 @@
+body { background-color: #7c7777 }
+a:link    { color: #C0C0C0; text-decoration: none }
+a:visited { color: #C0C0C0; text-decoration: none }
+a:hover   { color: #FFFFFF; text-decoration: none }
+a:active  { color: #FFFFFF; text-decoration: underline }
+.tabList { border: solid 5px #575757; }
+div.tab { background-color: #575757 }
+div.tab:hover { background-color: #949494; }
+

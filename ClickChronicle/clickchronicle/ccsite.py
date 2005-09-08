@@ -17,5 +17,9 @@ class ClickChronicleWebSite( Item, PrefixURLMixin ):
 
     users = attributes.integer( default = 0 )
 
+   # def installOn(self, other):
+   #     other.powerUp(self, ISiteRootPlugin)
+
     def createResource( self ):
         return RootResource()
+

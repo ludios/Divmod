@@ -46,7 +46,7 @@ class PreferencesFragment( rend.Fragment ):
     live = True
 
     def head( self ):
-        return ''
+        return None
 
     def data_preferences( self, ctx, data ):
         '''return a dict of self.original's (Preferences instance) columns'''
@@ -81,7 +81,7 @@ class LinkListFragment( rend.Fragment ):
     live = True
     
     def head( self ):
-        return ''
+        return None
 
     def data_links( self, ctx, data ):
         '''find all Visits in the user's store, sort them by timestamp
@@ -147,6 +147,15 @@ class ClickChronicleBenefactor( Item ):
 
     def endow(self, ticket, avatar):
         self.endowed += 1
-        for item in (WebSite, PrivateApplication, 
-                     LinkList, Preferences, ClickRecorder):
+        # dont commit me
+        for c in ('a', 'b', 'c', 'd', 'e', 'f'):
+            url = 'http://%c.com' % c
+            Visit(store = avatar,
+                  url = url,
+                  timestamp = Time.fromDatetime( datetime.now() ),
+                  title = c * 5)
+        for item in (WebSite, LinkList, Preferences, ClickRecorder):
             item( store = avatar ).installOn(avatar)
+            
+        PrivateApplication( store = avatar, 
+                            preferredTheme = u'cc-skin' ).installOn(avatar)

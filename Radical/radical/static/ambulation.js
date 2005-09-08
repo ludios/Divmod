@@ -312,11 +312,11 @@ function setTerrain(x, y, kind) {
 };
 
 function objectZIndex(row, col) {
-    return col;
+    return (theMap.width * col) + row;
 }
 
 function characterZIndex(row, col) {
-    return col + 1;
+    return (theMap.width * col+1) + (row+1);
 }
 
 function createMapTile(row, col, kind) {

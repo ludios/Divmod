@@ -331,13 +331,17 @@ def _pickDisplayCoordinate(pos, viewport, max):
     return viewport / 2
 
 
-class RadicalGame(rend.Fragment):
+class RadicalGame(website.AxiomFragment):
     implements(INavigableFragment)
 
     live = True
     fragmentName = 'radical-map'
 
     _charCounter = 0
+
+    def __init__(self, character):
+        self.store = character.store
+        website.AxiomFragment.__init__(self, character)
 
     def inRange(self, other):
         loc = ILocated(self.original)
@@ -614,6 +618,7 @@ class RadicalGame(rend.Fragment):
             else:
                 yield self.scrollLeft()
             self.world.playerMoved(self, (loc.x, loc.y))
+
 
 
 registerAdapter(RadicalGame, RadicalCharacter, INavigableFragment)

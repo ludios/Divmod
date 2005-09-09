@@ -99,6 +99,12 @@ function historyEntryForURI( URI, historyDataSource ) {
     return historyDataSource.GetSource( urlArc, urlTarget, true );
 }
 
+function urlencode( str ) {
+    str = escape( str );
+    str = str.replace(/\\+/g, "%2B");
+    return str.replace(/%20/g, "+");
+}
+
 function recordHit( URI ) {
     /* urgh, it seems that when a page is requested for the first time,
      * mozilla makes a history entry listing the page title as a prettified
@@ -117,7 +123,7 @@ function recordHit( URI ) {
     function logToServer( title ) {
         var recorderURL = gPrefs.getCharPref( "clickRecorderURL" );
         var req = new XMLHttpRequest()
-        req.open( "GET", recorderURL+"?url="+URI.spec+"&title="+title, true ); 
+        req.open( "GET", recorderURL+"?url="+urlencode(URI.spec)+"&title="+title, true ); 
         req.send( null );
     }
 
@@ -135,15 +141,18 @@ function ResponseObserver() {}
 ResponseObserver.prototype = {
     /* called upon receipt of http response headers */
     observe : function( subject, topic, data ) {
-        var channel = subject.QueryInterface( Components.interfaces.nsIChannel );
+        var channel = subject.QueryInterface( Components.interfaces.nsIHttpChannel );
         /* this test will be true if the page-load is the direct result of
            user interfaction, e.g. typed URL, link click, or HTTP redirect 
            arising from either of those - IOW it wont log stuff like iframes 
            or inline images */
         if( channel.loadFlags & channel.LOAD_INITIAL_DOCUMENT_URI ) {
-            var URI = channel.URI.QueryInterface( Components.interfaces.nsIURI );
-            if(recordableURI( URI ))
-                recordHit( URI );
+            if( channel.responseStatus == 200 || channel.responseStatus == 302 
+                    || channel.responseStatus == 304 ) {
+                var URI = channel.URI.QueryInterface( Components.interfaces.nsIURI );
+                if(recordableURI( URI ))
+                    recordHit( URI );
+            }
         }
     }
 }

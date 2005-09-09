@@ -12,7 +12,7 @@ from epsilon.extime import Time
 from datetime import datetime
 
 class Visit(Item):
-    '''i correspond to a webpage-visit logged by a clickchronicle user'''
+    """I correspond to a webpage-visit logged by a clickchronicle user"""
     timestamp = attributes.timestamp()
     url = attributes.bytes()
     title = attributes.bytes()
@@ -21,9 +21,9 @@ class Visit(Item):
     typeName = 'visit'
 
 class Preferences(Item):
-    '''i represent storeable, per-user preference information.
-       i implement INavigableElement, so PrivateApplication will
-       look for me in the user's store'''
+    """I represent storeable, per-user preference information.
+       I implement INavigableElement, so PrivateApplication will
+       look for me in the user's store"""
     implements(ixmantissa.INavigableElement)
     typeName = 'clickchronicle_preferences'
     schemaVersion = 1
@@ -38,8 +38,8 @@ class Preferences(Item):
         return [Tab('Preferences', self.storeID, 0.2)]
 
 class PreferencesFragment( rend.Fragment ):
-    '''i will get an adapter for Preferences instances, who
-       implements INavigableFragment'''
+    """I will get an adapter for Preferences instances, who
+       implements INavigableFragment"""
        
     fragmentName = 'preferences-fragment'
     title = ''
@@ -49,7 +49,7 @@ class PreferencesFragment( rend.Fragment ):
         return None
 
     def data_preferences( self, ctx, data ):
-        '''return a dict of self.original's (Preferences instance) columns'''
+        """return a dict of self.original's (Preferences instance) columns"""
         return dict( displayName = self.original.displayName,
                      homepage = self.original.homepage )
 
@@ -58,9 +58,9 @@ registerAdapter( PreferencesFragment,
                  ixmantissa.INavigableFragment )
 
 class LinkList( Item ):
-    '''similar to Preferences, i am an implementor of INavigableElement,
+    """similar to Preferences, i am an implementor of INavigableElement,
        and PrivateApplication will find me when when it looks in the user's
-       store'''
+       store"""
        
     implements( ixmantissa.INavigableElement )
     typeName = 'clickchronicle_linklist'
@@ -84,8 +84,8 @@ class LinkListFragment( rend.Fragment ):
         return None
 
     def data_links( self, ctx, data ):
-        '''find all Visits in the user's store, sort them by timestamp
-           and yield them to the template'''
+        """find all Visits in the user's store, sort them by timestamp
+           and yield them to the template"""
         store = self.original.store
         for visit in store.query( Visit, sort = Visit.timestamp.descending ):
             yield dict( url = visit.url, 
@@ -96,27 +96,17 @@ registerAdapter( LinkListFragment,
                  LinkList,
                  ixmantissa.INavigableFragment )
 
-class URLGrabber( rend.Page ):
-    '''i handle ClickRecorder's HTTP action.  i am not an Item
-       because i have a lot of attributes inherited from rend.Page'''
+class URLGrabber(rend.Page):
+    """I handle ClickRecorder's HTTP action.  i am not an Item
+       because i have a lot of attributes inherited from rend.Page"""
     def __init__( self, recorder ):
         self.recorder = recorder
         
     def renderHTTP( self, ctx ):
-        '''get url and title GET variables, supplying sane defaults'''
+        """get url and title GET variables, supplying sane defaults"""
         urlpath = inevow.IRequest( ctx ).URLPath()
         qargs = dict( urlpath.queryList() )
-        url = qargs.get( 'url' )
-        if url is not None:
-            self.recorder.urlCount += 1
-            Visit(store = self.recorder.store,
-                  url = url,
-                  timestamp = Time.fromDatetime( datetime.now() ),
-                  title = qargs.get( 'title', 'Untitled' ))
-            
-        (linkList,) = list(self.recorder.store.query(LinkList))
-        linkList.links += 1
-
+        self.recorder._recordClick(qargs)
         return ''
             
 class ClickRecorder( Item, PrefixURLMixin ):
@@ -134,6 +124,31 @@ class ClickRecorder( Item, PrefixURLMixin ):
 
     def createResource( self ):
         return URLGrabber( self )
+
+    def _recordClick(self, qargs):
+        url = qargs.get('url')
+        if url is None:
+            # No url, no deal.
+            print 'url is None'
+            return
+        
+        title = qargs.get('title', 'Untitled')
+        timeNow = Time.fromDatetime(datetime.now())
+        def _():
+            self.urlCount += 1
+            visit = Visit(store = self.store,
+                  url = url,
+                  timestamp = timeNow,
+                  title = title)
+            (linkList,) = list(self.store.query(LinkList))
+            linkList.links += 1
+            return visit
+        visit = self.store.transact(_)
+        self._indexVisit(visit)
+
+    def _indexVisit(self, visit):
+        print "Yay indexing", visit
+
 
 class ClickChronicleBenefactor( Item ):
     '''i am responsible for granting priveleges to avatars, 

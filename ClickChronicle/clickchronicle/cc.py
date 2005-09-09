@@ -154,8 +154,10 @@ class ClickChronicleBenefactor( Item ):
                   url = url,
                   timestamp = Time.fromDatetime( datetime.now() ),
                   title = c * 5)
+
+        PrivateApplication( store = avatar, 
+                            preferredTheme = u'cc-skin' ).installOn(avatar)
+
         for item in (WebSite, LinkList, Preferences, ClickRecorder):
             item( store = avatar ).installOn(avatar)
             
-        PrivateApplication( store = avatar, 
-                            preferredTheme = u'cc-skin' ).installOn(avatar)

@@ -10,6 +10,8 @@ from xmantissa.webadmin import WebSite, PrivateApplication
 from xmantissa.website import PrefixURLMixin
 from epsilon.extime import Time
 from datetime import datetime
+from xapwrap.xapwrap import SmartIndex, Document, TextField, SortKey, Keyword
+from clickchronicle import indexinghelp    
 
 class Visit(Item):
     """I correspond to a webpage-visit logged by a clickchronicle user"""
@@ -106,7 +108,7 @@ class URLGrabber(rend.Page):
         """get url and title GET variables, supplying sane defaults"""
         urlpath = inevow.IRequest( ctx ).URLPath()
         qargs = dict( urlpath.queryList() )
-        self.recorder._recordClick(qargs)
+        self.recorder.recordClick(qargs)
         return ''
             
 class ClickRecorder( Item, PrefixURLMixin ):
@@ -125,7 +127,7 @@ class ClickRecorder( Item, PrefixURLMixin ):
     def createResource( self ):
         return URLGrabber( self )
 
-    def _recordClick(self, qargs):
+    def recordClick(self, qargs):
         url = qargs.get('url')
         if url is None:
             # No url, no deal.
@@ -144,11 +146,27 @@ class ClickRecorder( Item, PrefixURLMixin ):
             linkList.links += 1
             return visit
         visit = self.store.transact(_)
-        self._indexVisit(visit)
+        self.indexVisit(visit)
 
-    def _indexVisit(self, visit):
-        print "Yay indexing", visit
-
+    def indexVisit(self, visit):
+        keywords = [
+            Keyword('type', 'url'),
+            Keyword('url', visit.url),
+            Keyword('title', visit.title)]
+        # Should return a deferred
+        pageSource = indexinghelp.getPageSource(visit.url)
+        metaDict = indexinghelp.getMeta(pageSource)
+        text = indexinghelp.getText(pageSource)
+        textFields = [TextField(text)]
+        for k, v in metaDict:
+            textFields.append(TextField(v))
+        # XXX - Not sure how xapwrap handles multiple text fields
+        doc = Document(uid=visit.storeID, textFields=textFields, keywords=keywords)
+        # XXX - Hardcoded directory name
+        xapDir = self.store.newDirectory('xap.index')
+        xapIndex = SmartIndex(str(xapDir.path), True)
+        xapIndex.index(doc)
+        
 
 class ClickChronicleBenefactor( Item ):
     '''i am responsible for granting priveleges to avatars, 
@@ -172,7 +190,6 @@ class ClickChronicleBenefactor( Item ):
 
         PrivateApplication( store = avatar, 
                             preferredTheme = u'cc-skin' ).installOn(avatar)
-
         for item in (WebSite, LinkList, Preferences, ClickRecorder):
             item( store = avatar ).installOn(avatar)
             

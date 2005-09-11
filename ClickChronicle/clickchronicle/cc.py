@@ -10,13 +10,12 @@ from xmantissa.webadmin import WebSite, PrivateApplication
 from xmantissa.website import PrefixURLMixin
 from epsilon.extime import Time
 from datetime import datetime
-from xapwrap.xapwrap import SmartIndex
-from clickchronicle import indexinghelp    
+from clickchronicle.indexinghelp import IIndexable, IIndexer, SyncIndexer, makeDocument, getPageSource
 
-XAPIAN_INDEX_DIR = 'xap.index'
 
 class Visit(Item):
     """I correspond to a webpage-visit logged by a clickchronicle user"""
+    implements(IIndexable)
     timestamp = attributes.timestamp()
     url = attributes.bytes()
     title = attributes.bytes()
@@ -24,23 +23,23 @@ class Visit(Item):
     schemaVersion = 1
     typeName = 'visit'
 
-    def indexAndCache(self):
-        def cbIndex(pageSource):
-            doc = indexinghelp.makeDoc(self, pageSource)
-            # XXX - Not sure if I like the Visit knowing about xapian
-            xapDir = self.store.newDirectory(XAPIAN_INDEX_DIR)
-            xapIndex = SmartIndex(str(xapDir.path), True)
-            xapIndex.index(doc)
-            return pageSource
-        def cbCache(pageSource):
-            self.cachePage(pageSource)
-        d = indexinghelp.getPageSource(self.url)
-        d.addCallback(cbIndex)
-        d.addCallback(cbCache)
-
-    def cachePage(self, source):
+    def asDocument(self):
+        """
+        Return a Document in a Deferred.
+        """
+        def cbGotSource(pageSource):
+            doc = makeDocument(self, pageSource)
+            return doc
+        d = getPageSource(self.url)
+        d.addCallback(cbGotSource)
+        return d
+        
+    def cachePage(self, pageSource):
+        """
+        Cache the source for this Visit.
+        """
         newFile = self.store.newFile(self.cachedFileName())
-        newFile.write(source)
+        newFile.write(pageSource)
         newFile.close()
 
     def cachedFileName(self):
@@ -149,14 +148,16 @@ class URLGrabber(rend.Page):
         return ''
             
 class ClickRecorder( Item, PrefixURLMixin ):
-    '''i exist independently of the rest of the application
-       and accept HTTP requests at private/record, which i
-       farm off to URLGrabber'''
+    """
+    I exist independently of the rest of the application and accept
+    HTTP requests at private/record, which i farm off to URLGrabber.
+    """
     schemaVersion = 1
     implements( ixmantissa.ISiteRootPlugin )
     typeName = 'clickrecorder'
     urlCount = attributes.integer( default = 0 )
     prefixURL = 'private/record'
+    caching = True
 
     def installOn(self, other):
         other.powerUp(self, ixmantissa.ISiteRootPlugin)
@@ -183,7 +184,15 @@ class ClickRecorder( Item, PrefixURLMixin ):
             linkList.links += 1
             return visit
         visit = self.store.transact(_)
-        visit.indexAndCache()
+        self.postProcess(visit)
+
+    def postProcess(self, visit):
+        def cbCachePage(doc):
+            visit.cachePage(doc.source)
+        indexer = IIndexer(self.store)
+        d=indexer.index(visit)
+        if self.caching:
+            d.addCallback(cbCachePage)
                         
 
 class ClickChronicleBenefactor( Item ):
@@ -208,6 +217,6 @@ class ClickChronicleBenefactor( Item ):
 
         PrivateApplication( store = avatar, 
                             preferredTheme = u'cc-skin' ).installOn(avatar)
-        for item in (WebSite, LinkList, Preferences, ClickRecorder):
-            item( store = avatar ).installOn(avatar)
+        for item in (WebSite, LinkList, Preferences, ClickRecorder, SyncIndexer):
+            item(store=avatar ).installOn(avatar)
             

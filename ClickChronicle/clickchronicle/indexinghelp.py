@@ -42,16 +42,10 @@ def getMeta(source):
 
 from twisted.web import microdom, domhelpers, client
 def getPageSource(url):
-    """Get the page source for a URL.
-    Should be async.
+    """Asynchronously get the page source for a URL.
     """
-    #def cbGotPage(page):
-    #    return page
-    #d = client.getPage(url)
-    #d.addCallback(cbGotPage)
-    #return d
-    import urllib
-    return urllib.urlopen(url).read()
+        
+    return client.getPage(url)    
 
 import re
 rawstr = r"""<.*?>"""
@@ -65,5 +59,21 @@ def getText(source):
     #text = domhelpers.gatherTextNodes(doc)
     text = compiled_re.subn(' ', source)[0]
     return text
-                                                                        
+
+
+from xapwrap.xapwrap import Document, TextField, SortKey, Keyword                                                                        
+def makeDoc(visit, pageSource):
+    keywords = [
+        Keyword('type', 'url'),
+        Keyword('url', visit.url),
+        Keyword('title', visit.title)]
+    metaDict = getMeta(pageSource)
+    text = getText(pageSource)
+    textFields = [TextField(text)]
+    for k, v in metaDict:
+        textFields.append(TextField(v))
+    # XXX - Not sure how xapwrap handles multiple text fields
+    # Use storeID for possibly simpler removal of visit from index at a later stage
+    doc = Document(uid=visit.storeID, textFields=textFields, keywords=keywords)
+    return doc
     

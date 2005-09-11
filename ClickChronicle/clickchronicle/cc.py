@@ -10,7 +10,7 @@ from xmantissa.webadmin import WebSite, PrivateApplication
 from xmantissa.website import PrefixURLMixin
 from epsilon.extime import Time
 from datetime import datetime
-from xapwrap.xapwrap import SmartIndex, Document, TextField, SortKey, Keyword
+from xapwrap.xapwrap import SmartIndex
 from clickchronicle import indexinghelp    
 
 class Visit(Item):
@@ -149,23 +149,18 @@ class ClickRecorder( Item, PrefixURLMixin ):
         self.indexVisit(visit)
 
     def indexVisit(self, visit):
-        keywords = [
-            Keyword('type', 'url'),
-            Keyword('url', visit.url),
-            Keyword('title', visit.title)]
-        # Should return a deferred
-        pageSource = indexinghelp.getPageSource(visit.url)
-        metaDict = indexinghelp.getMeta(pageSource)
-        text = indexinghelp.getText(pageSource)
-        textFields = [TextField(text)]
-        for k, v in metaDict:
-            textFields.append(TextField(v))
-        # XXX - Not sure how xapwrap handles multiple text fields
-        doc = Document(uid=visit.storeID, textFields=textFields, keywords=keywords)
-        # XXX - Hardcoded directory name
-        xapDir = self.store.newDirectory('xap.index')
-        xapIndex = SmartIndex(str(xapDir.path), True)
-        xapIndex.index(doc)
+        def indexAndCache(pageSource):
+            doc = indexinghelp.makeDoc(visit, pageSource)
+            # XXX - Hardcoded directory name
+            xapDir = self.store.newDirectory('xap.index')
+            xapIndex = SmartIndex(str(xapDir.path), True)
+            xapIndex.index(doc)
+            self.cachePage(pageSource)
+        d = indexinghelp.getPageSource(visit.url)
+        d.addCallback(indexAndCache)
+
+    def cachePage(self, source):
+        pass
         
 
 class ClickChronicleBenefactor( Item ):

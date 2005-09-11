@@ -107,7 +107,11 @@ def getPageSource(url):
 
 import re
 rawstr = r"""<.*?>"""
-compiled_re = re.compile(rawstr,  re.IGNORECASE| re.DOTALL)
+tag_re = re.compile(rawstr,  re.IGNORECASE| re.DOTALL)
+rawstr = r"""<n?o?script.*?</n?o?script>"""
+script_re = re.compile(rawstr,  re.IGNORECASE| re.MULTILINE| re.DOTALL)
+rawstr = r"""&nbsp"""
+nbsp_re = re.compile(rawstr,  re.IGNORECASE| re.MULTILINE| re.DOTALL)
 
 def getText(source):
     """
@@ -115,7 +119,9 @@ def getText(source):
     """
     #doc = microdom.parseString(source, beExtremelyLenient=True)
     #text = domhelpers.gatherTextNodes(doc)
-    text = compiled_re.subn(' ', source)[0]
+    noScript = script_re.subn(' ', source)[0]
+    noTags = tag_re.subn(' ', noScript)[0]
+    text = nbsp_re.subn(' ', noTags)[0]
     return text
 
 
@@ -146,3 +152,14 @@ def makeDocument(visit, pageSource):
                    source=pageSource)
     return doc
     
+if __name__ == '__main__':
+    import sys
+    fnames = sys.argv[1:]
+    for fname in fnames:
+        print fname
+        source = open(fname, 'rb').read()
+        print getMeta(source)
+        print '***********'
+        print getText(source)
+        
+        

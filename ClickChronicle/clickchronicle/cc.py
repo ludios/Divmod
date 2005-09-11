@@ -13,6 +13,8 @@ from datetime import datetime
 from xapwrap.xapwrap import SmartIndex
 from clickchronicle import indexinghelp    
 
+XAPIAN_INDEX_DIR = 'xap.index'
+
 class Visit(Item):
     """I correspond to a webpage-visit logged by a clickchronicle user"""
     timestamp = attributes.timestamp()
@@ -22,14 +24,39 @@ class Visit(Item):
     schemaVersion = 1
     typeName = 'visit'
 
-    def getPathToCached(self):
+    def indexAndCache(self):
+        def cbIndex(pageSource):
+            doc = indexinghelp.makeDoc(self, pageSource)
+            # XXX - Not sure if I like the Visit knowing about xapian
+            xapDir = self.store.newDirectory(XAPIAN_INDEX_DIR)
+            xapIndex = SmartIndex(str(xapDir.path), True)
+            xapIndex.index(doc)
+            return pageSource
+        def cbCache(pageSource):
+            self.cachePage(pageSource)
+        d = indexinghelp.getPageSource(self.url)
+        d.addCallback(cbIndex)
+        d.addCallback(cbCache)
+
+    def cachePage(self, source):
+        newFile = self.store.newFile(self.cachedFileName())
+        newFile.write(source)
+        newFile.close()
+
+    def cachedFileName(self):
         """
         Return the path to the cached source for this visit.
+        The path consists of the iso date for the visit as directory and the
+        storeID as the filename.
+        e.g. cchronicle.axiom/files/account/test.com/user/files/cache/2005-09-10/55.html
         """
+        # XXX - I doubt that this is how these path objects are supposed to
+        # be manipulated. Check for sanity/style.
         dirName = self.timestamp.asDatetime().date().isoformat()
         cacheDir = self.store.newDirectory('cache/%s' % dirName)
-        fileName = str(cacheDir.path)+ '/' + str(visit.storeID) + '.html'
+        fileName = str(cacheDir.path)+ '/' + str(self.storeID) + '.html'
         return fileName
+
 
 class Preferences(Item):
     """I represent storeable, per-user preference information.
@@ -47,6 +74,7 @@ class Preferences(Item):
 
     def getTabs( self ):
         return [Tab('Preferences', self.storeID, 0.2)]
+
 
 class PreferencesFragment( rend.Fragment ):
     """I will get an adapter for Preferences instances, who
@@ -155,24 +183,8 @@ class ClickRecorder( Item, PrefixURLMixin ):
             linkList.links += 1
             return visit
         visit = self.store.transact(_)
-        self.indexVisit(visit)
-
-    def indexVisit(self, visit):
-        def indexAndCache(pageSource):
-            doc = indexinghelp.makeDoc(visit, pageSource)
-            # XXX - Hardcoded directory name
-            xapDir = self.store.newDirectory('xap.index')
-            xapIndex = SmartIndex(str(xapDir.path), True)
-            xapIndex.index(doc)
-            self.cachePage(visit, pageSource)
-        d = indexinghelp.getPageSource(visit.url)
-        d.addCallback(indexAndCache)
-
-    def cachePage(self, visit, source):
-        newFile = self.store.newFile(visit.getPathToCache())
-        newFile.write(source)
-        newFile.close()
-                
+        visit.indexAndCache()
+                        
 
 class ClickChronicleBenefactor( Item ):
     '''i am responsible for granting priveleges to avatars, 

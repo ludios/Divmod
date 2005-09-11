@@ -70,6 +70,7 @@ def makeDoc(visit, pageSource):
     metaDict = getMeta(pageSource)
     text = getText(pageSource)
     textFields = [TextField(text)]
+    # XXX - Perhaps we should add meta text as Keywords
     for k, v in metaDict:
         textFields.append(TextField(v))
     # XXX - Not sure how xapwrap handles multiple text fields

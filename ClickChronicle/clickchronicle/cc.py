@@ -22,6 +22,15 @@ class Visit(Item):
     schemaVersion = 1
     typeName = 'visit'
 
+    def getPathToCached(self):
+        """
+        Return the path to the cached source for this visit.
+        """
+        dirName = self.timestamp.asDatetime().date().isoformat()
+        cacheDir = self.store.newDirectory('cache/%s' % dirName)
+        fileName = str(cacheDir.path)+ '/' + str(visit.storeID) + '.html'
+        return fileName
+
 class Preferences(Item):
     """I represent storeable, per-user preference information.
        I implement INavigableElement, so PrivateApplication will
@@ -160,9 +169,7 @@ class ClickRecorder( Item, PrefixURLMixin ):
         d.addCallback(indexAndCache)
 
     def cachePage(self, visit, source):
-        dirName = visit.timestamp.asDatetime().date().isoformat()
-        cacheDir = self.store.newDirectory('cache/%s' % dirName)
-        newFile = self.store.newFile(str(cacheDir.path)+ '/' + str(visit.storeID) + '.html')
+        newFile = self.store.newFile(visit.getPathToCache())
         newFile.write(source)
         newFile.close()
                 

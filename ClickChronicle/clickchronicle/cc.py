@@ -155,13 +155,17 @@ class ClickRecorder( Item, PrefixURLMixin ):
             xapDir = self.store.newDirectory('xap.index')
             xapIndex = SmartIndex(str(xapDir.path), True)
             xapIndex.index(doc)
-            self.cachePage(pageSource)
+            self.cachePage(visit, pageSource)
         d = indexinghelp.getPageSource(visit.url)
         d.addCallback(indexAndCache)
 
-    def cachePage(self, source):
-        pass
-        
+    def cachePage(self, visit, source):
+        dirName = visit.timestamp.asDatetime().date().isoformat()
+        cacheDir = self.store.newDirectory('cache/%s' % dirName)
+        newFile = self.store.newFile(str(cacheDir.path)+ '/' + str(visit.storeID) + '.html')
+        newFile.write(source)
+        newFile.close()
+                
 
 class ClickChronicleBenefactor( Item ):
     '''i am responsible for granting priveleges to avatars, 

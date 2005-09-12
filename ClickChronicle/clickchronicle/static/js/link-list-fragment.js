@@ -12,9 +12,9 @@ function changedItemsPerPage() {
 
 function setCurrentPage( page ) {
     selectOptionWithValue(document.getElementById("pages"), page);
-
+    /* this image disabling code is a mess */
     var pageElem = document.getElementById("pages");
-    var onFirstPage = (pageElem.selectedIndex == 0);
+    var onFirstPage = (pageElem.selectedIndex < 1);
 
     var first_e = document.getElementById("first_enabled");
     var prev_e  = document.getElementById("prev_enabled");
@@ -37,6 +37,15 @@ function setCurrentPage( page ) {
     var next_d = document.getElementById("next_disabled");
 
     last_d.style.display = next_d.style.display = onLastPage ? "inline" : "none";
+
+    var itemsPerPage = document.getElementById("itemsPerPage");
+    pageElem.disabled = itemsPerPage.disabled = (onFirstPage && onLastPage) ? true : false;
+    var linkTable = document.getElementById("tableContainer");
+    linkTable.style.display = (pageElem.selectedIndex == -1) ? "none" : "block";
+    var noClicksDialog = document.getElementById("noClicksDialog");
+    noClicksDialog.style.display = (pageElem.selectedIndex == -1) ? "block" : "none";
+    var posDesc = document.getElementById("positionDescription");
+    posDesc.style.display = (pageElem.selectedIndex == -1) ? "none" : "table-cell";
 }
 
 function setItemsPerPage( items ) { 

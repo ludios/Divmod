@@ -1,7 +1,7 @@
 <div xmlns="http://www.w3.org/1999/xhtml" xmlns:nevow="http://nevow.com/ns/nevow/0.1">
   <table style="width: 100%" cellspacing="0">
   <tr>
-    <td colspan="2" style="text-align: right">showing 
+    <td id="positionDescription" colspan="2" style="text-align: right">showing 
       <strong id="startItem"/> to <strong id="endItem"/> 
           out of <strong nevow:render="data" nevow:data="totalItems"/> clicks</td>
   </tr>
@@ -36,7 +36,12 @@
     </td>
   </tr>
   <tr>
-    <td colspan="2" id="tableContainer"/>
+    <td colspan="2">
+      <div>
+        <div id="tableContainer"/>
+        <div id="noClicksDialog" class="dialog" style="display: none;">No Clicks to Display</div>
+      </div>
+    </td>
   </tr>
 </table>
 

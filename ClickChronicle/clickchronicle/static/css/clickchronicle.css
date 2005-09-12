@@ -19,6 +19,14 @@ img.navIcon {
 	vertical-align: middle; 
 	display: none; 
 }
+
+.dialog { 
+	  color: #9B9B9B;
+	  font-size: 3em;
+	  font-weight: bold;
+	  text-align: center;
+	  width: 100%;
+}
 	   
 .tab { 
 	border: solid 1px #B0B0B0;

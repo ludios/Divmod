@@ -57,6 +57,13 @@ class SyncIndexer(Item):
         d = IIndexable(item).asDocument()
         d.addCallback(cbIndex)
         return d
+
+    def delete(self, item):
+         xapDir = self.store.newDirectory(XAPIAN_INDEX_DIR)
+         xapIndex = SmartIndex(str(xapDir.path), True)
+         xapIndex.delete_document(item.storeID)
+         xapIndex.close()
+                     
     
 # extract meta tags from a HTML document
 # (based on sgmllib-example-1 in the effbot guide)

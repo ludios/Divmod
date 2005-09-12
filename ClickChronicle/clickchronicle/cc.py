@@ -56,6 +56,11 @@ class Visit(Item):
         fileName = str(cacheDir.path)+ '/' + str(self.storeID) + '.html'
         return fileName
 
+    def forget(self):
+        import os
+        fName = self.cachedFileName()
+        os.remove(fName)
+
 
 class Preferences(Item):
     """I represent storeable, per-user preference information.
@@ -157,8 +162,11 @@ class ClickRecorder( Item, PrefixURLMixin ):
     typeName = 'clickrecorder'
     urlCount = attributes.integer( default = 0 )
     prefixURL = 'private/record'
+    # Caching needs to be provisioned/bestowed
     caching = True
-
+    # Number of MRU visits to keep
+    maxCount = 500
+    
     def installOn(self, other):
         other.powerUp(self, ixmantissa.ISiteRootPlugin)
 
@@ -166,12 +174,16 @@ class ClickRecorder( Item, PrefixURLMixin ):
         return URLGrabber( self )
 
     def recordClick(self, qargs):
+        """
+        Extract POST arguments and create a Visit object before indexing and caching.
+        """
+        if self.urlCount > self.maxCount:
+            self.forgetOldestVisit()
         url = qargs.get('url')
         if url is None:
             # No url, no deal.
             print 'url is None'
             return
-        
         title = qargs.get('title', 'Untitled')
         timeNow = Time.fromDatetime(datetime.now())
         def _():
@@ -193,8 +205,26 @@ class ClickRecorder( Item, PrefixURLMixin ):
         d=indexer.index(visit)
         if self.caching:
             d.addCallback(cbCachePage)
-                        
 
+    def forgetOldestVisit(self):
+        """
+        Remove oldest Visit from the store, cache and index.
+        """
+        # XXX - This needs to be more sophisticated since there is a known race
+        # condition for a Visit being deleted from the index before the page has
+        # been fetched and indexed/cahced
+        def _():
+            for visit in self.store.query(Visit, sort=Visit.timestamp.ascending):
+                break
+            print 'deleting visit %s' % visit.storeID
+            indexer = IIndexer(self.store)
+            indexer.delete(visit)
+            visit.forget()
+            visit.deleteFromStore()
+            self.urlCount -= 1
+        self.store.transact(_)
+
+ 
 class ClickChronicleBenefactor( Item ):
     '''i am responsible for granting priveleges to avatars, 
        which equates to installing stuff in their store'''
@@ -208,12 +238,12 @@ class ClickChronicleBenefactor( Item ):
     def endow(self, ticket, avatar):
         self.endowed += 1
         # dont commit me
-        for c in ('a', 'b', 'c', 'd', 'e', 'f'):
-            url = 'http://%c.com' % c
-            Visit(store = avatar,
-                  url = url,
-                  timestamp = Time.fromDatetime( datetime.now() ),
-                  title = c * 5)
+        #for c in ('a', 'b', 'c', 'd', 'e', 'f'):
+        #    url = 'http://%c.com' % c
+        #    Visit(store = avatar,
+        #          url = url,
+        #          timestamp = Time.fromDatetime( datetime.now() ),
+        #          title = c * 5)
 
         PrivateApplication( store = avatar, 
                             preferredTheme = u'cc-skin' ).installOn(avatar)

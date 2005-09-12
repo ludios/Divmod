@@ -1,9 +1,63 @@
-body { background-color: #7c7777 }
-a:link    { color: #C0C0C0; text-decoration: none }
-a:visited { color: #C0C0C0; text-decoration: none }
-a:hover   { color: #FFFFFF; text-decoration: none }
+body { 
+	background-color: #FFFFFF;
+	font-family: "Trebuchet MS", Verdana, Arial, Helvetica, sans-serif;
+	/*background-image: url(/static/images/fourier.png);
+	background-repeat: no-repeat;
+	background-position: bottom right;
+	background-attachment: fixed;*/
+}
+
+a:link    { color: #7c7777; text-decoration: none }
+a:visited { color: #7c7777; text-decoration: none }
+a:hover   { color: #575757; text-decoration: none }
 a:active  { color: #FFFFFF; text-decoration: underline }
-.tabList { border: solid 5px #575757; }
-div.tab { background-color: #575757 }
-div.tab:hover { background-color: #949494; }
+
+.navRow       { background: #C0C0C0 }
+
+img.navIcon { 
+	border: none; 
+	vertical-align: middle; 
+	display: none; 
+}
+	   
+.tab { 
+	border: solid 1px #B0B0B0;
+	padding: 6px 6px 6px 6px;
+	background-color: #FFFFFF;
+	background-image: url(/static/images/header_bg.png);
+	background-repeat: repeat-x;
+	background-position: bottom left;
+	font-weight: bold;
+	color: #9B9B9B;
+	letter-spacing: 1.5px;
+	margin-right: 6px;
+}
+
+.linkTable { 
+	margin-top: 10px; 
+	margin-left: 15px; 
+	padding: 0; 
+	border: solid 1px #B0B0B0;
+}
+
+tr.linkRowFirst { 
+	background-color: #FFFFFF;
+	background-image: url(/static/images/header_bg.png);
+	background-repeat: repeat-x;
+	background-position: bottom left 
+}
+
+tr.linkRowAlt      { background: #DADADA }
+tr.linkRow > td    { padding: 4px 4px 4px 4px }
+tr.linkRowAlt > td { padding: 4px 4px 4px 4px }
+
+tr.linkRowFirst > td { 
+	border-bottom: solid 1px #B0B0B0;
+	padding: 4px 4px 4px 4px;
+	font-weight: bold;
+	color: #9B9B9B;
+	letter-spacing: 1.5px 
+}
+
+td.firstCol { border-right: solid 1px #B0B0B0; }
 

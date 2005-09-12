@@ -3,12 +3,13 @@
     <title nevow:render="title" />
   </head>
   <body>
-    <table>
+    <table cellspacing="10" width="100%">
       <tr valign="top">
-        <td>
-          <div nevow:render="navigation" />
-        </td>
-        <td>
+        <td><div nevow:render="navigation"/></td>
+        <td align="right"><img src="/static/images/logo.png"/></td>
+      </tr>
+      <tr>
+        <td colspan="2">
           <h1 nevow:render="title" />
           <div nevow:render="content" />
         </td>

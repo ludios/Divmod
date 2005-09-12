@@ -167,10 +167,10 @@ class PagedTableMixin:
 
     # override these methods
     def generateRowDicts( self, ctx, pageNumber, itemsPerPage ):
-        '''i return a sequence of dictionaries that will be used as data for
+        """I return a sequence of dictionaries that will be used as data for
            the corresponding template's 'table' pattern.
 
-           pageNumber: number of page currently being viewed, starting from 1, not 0'''
+           pageNumber: number of page currently being viewed, starting from 1, not 0"""
                        
         raise NotImplementedError
 
@@ -253,6 +253,8 @@ class ClickRecorder( Item, PrefixURLMixin ):
             print 'url is None'
             return
         title = qargs.get('title', 'Untitled')
+        if not title:
+            title = url
         timeNow = Time.fromDatetime(datetime.now())
         def _():
             self.urlCount += 1

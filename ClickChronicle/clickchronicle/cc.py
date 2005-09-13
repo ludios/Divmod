@@ -17,8 +17,7 @@ from clickchronicle.indexinghelp import (IIndexable, IIndexer, SyncIndexer,
 from clickchronicle.searchparser import parseSearchString
 from nevow import livepage, tags, inevow
 from math import ceil
-import re
-
+from nevow.url import URL
 
 class Domain(Item):
     name = attributes.bytes()
@@ -275,7 +274,7 @@ class SearchClicksFragment(rend.Fragment, CCPagedTableMixin):
         self.discriminator = ' '.join(parseSearchString(discriminator))
         (estimated, total) = self.indexer.count(self.discriminator)
         self.totalMatches = estimated
-        return self.updateTable(self, ctx, self.startPage,
+        return self.updateTable(ctx, self.startPage,
                                 self.defaultItemsPerPage)
 
 registerAdapter(SearchClicksFragment,
@@ -309,9 +308,6 @@ class ClickRecorder( Item, PrefixURLMixin ):
     caching = True
     # Number of MRU visits to keep
     maxCount = 500
-
-    rawstr = r"""^(http|https|ftp):\/\/(([A-Z0-9][A-Z0-9_-]*)(\.[A-Z0-9][A-Z0-9_-]*)+)(:(\d+))?\/"""
-    domainRegex = re.compile(rawstr,  re.IGNORECASE)
 
     def installOn(self, other):
         other.powerUp(self, ixmantissa.ISiteRootPlugin)
@@ -373,7 +369,7 @@ class ClickRecorder( Item, PrefixURLMixin ):
             # New visit today
             def _():
                 self.urlCount += 1
-                domainStr = self.domainRegex.search(url).group(2)
+                domainStr = URL.fromString(url).netloc
                 domain = self.store.findOrCreate(Domain, name=domainStr, title=domainStr)
                 domain.visitCount +=1 
                 visit = Visit(store = self.store,

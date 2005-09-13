@@ -254,7 +254,7 @@ class ClickRecorder( Item, PrefixURLMixin ):
             return
     
         title = qargs.get('title')
-        if title is None or title.isspace():
+        if not title or title.isspace():
             title = url
 
         timeNow = Time.fromDatetime(datetime.now())

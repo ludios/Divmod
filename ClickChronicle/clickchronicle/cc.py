@@ -15,12 +15,13 @@ from twisted.python.util import sibpath
 from clickchronicle.indexinghelp import IIndexable, IIndexer, SyncIndexer, makeDocument, getPageSource
 from nevow import livepage, tags, inevow
 from math import ceil
+import re
 
 
 class Domain(Item):
-    url = attributes.bytes()
+    name = attributes.bytes()
     title = attributes.bytes()
-    visitCount = attributes.integer(default=1)
+    visitCount = attributes.integer(default=0)
 
     schemaVersion = 1
     typeName = 'domain'
@@ -33,10 +34,12 @@ class Visit(Item):
     url = attributes.bytes()
     title = attributes.bytes()
     visitCount = attributes.integer(default=1)
+    domain = attributes.reference(allowNone = False)
 
     schemaVersion = 1
     typeName = 'visit'
 
+    
     def asDocument(self):
         """
         Return a Document in a Deferred.
@@ -245,7 +248,10 @@ class ClickRecorder( Item, PrefixURLMixin ):
     caching = True
     # Number of MRU visits to keep
     maxCount = 500
-    
+
+    rawstr = r"""^(http|https|ftp):\/\/(([A-Z0-9][A-Z0-9_-]*)(\.[A-Z0-9][A-Z0-9_-]*)+)(:(\d+))?\/"""
+    domainRegex = re.compile(rawstr,  re.IGNORECASE)
+
     def installOn(self, other):
         other.powerUp(self, ixmantissa.ISiteRootPlugin)
 
@@ -299,16 +305,22 @@ class ClickRecorder( Item, PrefixURLMixin ):
             def _():
                 existingVisit.timestamp = timeNow
                 existingVisit.visitCount += 1
+                existingVisit.domain.visitCount += 1
                 return existingVisit
             visit = self.store.transact(_)
         else:
             # New visit today
             def _():
                 self.urlCount += 1
+                domainStr = self.domainRegex.search(url).group(2)
+                domain = self.store.findOrCreate(Domain, name=domainStr, title=domainStr)
+                domain.visitCount +=1 
                 visit = Visit(store = self.store,
                               url = url,
                               timestamp = timeNow,
-                              title = title)
+                              title = title,
+                              domain = domain)
+                visit.domain.visitCount += 1
                 (linkList,) = list(self.store.query(LinkList))
                 linkList.links += 1
                 return visit

@@ -15,7 +15,6 @@ from twisted.python.util import sibpath
 from clickchronicle.indexinghelp import IIndexable, IIndexer, SyncIndexer, makeDocument, getPageSource
 from nevow import livepage, tags, inevow
 from math import ceil
-import binascii
 
 class Visit(Item):
     """I correspond to a webpage-visit logged by a clickchronicle user"""
@@ -254,21 +253,9 @@ class ClickRecorder( Item, PrefixURLMixin ):
             print 'url is None'
             return
     
-        # the try/except block is a temporary hack to support 
-        # cc clients who don't send base64
-        try:
-            url = url.decode('base64')
-        except binascii.Error:
-            pass
-            
         title = qargs.get('title')
         if title is None or title.isspace():
             title = url
-        else:
-            try:
-                title = title.decode('base64')
-            except binascii.Error:
-                pass
 
         timeNow = Time.fromDatetime(datetime.now())
         def _():

@@ -59,10 +59,17 @@ class SyncIndexer(Item):
         return d
 
     def delete(self, item):
-         xapDir = self.store.newDirectory(XAPIAN_INDEX_DIR)
-         xapIndex = SmartIndex(str(xapDir.path), True)
-         xapIndex.delete_document(item.storeID)
-         xapIndex.close()
+        xapDir = self.store.newDirectory(XAPIAN_INDEX_DIR)
+        xapIndex = SmartIndex(str(xapDir.path), True)
+        xapIndex.delete_document(item.storeID)
+        xapIndex.close()
+
+    def search(self, aString):
+        xapDir = self.store.newDirectory(XAPIAN_INDEX_DIR)
+        xapIndex = SmartIndex(str(xapDir.path), True)
+        result = xapIndex.search(aString)
+        xapIndex.close()
+        return result
                      
     
 # extract meta tags from a HTML document

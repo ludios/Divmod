@@ -10,18 +10,29 @@ from twisted.python.components import registerAdapter
 from xmantissa.webadmin import WebSite, PrivateApplication
 from xmantissa.website import PrefixURLMixin
 from epsilon.extime import Time
-from datetime import datetime
+from datetime import datetime, timedelta
 from twisted.python.util import sibpath
 from clickchronicle.indexinghelp import IIndexable, IIndexer, SyncIndexer, makeDocument, getPageSource
 from nevow import livepage, tags, inevow
 from math import ceil
 
+
+class Domain(Item):
+    url = attributes.bytes()
+    title = attributes.bytes()
+    visitCount = attributes.integer(default=1)
+
+    schemaVersion = 1
+    typeName = 'domain'
+
+    
 class Visit(Item):
     """I correspond to a webpage-visit logged by a clickchronicle user"""
     implements(IIndexable)
     timestamp = attributes.timestamp()
     url = attributes.bytes()
     title = attributes.bytes()
+    visitCount = attributes.integer(default=1)
 
     schemaVersion = 1
     typeName = 'visit'
@@ -71,7 +82,7 @@ class Preferences(Item):
     implements(ixmantissa.INavigableElement)
     typeName = 'clickchronicle_preferences'
     schemaVersion = 1
-
+        
     displayName = attributes.bytes(default='none set')
     homepage = attributes.bytes(default='http://www.clickchronicle.com')
 
@@ -245,30 +256,64 @@ class ClickRecorder( Item, PrefixURLMixin ):
         """
         Extract POST arguments and create a Visit object before indexing and caching.
         """
+        
         if self.urlCount > self.maxCount:
             self.forgetOldestVisit()
         url = qargs.get('url')
         if url is None:
             # No url, no deal.
-            print 'url is None'
             return
-    
         title = qargs.get('title')
         if not title or title.isspace():
             title = url
+        visit = self.findOrCreateVisit(url, title)
 
+        # PSEUDOCODE
+        # if we visited this site today?:
+        #     update the time on the Visit
+        #     numVisits += 1
+        #     domain numVisits += 1
+        # else:
+        #     create Visit and Domain
+        
+    def findOrCreateVisit(self, url, title):
+        """
+        Try to find a visit to the same url TODAY.
+        If found update the timestamp and return it.
+        Otherwise create a new Visit.
+        """
+        dtNow = datetime.now()
         timeNow = Time.fromDatetime(datetime.now())
-        def _():
-            self.urlCount += 1
-            visit = Visit(store = self.store,
-                  url = url,
-                  timestamp = timeNow,
-                  title = title)
-            (linkList,) = list(self.store.query(LinkList))
-            linkList.links += 1
-            return visit
-        visit = self.store.transact(_)
-        self.postProcess(visit)
+        todayBegin = dtNow.replace(hour=0, minute=0, second=0, microsecond=0)
+        tomorrowBegin = (dtNow+timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        existingVisit = None
+        for existingVisit in self.store.query(Visit,
+                                              attributes.AND(Visit.timestamp >= Time.fromDatetime(todayBegin),
+                                                             Visit.timestamp < Time.fromDatetime(tomorrowBegin),
+                                                             Visit.url == url)):
+            break
+
+        if existingVisit:
+            # Already visited today
+            def _():
+                existingVisit.timestamp = timeNow
+                existingVisit.visitCount += 1
+                return existingVisit
+            visit = self.store.transact(_)
+        else:
+            # New visit today
+            def _():
+                self.urlCount += 1
+                visit = Visit(store = self.store,
+                              url = url,
+                              timestamp = timeNow,
+                              title = title)
+                (linkList,) = list(self.store.query(LinkList))
+                linkList.links += 1
+                return visit
+            visit = self.store.transact(_)
+            self.postProcess(visit)
 
     def postProcess(self, visit):
         def cbCachePage(doc):

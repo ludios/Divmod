@@ -8,7 +8,7 @@
 
 (function() {
     const POST_INTERCEPT = 'HistoryIntercept';
-    var intercept_on;
+    var intercept_on = true;
    
     interceptor_setup();
 
@@ -17,7 +17,7 @@
     if(intercept_on){
       GM_xmlhttpRequest({ method:"POST",
 			    url:'http://clickchronicle.com/private/record' +
-		            '?url='+escape(document.location.href) +
+		            '?url=' + escape(document.location.href) +
 			    '&title=' + escape(document.title),
 			    
 			    onload:function(result) {

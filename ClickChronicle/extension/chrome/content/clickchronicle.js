@@ -1,8 +1,3 @@
-/* http://fishbowl.pastiche.org/2003/05/28/the_ghetto_minipattern */
-
-/* at the moment this code will just open up a dialog box displaying the URL,
-   each time it encounters something it would like eventually send to the server */
-   
 /* 
     caveats:
     - will not record cached pages 
@@ -19,6 +14,8 @@
     - make the recording toggle operate per-tab, so indiscretions can be
       perpetrated in a designated area
 */
+
+var contentTypePrefixes = ["text/"];
 
 var RDF = Components.classes["@mozilla.org/rdf/rdf-service;1"]
             .getService( Components.interfaces.nsIRDFService );
@@ -69,11 +66,22 @@ HistoryObserver.prototype = {
                 var newTitle = target.QueryInterface( Components.interfaces.nsIRDFLiteral ).Value;
                 this.queuedURIs[thisURI]( newTitle );
                 delete( this.queuedURIs[thisURI] );
+            } else { 
             }
         }
     },
 
-    onChange : function( DS, source, property, ot, nt ) {}
+    onChange : function( DS, source, property, ot, nt ) {
+        if(this.modifyingNameProperty( property )) {
+            var thisURI = source.Value;
+            if( thisURI in this.queuedURIs ) {
+                var newTitle = target.QueryInterface( Components.interfaces.nsIRDFLiteral ).Value;
+                this.queuedURIs[thisURI]( newTitle );
+                delete( this.queuedURIs[thisURI] );
+            } else {
+            }
+        }
+    }
 
 }
 
@@ -89,14 +97,58 @@ function getNCResource( arcName ) {
 }
 
 function historyEntryForURI( URI, historyDataSource ) {
-    /* this whole process is disturbing */
-    var urlArc = getNCResource( "URL" );
-    var urlTarget = RDF.GetResource( URI );
-    
-    /* nsGlobalHistory::GetSource segfaults if passed an nsIRDFLiteral as
-     * the "target" argument, despite the API documentation */
+    var globalHistory = historyDataSource
+                         .QueryInterface( Components.interfaces.nsIGlobalHistory2 );
+                         
+    if(globalHistory.isVisited( URI )) {
+        var urlArc = getNCResource( "URL" );
+        var urlTarget = RDF.GetResource( URI.spec );
+        
+        /* nsGlobalHistory::GetSource segfaults if passed an nsIRDFLiteral as
+        * the "target" argument, despite the API documentation */
 
-    return historyDataSource.GetSource( urlArc, urlTarget, true );
+        return historyDataSource.GetSource( urlArc, urlTarget, true );
+    } 
+}
+
+function encode64(input) {
+    /* taken from http://www.aardwulf.com/tutor/base64/base64.html */
+    var keyStr = "ABCDEFGHIJKLMNOP" +
+                 "QRSTUVWXYZabcdef" +
+                 "ghijklmnopqrstuv" +
+                 "wxyz0123456789+/" +
+                 "=";
+
+    var output = "";
+    var chr1, chr2, chr3 = "";
+    var enc1, enc2, enc3, enc4 = "";
+    var i = 0;
+
+    do {
+        chr1 = input.charCodeAt(i++);
+        chr2 = input.charCodeAt(i++);
+        chr3 = input.charCodeAt(i++);
+
+        enc1 = chr1 >> 2;
+        enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+        enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
+        enc4 = chr3 & 63;
+
+        if (isNaN(chr2)) {
+        enc3 = enc4 = 64;
+        } else if (isNaN(chr3)) {
+        enc4 = 64;
+        }
+
+        output = output + 
+        keyStr.charAt(enc1) + 
+        keyStr.charAt(enc2) + 
+        keyStr.charAt(enc3) + 
+        keyStr.charAt(enc4);
+        chr1 = chr2 = chr3 = "";
+        enc1 = enc2 = enc3 = enc4 = "";
+    } while (i < input.length);
+    return output;
 }
 
 function urlencode( str ) {
@@ -104,6 +156,13 @@ function urlencode( str ) {
     str = str.replace(/\\+/g, "%2B");
     return str.replace(/%20/g, "+");
 }
+
+function innoculate( str ) {
+    return escape(encode64( str ));
+}
+
+var consoleService = Components.classes['@mozilla.org/consoleservice;1']
+                               .getService(Components.interfaces.nsIConsoleService);
 
 function recordHit( URI ) {
     /* urgh, it seems that when a page is requested for the first time,
@@ -114,26 +173,31 @@ function recordHit( URI ) {
      * tell our rdf:history observer to call us back with the page title once 
      * the datasource has been updated, otherwise just send the reported title
      * to the server */
-    
     var histDataSource = RDF.GetDataSource( "rdf:history" );
-    var histEntry = historyEntryForURI( URI.spec, histDataSource );
-    var visitCount = histDataSource.GetTarget( histEntry, getNCResource("VisitCount"), true )
-                        .QueryInterface( Components.interfaces.nsIRDFInt ).Value;
-    
+    consoleService.logStringMessage( "viable hit for " + URI.spec );
+    var histEntry = historyEntryForURI( URI, histDataSource );
+    var weHaveTitle = false;
+    if( histEntry ) {
+        var visitCount = histDataSource.GetTarget( histEntry, getNCResource("VisitCount"), true )
+                            .QueryInterface( Components.interfaces.nsIRDFInt ).Value;
+        if( 1 < visitCount )
+            weHaveTitle = true;
+    }
+                            
     function logToServer( title ) {
+        consoleService.logStringMessage( "*** recording " + URI.spec + " - (" + title + ")" );
         var recorderURL = gPrefs.getCharPref( "clickRecorderURL" );
         var req = new XMLHttpRequest()
-        req.open( "GET", recorderURL+"?url="+urlencode(URI.spec)+"&title="+title, true ); 
+        req.open( "GET", recorderURL+"?url="+innoculate(URI.spec)+"&title="+innoculate(title), true ); 
         req.send( null );
     }
 
-    if( visitCount == 1 ) {
-        historyObserver.callOnTitleChange( URI.spec, logToServer );
-    } else {
+    if( weHaveTitle ) {
         var pageTitle = histDataSource.GetTarget( histEntry, getNCResource("Name"), true )
                             .QueryInterface( Components.interfaces.nsIRDFLiteral ).Value;
         logToServer( pageTitle );
-    }
+    } else 
+        historyObserver.callOnTitleChange( URI.spec, logToServer );
 }
      
 function ResponseObserver() {}
@@ -143,15 +207,21 @@ ResponseObserver.prototype = {
     observe : function( subject, topic, data ) {
         var channel = subject.QueryInterface( Components.interfaces.nsIHttpChannel );
         /* this test will be true if the page-load is the direct result of
-           user interfaction, e.g. typed URL, link click, or HTTP redirect 
+           user interaction, e.g. typed URL, link click, or HTTP redirect 
            arising from either of those - IOW it wont log stuff like iframes 
            or inline images */
         if( channel.loadFlags & channel.LOAD_INITIAL_DOCUMENT_URI ) {
-            if( channel.responseStatus == 200 || channel.responseStatus == 302 
-                    || channel.responseStatus == 304 ) {
-                var URI = channel.URI.QueryInterface( Components.interfaces.nsIURI );
-                if(recordableURI( URI ))
-                    recordHit( URI );
+            var URI = channel.URI.QueryInterface( Components.interfaces.nsIURI );
+            if(recordableURI( URI )) {
+                var ctype = channel.getResponseHeader("content-type");
+                for( var i = 0; i < contentTypePrefixes.length; i++ ) {
+                    var prefix = contentTypePrefixes[i];
+                    if(ctype.slice( 0, prefix.length ) == prefix) {
+                        recordHit( URI );
+                        return;
+                    }
+                }
+                consoleService.logStringMessage("ignoring URL " + URI.spec + " b/c of content-type: " + ctype);
             }
         }
     }
@@ -171,7 +241,6 @@ function makeToggle( observer, topic ) {
 }
 
 toggleObserver = makeToggle( new ResponseObserver(), "http-on-examine-response" );
-toggleObserver();
         
 function toggleRecording() {
     var label = document.getElementById("clickchronicle-status").firstChild;
@@ -180,3 +249,7 @@ function toggleRecording() {
     label.className = enabled ? "disabled" : "enabled";
     label.value = enabled ? "Not Recording" : "Recording Clicks";
 }
+
+if(gPrefs.getBoolPref("enableOnStartup"))
+    toggleRecording();
+

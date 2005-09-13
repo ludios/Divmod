@@ -8,7 +8,7 @@
 
   <statusbar id="status-bar">
     <statusbarpanel id="clickchronicle-status">
-      <label class="enabled" value="Recording Clicks" onclick="toggleRecording();"/>
+      <label class="disabled" value="Not Recording" onclick="toggleRecording();"/>
     </statusbarpanel>
   </statusbar>
 </overlay>

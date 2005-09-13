@@ -30,6 +30,6 @@ zip -r clickchronicle.xpi chrome
 zip clickchronicle.xpi -j $extension_dir/install.rdf
 cd $extension_dir
 zip /tmp/clickchronicle.xpi -r defaults -x '*.svn*'
-mv /tmp/clickchronicle.xpi $HOME
+mv /tmp/clickchronicle.xpi $extension_dir
 rm -rf /tmp/chrome 
-echo "wrote $HOME/clickchronicle.xpi.  open it in firefox to install"
+echo "wrote $extension_dir/clickchronicle.xpi.  open it in firefox to install"

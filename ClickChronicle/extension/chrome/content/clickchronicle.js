@@ -24,9 +24,11 @@ var IO = Components.classes["@mozilla.org/network/io-service;1"]
             .getService( Components.interfaces.nsIIOService );
 
 var gPrefs = Components.classes["@mozilla.org/preferences-service;1"]
-            .getService( Components.interfaces.nsIPrefService );
+                .getService( Components.interfaces.nsIPrefService )
+                    .getBranch( "extensions.ClickChronicle." );
 
-gPrefs = gPrefs.getBranch( "extensions.ClickChronicle." );
+var observerSvc = Components.classes["@mozilla.org/observer-service;1"]
+                        .getService(Components.interfaces.nsIObserverService);
 
 function recordableURI( URI ) {
     return URI.schemeIs("http") && (URI.userPass == "") && (!URI.host.match(/divmod|localhost/));
@@ -228,14 +230,12 @@ ResponseObserver.prototype = {
 }
 
 function makeToggle( observer, topic ) {
-    var observerService = Components.classes["@mozilla.org/observer-service;1"]
-                            .getService(Components.interfaces.nsIObserverService);
     var observing = false; // maybe we can infer this from the observer?
     return function() {
         if( observing )
-            observerService.removeObserver( observer, topic );
+            observerSvc.removeObserver( observer, topic );
         else
-            observerService.addObserver( observer, topic, false );
+            observerSvc.addObserver( observer, topic, false );
         observing = !observing;
     }
 }
@@ -243,13 +243,17 @@ function makeToggle( observer, topic ) {
 toggleObserver = makeToggle( new ResponseObserver(), "http-on-examine-response" );
         
 function toggleRecording() {
+    toggleObserver(); 
     var label = document.getElementById("clickchronicle-status").firstChild;
     var enabled = (label.className == "enabled");
-    toggleObserver(); 
     label.className = enabled ? "disabled" : "enabled";
     label.value = enabled ? "Not Recording" : "Recording Clicks";
 }
 
-if(gPrefs.getBoolPref("enableOnStartup"))
-    toggleRecording();
-
+function overlayLoaded( event ) {
+    if(gPrefs.getBoolPref( "enableOnStartup" ))
+        toggleRecording();
+    window.removeEventListener("load", overlayLoaded, true);
+}
+    
+window.addEventListener("load", overlayLoaded, true);

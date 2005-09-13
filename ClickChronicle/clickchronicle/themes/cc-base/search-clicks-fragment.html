@@ -1,0 +1,64 @@
+<div xmlns="http://www.w3.org/1999/xhtml" xmlns:nevow="http://nevow.com/ns/nevow/0.1">
+  <center><input type="text" id="f"/><a href="javascript:server.handle('search', document.getElementById('f').value)">search</a></center>
+  <table style="width: 100%" cellspacing="0">
+  <tr>
+    <td id="positionDescription" colspan="2" style="text-align: right">showing 
+      <strong id="startItem"/> to <strong id="endItem"/> 
+          out of <strong nevow:render="data" nevow:data="totalItems"/> clicks</td>
+  </tr>
+  <tr>
+    <td class="navRow">
+      <div style="margin: 4px">
+        <img class="navIcon" id="first_enabled" src="/static/images/first.png" onclick="first()"/>
+        <img class="navIcon" id="first_disabled" src="/static/images/first_disabled.png"/>
+        <img class="navIcon" id="prev_enabled" src="/static/images/left.png" onclick="prev()"/>
+        <img class="navIcon" id="prev_disabled" src="/static/images/left_disabled.png"/>
+        <img class="navIcon" id="next_enabled" src="/static/images/right.png" onclick="next()"/>
+        <img class="navIcon" id="next_disabled" src="/static/images/right_disabled.png"/>
+        <img class="navIcon" id="last_enabled" src="/static/images/last.png" onclick="last()"/>
+        <img class="navIcon" id="last_disabled" src="/static/images/last_disabled.png"/>
+    </div>
+    </td>
+    <td class="navRow" style="text-align: right">
+      <div style="margin: 4px;">
+        per page: 
+      <select onchange="changedItemsPerPage()" 
+        id="itemsPerPage" nevow:data="itemsPerPage" nevow:render="sequence">
+        <option nevow:pattern="item" nevow:render="data"/>
+      </select>
+        
+        page:
+      <span id="pagingWidgetContainer"/>
+        <select onchange="updateTable()" id="pages" 
+        nevow:pattern="pagingWidget" nevow:render="sequence">
+        <option nevow:pattern="item" nevow:render="data"/>
+      </select>
+    </div>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2">
+      <div>
+        <div id="tableContainer"/>
+        <div id="noClicksDialog" class="dialog" style="display: none;">No Clicks to Display</div>
+      </div>
+    </td>
+  </tr>
+</table>
+
+<table cellspacing="0" class="linkTable" nevow:pattern="table" nevow:render="sequence">
+    <tr class="linkRowFirst" nevow:pattern="header">
+      <td class="firstCol">Timestamp</td>
+      <td>Link</td>
+    </tr>
+    <tr class="linkRowAlt" nevow:pattern="item" nevow:render="mapping">
+      <td class="firstCol"><nevow:slot name="timestamp"/></td>
+      <td><a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a></td>
+    </tr>
+    <tr class="linkRow" nevow:pattern="item" nevow:render="mapping">
+      <td class="firstCol"><nevow:slot name="timestamp"/></td>
+      <td><a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a></td>
+    </tr>
+  </table>
+  
+</div>

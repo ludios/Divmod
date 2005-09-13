@@ -1,7 +1,7 @@
 from zope.interface import Interface, implements
 from axiom.item import Item
 from axiom import attributes
-from xapwrap.xapwrap import SmartIndex
+from xapwrap.xapwrap import SmartIndex, ParsedQuery
 
 
 XAPIAN_INDEX_DIR = 'xap.index'
@@ -64,14 +64,21 @@ class SyncIndexer(Item):
         xapIndex.delete_document(item.storeID)
         xapIndex.close()
 
-    def search(self, aString):
+    def search(self, aString, **kwargs):
         xapDir = self.store.newDirectory(XAPIAN_INDEX_DIR)
         xapIndex = SmartIndex(str(xapDir.path), True)
-        result = xapIndex.search(aString)
+        result = xapIndex.search(aString, **kwargs)
         xapIndex.close()
         return result
-                     
-    
+
+    def count(self, aString):
+        xapDir = self.store.newDirectory(XAPIAN_INDEX_DIR)
+        xapIndex = SmartIndex(str(xapDir.path), True)
+        query = ParsedQuery(aString).prepare(xapIndex.qp)
+        count = xapIndex.count(query)
+        xapIndex.close()
+        return count
+        
 # extract meta tags from a HTML document
 # (based on sgmllib-example-1 in the effbot guide)
 # START COPY - Copied from http://mail.python.org/pipermail/python-list/2001-January/023700.html

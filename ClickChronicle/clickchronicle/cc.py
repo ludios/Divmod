@@ -12,7 +12,9 @@ from xmantissa.website import PrefixURLMixin
 from epsilon.extime import Time
 from datetime import datetime, timedelta
 from twisted.python.util import sibpath
-from clickchronicle.indexinghelp import IIndexable, IIndexer, SyncIndexer, makeDocument, getPageSource
+from clickchronicle.indexinghelp import (IIndexable, IIndexer, SyncIndexer, 
+                                         makeDocument, getPageSource)
+from clickchronicle.searchparser import parseSearchString
 from nevow import livepage, tags, inevow
 from math import ceil
 import re
@@ -50,6 +52,11 @@ class Visit(Item):
         d = getPageSource(self.url)
         d.addCallback(cbGotSource)
         return d
+
+    def asDict(self):
+        """Return a friendly dictionary of url/title/timestamp"""
+        return dict(url = self.url, title = self.title,
+                    timestamp = self.timestamp.asHumanly())
         
     def cachePage(self, pageSource):
         """
@@ -93,7 +100,7 @@ class Preferences(Item):
         other.powerUp(self, ixmantissa.INavigableElement)
 
     def getTabs( self ):
-        return [Tab('Preferences', self.storeID, 0.2)]
+        return [Tab('Preferences', self.storeID, 0.0)]
 
 
 class PreferencesFragment( rend.Fragment ):
@@ -116,14 +123,14 @@ registerAdapter( PreferencesFragment,
                  Preferences,
                  ixmantissa.INavigableFragment )
 
-class LinkList( Item ):
+class ClickList( Item ):
     """similar to Preferences, i am an implementor of INavigableElement,
        and PrivateApplication will find me when when it looks in the user's
        store"""
        
     implements( ixmantissa.INavigableElement )
-    typeName = 'clickchronicle_linklist'
-    links = attributes.integer( default = 0 )
+    typeName = 'clickchronicle_clicklist'
+    clicks = attributes.integer( default = 0 )
     schemaVersion = 1
 
     def installOn(self, other):
@@ -131,7 +138,7 @@ class LinkList( Item ):
 
     def getTabs( self ):
         '''show a link to myself in the navbar'''
-        return [Tab('My Clicks', self.storeID, 0.1)]
+        return [Tab('My Clicks', self.storeID, 0.2)]
 
 class PagedTableMixin:
     itemsPerPage = (10, 20, 50, 100)
@@ -191,17 +198,19 @@ class PagedTableMixin:
     def countTotalItems( self, ctx ):
         raise NotImplementedError
 
+class CCPagedTableMixin(PagedTableMixin):
+    def makeScriptTag(self, src):
+        return tags.script(type='application/x-javascript', 
+                           src=src)
+    def head(self):
+        return self.makeScriptTag('/static/js/paged-table.js')
+
+class ClickListFragment(rend.Fragment, CCPagedTableMixin):
+    '''i adapt ClickList to INavigableFragment'''
     
-class LinkListFragment( rend.Fragment, PagedTableMixin ):
-    '''i adapt LinkList to INavigableFragment'''
-    
-    fragmentName = 'link-list-fragment'
+    fragmentName = 'click-list-fragment'
     title = ''
     live = True
-    
-    def head( self ):
-        return tags.script(type='application/x-javascript', 
-                           src='/static/js/link-list-fragment.js')
 
     def generateRowDicts( self, ctx, pageNumber, itemsPerPage ):
         store = self.original.store 
@@ -210,16 +219,68 @@ class LinkListFragment( rend.Fragment, PagedTableMixin ):
         for v in store.query(Visit, sort = Visit.timestamp.descending,
                              limit = itemsPerPage, offset = offset):
             
-            yield dict(url = v.url, 
-                       timestamp = v.timestamp.asHumanly(),
-                       title = v.title)
+            yield v.asDict()
 
     def countTotalItems(self, ctx):
-        return self.original.links
+        return self.original.clicks
 
-registerAdapter( LinkListFragment, 
-                 LinkList,
+registerAdapter( ClickListFragment, 
+                 ClickList,
                  ixmantissa.INavigableFragment )
+
+class SearchClicks(Item):
+    implements( ixmantissa.INavigableElement )
+    typeName = 'clickchronicle_searchclicks'
+    searches = attributes.integer( default = 0 )
+    schemaVersion = 1
+
+    def installOn(self, other):
+        other.powerUp( self, ixmantissa.INavigableElement )
+
+    def getTabs( self ):
+        return [Tab('Search Clicks', self.storeID, 0.1)]
+
+class SearchClicksFragment(rend.Fragment, CCPagedTableMixin):
+    totalMatches = 0
+    discriminator = None
+
+    fragmentName = 'search-clicks-fragment'
+    title = ''
+    live = True
+
+    def __init__(self, original, docFactory=None):
+        rend.Fragment.__init__(self, original, docFactory)
+        (self.indexer,) = list(original.store.query(SyncIndexer))
+
+    def countTotalItems(self, ctx):
+        return self.totalMatches
+
+    def generateRowDicts(self, ctx, page, itemsPerPage):
+        offset = (page - 1) * itemsPerPage
+        specs = self.indexer.search(self.discriminator,
+                                    startingIndex = offset,
+                                    batchSize = itemsPerPage)
+        store = self.original.store
+        for spec in specs:
+            (visit,) = (store.query(Visit, Visit.storeID == spec['uid']))
+            yield visit.asDict()
+
+    def goingLive(self, ctx, client):
+        # override PagedTableMixin.goingLive, b/c in this case we can't
+        # be expected to have any data to display in the paging widget
+        # on the initial page load
+        pass
+
+    def handle_search(self, ctx, discriminator):
+        self.discriminator = ' '.join(parseSearchString(discriminator))
+        (estimated, total) = self.indexer.count(self.discriminator)
+        self.totalMatches = estimated
+        return self.updateTable(self, ctx, self.startPage,
+                                self.defaultItemsPerPage)
+
+registerAdapter(SearchClicksFragment,
+                SearchClicks,
+                ixmantissa.INavigableFragment)
 
 class URLGrabber(rend.Page):
     """I handle ClickRecorder's HTTP action.  i am not an Item
@@ -321,8 +382,8 @@ class ClickRecorder( Item, PrefixURLMixin ):
                               title = title,
                               domain = domain)
                 visit.domain.visitCount += 1
-                (linkList,) = list(self.store.query(LinkList))
-                linkList.links += 1
+                (clickList,) = list(self.store.query(ClickList))
+                clickList.clicks += 1
                 return visit
             visit = self.store.transact(_)
             self.postProcess(visit)
@@ -369,6 +430,8 @@ class ClickChronicleBenefactor( Item ):
         PrivateApplication( store = avatar, 
                             preferredTheme = u'cc-skin' ).installOn(avatar)
 
-        for item in (WebSite, LinkList, Preferences, ClickRecorder, SyncIndexer):
-            item(store=avatar ).installOn(avatar)
+        for item in (WebSite, ClickList, SearchClicks,
+                     Preferences, ClickRecorder, SyncIndexer):
+            
+            item(store=avatar).installOn(avatar)
             

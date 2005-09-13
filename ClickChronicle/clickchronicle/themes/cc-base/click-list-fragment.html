@@ -49,14 +49,17 @@
     <tr class="linkRowFirst" nevow:pattern="header">
       <td class="firstCol">Timestamp</td>
       <td>Link</td>
+      <td>Visits</td>
     </tr>
     <tr class="linkRowAlt" nevow:pattern="item" nevow:render="mapping">
       <td class="firstCol"><nevow:slot name="timestamp"/></td>
       <td><a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a></td>
+      <td class="firstCol"><nevow:slot name="visits"/></td>
     </tr>
     <tr class="linkRow" nevow:pattern="item" nevow:render="mapping">
       <td class="firstCol"><nevow:slot name="timestamp"/></td>
       <td><a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a></td>
+      <td class="firstCol"><nevow:slot name="visits"/></td>
     </tr>
   </table>
   

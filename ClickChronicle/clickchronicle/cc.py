@@ -55,7 +55,7 @@ class Visit(Item):
     def asDict(self):
         """Return a friendly dictionary of url/title/timestamp"""
         return dict(url = self.url, title = self.title,
-                    timestamp = self.timestamp.asHumanly())
+                    timestamp = self.timestamp.asHumanly(), visits=self.visitCount)
         
     def cachePage(self, pageSource):
         """
@@ -330,14 +330,6 @@ class ClickRecorder( Item, PrefixURLMixin ):
         if not title or title.isspace():
             title = url
         visit = self.findOrCreateVisit(url, title)
-
-        # PSEUDOCODE
-        # if we visited this site today?:
-        #     update the time on the Visit
-        #     numVisits += 1
-        #     domain numVisits += 1
-        # else:
-        #     create Visit and Domain
         
     def findOrCreateVisit(self, url, title):
         """
@@ -369,6 +361,7 @@ class ClickRecorder( Item, PrefixURLMixin ):
             # New visit today
             def _():
                 self.urlCount += 1
+                # Hook up the domain
                 domainStr = URL.fromString(url).netloc
                 domain = self.store.findOrCreate(Domain, name=domainStr, title=domainStr)
                 domain.visitCount +=1 

@@ -1,11 +1,37 @@
 body { 
 	background-color: #FFFFFF;
 	font-family: "Trebuchet MS", Verdana, Arial, Helvetica, sans-serif;
-	/*background-image: url(/static/images/fourier.png);
-	background-repeat: no-repeat;
-	background-position: bottom right;
-	background-attachment: fixed;*/
 }
+
+form { margin-bottom: 4px; }
+#filterDialog { display: none }
+#filterDialog > form { margin-top: 4px; }
+
+input.submit {
+	border: 3px double #999999;
+	border-top-color: #CCCCCC;
+	border-left-color: #CCCCCC;
+	background-color: #FFFFFF;
+	color: #333333;
+	font-size: 75%;
+	font-weight: bold;
+	margin-top: 4px;
+}
+
+input.text {
+	border: 1px solid #999999;
+	border-top-color: #CCCCCC;
+	border-left-color: #CCCCCC;
+	margin-right: 2px;
+	padding: 0.25em;
+	background-color: #FFFFFF;
+	color: #333333;
+	font-size: 75%;
+	font-weight: bold;
+}
+
+
+.firstInput { margin-right: 2px; }
 
 a:link    { color: #7c7777; text-decoration: none }
 a:visited { color: #7c7777; text-decoration: none }
@@ -40,8 +66,10 @@ img.navIcon {
 	letter-spacing: 1.5px;
 	margin-right: 6px;
 }
+#tableContainer { width: 100%; }
 
 .linkTable { 
+	width: 90%;
 	margin-top: 10px; 
 	margin-left: 15px; 
 	padding: 0; 

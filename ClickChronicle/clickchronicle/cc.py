@@ -122,24 +122,23 @@ registerAdapter( PreferencesFragment,
                  Preferences,
                  ixmantissa.INavigableFragment )
 
-class ClickList( Item ):
+class ClickList(Item):
     """similar to Preferences, i am an implementor of INavigableElement,
        and PrivateApplication will find me when when it looks in the user's
        store"""
        
-    implements( ixmantissa.INavigableElement )
+    implements(ixmantissa.INavigableElement)
     typeName = 'clickchronicle_clicklist'
-    clicks = attributes.integer( default = 0 )
+    clicks = attributes.integer(default = 0)
     schemaVersion = 1
 
     def installOn(self, other):
-        other.powerUp( self, ixmantissa.INavigableElement )
+        other.powerUp(self, ixmantissa.INavigableElement)
 
     def getTabs( self ):
         '''show a link to myself in the navbar'''
         return [Tab('My Clicks', self.storeID, 0.2)]
-
-
+  
 class CCPagedTableMixin(PagedTableMixin):
     def makeScriptTag(self, src):
         return tags.script(type='application/x-javascript', 
@@ -152,19 +151,58 @@ class ClickListFragment(rend.Fragment, CCPagedTableMixin):
     
     fragmentName = 'click-list-fragment'
     title = ''
+    matchingClicks = 0
+    discriminator = ''
+    maxTitleLength = 85
     live = True
+    
+    def __init__(self, original, docFactory=None):
+        rend.Fragment.__init__(self, original, docFactory)
+        (self.indexer,) = list(original.store.query(SyncIndexer))
+        
+    def trimTitle(self, visitDict):
+        title = visitDict['title']
+        if self.maxTitleLength < len(title):
+            visitDict['title'] = '%s...' % title[:self.maxTitleLength - 3]
+        return visitDict
+            
+    def matchingRowDicts(self, ctx, pageNumber, itemsPerPage):
+        offset = (pageNumber - 1) * itemsPerPage
+        specs = self.indexer.search(self.discriminator,
+                                    startingIndex = offset,
+                                    batchSize = itemsPerPage)
+        store = self.original.store
+        for spec in specs:
+            (visit,) = list(store.query(Visit, Visit.storeID == spec['uid']))
+            yield self.trimTitle(visit.asDict())
 
-    def generateRowDicts( self, ctx, pageNumber, itemsPerPage ):
+    def allRowDicts(self, ctx, pageNumber, itemsPerPage):
         store = self.original.store 
         offset = (pageNumber - 1) * itemsPerPage
         
         for v in store.query(Visit, sort = Visit.timestamp.descending,
                              limit = itemsPerPage, offset = offset):
             
-            yield v.asDict()
+            yield self.trimTitle(v.asDict())
 
+    def generateRowDicts(self, ctx, pageNumber, itemsPerPage):
+        if self.discriminator:
+            return self.matchingRowDicts(ctx, pageNumber, itemsPerPage)
+        else:
+            return self.allRowDicts(ctx, pageNumber, itemsPerPage)
+        
     def countTotalItems(self, ctx):
-        return self.original.clicks
+        if self.discriminator:
+            return self.matchingItems
+        else:
+            return self.original.clicks
+        
+    def handle_filter(self, ctx, discriminator):
+        self.discriminator = ' '.join(parseSearchString(discriminator))
+        (estimated, total) = self.indexer.count(self.discriminator)
+        self.matchingClicks = estimated
+        return self.updateTable(ctx, self.startPage,
+                                self.defaultItemsPerPage)
 
 registerAdapter( ClickListFragment, 
                  ClickList,

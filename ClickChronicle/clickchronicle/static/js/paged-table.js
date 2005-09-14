@@ -40,12 +40,13 @@ function setCurrentPage( page ) {
 
     var itemsPerPage = document.getElementById("itemsPerPage");
     pageElem.disabled = itemsPerPage.disabled = (onFirstPage && onLastPage) ? true : false;
+    var noItems = (document.getElementById("totalItems").firstChild.nodeValue == 0);
     var linkTable = document.getElementById("tableContainer");
-    linkTable.style.display = (pageElem.selectedIndex == -1) ? "none" : "block";
+    linkTable.style.display = noItems ? "none" : "block";
     var noClicksDialog = document.getElementById("noClicksDialog");
-    noClicksDialog.style.display = (pageElem.selectedIndex == -1) ? "block" : "none";
+    noClicksDialog.style.display = noItems ? "block" : "none";
     var posDesc = document.getElementById("positionDescription");
-    posDesc.style.display = (pageElem.selectedIndex == -1) ? "none" : "table-cell";
+    posDesc.style.display = noItems ? "none" : "table-cell";
 }
 
 function setItemsPerPage( items ) { 

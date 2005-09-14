@@ -14,9 +14,9 @@ from datetime import datetime, timedelta
 from twisted.python.util import sibpath
 from clickchronicle.indexinghelp import (IIndexable, IIndexer, SyncIndexer, 
                                          makeDocument, getPageSource)
+from clickchronicle.util import PagedTableMixin
 from clickchronicle.searchparser import parseSearchString
 from nevow import livepage, tags, inevow
-from math import ceil
 from nevow.url import URL
 
 class Domain(Item):
@@ -139,63 +139,6 @@ class ClickList( Item ):
         '''show a link to myself in the navbar'''
         return [Tab('My Clicks', self.storeID, 0.2)]
 
-class PagedTableMixin:
-    itemsPerPage = (10, 20, 50, 100)
-    defaultItemsPerPage = 10
-    startPage = 1
-    
-    def data_totalItems( self, ctx, data ):
-        return self.countTotalItems(ctx)
-
-    def data_itemsPerPage( self, ctx, data ):
-        return self.itemsPerPage
-   
-    def handle_updateTable( self, ctx, pageNumber, itemsPerPage ):
-        yield (self.updateTable(ctx, pageNumber, itemsPerPage), livepage.eol)
-        yield (self.changeItemsPerPage(ctx, pageNumber, itemsPerPage), livepage.eol)
-
-    def updateTable(self, ctx, pageNumber, itemsPerPage):
-        (pageNumber, itemsPerPage) = (int(pageNumber), int(itemsPerPage))
-        
-        rowDicts = list(self.generateRowDicts(ctx, pageNumber, itemsPerPage))
-        tablePattern = inevow.IQ(self.docFactory).onePattern('table')
-        
-        table = tablePattern(data=rowDicts)
-        offset = (pageNumber - 1) * itemsPerPage
-        
-        yield (livepage.set('tableContainer', table), livepage.eol)
-        yield (livepage.set('startItem', offset + 1), livepage.eol)
-        yield (livepage.set('endItem', offset + len(rowDicts)), livepage.eol)
-
-    def handle_changeItemsPerPage(self, ctx, pageNumber, perPage):
-        yield (self.updateTable(ctx, 1, perPage), livepage.eol)
-        yield (self.changeItemsPerPage(ctx, 1, perPage), livepage.eol)
-            
-    def changeItemsPerPage( self, ctx, pageNumber, perPage ):
-        perPage = int(perPage)
-        totalItems = self.countTotalItems(ctx)
-        pageNumbers = xrange(1, int(ceil(totalItems / perPage))+1)
-        pageNumsPatt = inevow.IQ(self.docFactory).onePattern('pagingWidget')
-        pagingWidget = pageNumsPatt(data=pageNumbers)
-        yield (livepage.set('pagingWidgetContainer', pagingWidget), livepage.eol)
-        yield (livepage.js.setCurrentPage(pageNumber), livepage.eol)
-    
-    def goingLive( self, ctx, client ):
-        client.call('setItemsPerPage', self.defaultItemsPerPage)
-        client.send(self.updateTable(ctx, self.startPage, self.defaultItemsPerPage))
-        client.send(self.changeItemsPerPage(ctx, self.startPage, self.defaultItemsPerPage))
-
-    # override these methods
-    def generateRowDicts( self, ctx, pageNumber, itemsPerPage ):
-        """I return a sequence of dictionaries that will be used as data for
-           the corresponding template's 'table' pattern.
-
-           pageNumber: number of page currently being viewed, starting from 1, not 0"""
-                       
-        raise NotImplementedError
-
-    def countTotalItems( self, ctx ):
-        raise NotImplementedError
 
 class CCPagedTableMixin(PagedTableMixin):
     def makeScriptTag(self, src):
@@ -227,59 +170,6 @@ registerAdapter( ClickListFragment,
                  ClickList,
                  ixmantissa.INavigableFragment )
 
-class SearchClicks(Item):
-    implements( ixmantissa.INavigableElement )
-    typeName = 'clickchronicle_searchclicks'
-    searches = attributes.integer( default = 0 )
-    schemaVersion = 1
-
-    def installOn(self, other):
-        other.powerUp( self, ixmantissa.INavigableElement )
-
-    def getTabs( self ):
-        return [Tab('Search Clicks', self.storeID, 0.1)]
-
-class SearchClicksFragment(rend.Fragment, CCPagedTableMixin):
-    totalMatches = 0
-    discriminator = None
-
-    fragmentName = 'search-clicks-fragment'
-    title = ''
-    live = True
-
-    def __init__(self, original, docFactory=None):
-        rend.Fragment.__init__(self, original, docFactory)
-        (self.indexer,) = list(original.store.query(SyncIndexer))
-
-    def countTotalItems(self, ctx):
-        return self.totalMatches
-
-    def generateRowDicts(self, ctx, page, itemsPerPage):
-        offset = (page - 1) * itemsPerPage
-        specs = self.indexer.search(self.discriminator,
-                                    startingIndex = offset,
-                                    batchSize = itemsPerPage)
-        store = self.original.store
-        for spec in specs:
-            (visit,) = (store.query(Visit, Visit.storeID == spec['uid']))
-            yield visit.asDict()
-
-    def goingLive(self, ctx, client):
-        # override PagedTableMixin.goingLive, b/c in this case we can't
-        # be expected to have any data to display in the paging widget
-        # on the initial page load
-        pass
-
-    def handle_search(self, ctx, discriminator):
-        self.discriminator = ' '.join(parseSearchString(discriminator))
-        (estimated, total) = self.indexer.count(self.discriminator)
-        self.totalMatches = estimated
-        return self.updateTable(ctx, self.startPage,
-                                self.defaultItemsPerPage)
-
-registerAdapter(SearchClicksFragment,
-                SearchClicks,
-                ixmantissa.INavigableFragment)
 
 class URLGrabber(rend.Page):
     """I handle ClickRecorder's HTTP action.  i am not an Item
@@ -419,8 +309,7 @@ class ClickChronicleBenefactor( Item ):
         PrivateApplication( store = avatar, 
                             preferredTheme = u'cc-skin' ).installOn(avatar)
 
-        for item in (WebSite, ClickList, SearchClicks,
-                     Preferences, ClickRecorder, SyncIndexer):
+        for item in (WebSite, ClickList, Preferences, ClickRecorder, SyncIndexer):
             
             item(store=avatar).installOn(avatar)
             

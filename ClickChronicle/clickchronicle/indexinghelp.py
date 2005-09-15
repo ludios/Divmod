@@ -2,7 +2,7 @@ from zope.interface import Interface, implements
 from axiom.item import Item
 from axiom import attributes
 from xapwrap.xapwrap import SmartIndex, ParsedQuery
-
+from xapwrap.xapwrap import Document, TextField, Keyword, StandardAnalyzer
 
 XAPIAN_INDEX_DIR = 'xap.index'
 
@@ -119,7 +119,7 @@ def getMeta(source):
 
 # END COPYING
 
-from twisted.web import microdom, domhelpers, client
+from twisted.web import client
 def getPageSource(url):
     """Asynchronously get the page source for a URL.
     """
@@ -144,9 +144,6 @@ def getText(source):
     noTags = tag_re.subn(' ', noScript)[0]
     text = nbsp_re.subn(' ', noTags)[0]
     return text
-
-
-from xapwrap.xapwrap import Document, TextField, SortKey, Keyword, StandardAnalyzer
 
 def makeDocument(visit, pageSource):
     keywords = [

@@ -12,6 +12,10 @@ class Minestrone(BeautifulSoup):
         self.onData = onData
         BeautifulSoup.__init__(self, html, **k)
 
+    noOp = lambda self, data: None
+    # beautiful soup forwards this nonsense to handle_data by default
+    handle_pi = handle_comment = handle_charref = handle_entityref = handle_decl = noOp
+
     def handle_data(self, data):
         if self.currentTag.name not in self.ignoreTags:
             self.onData(data)
@@ -31,7 +35,11 @@ class OxTail(Minestrone):
             values = self.metaTags.setdefault(attrs['name'], [])
             values.append(attrs['content'])
 
+    def handle_data(self, data):
+        if not data.isspace():
+            return Minestrone.handle_data(self, data)
+
     def results(self):
-        return (self.textNodes, self.metaTags)
+        return (' '.join(self.textNodes), self.metaTags)
 
 cook = lambda html: OxTail(html).results()

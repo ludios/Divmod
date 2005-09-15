@@ -12,10 +12,8 @@ htmls = {'<SCRIPT>cruft {1+2=3<HTML>}</script>want want want<b></i><hello/><hood
 class StripTagsTestCase(TestCase):
     def testStripping(self):
         for (html, expectedWants) in htmls.iteritems():
-            (_wants, meta) = cook(html)
-            wants = []
-            for w in _wants:
-                wants.extend(w.split())
+            (wants, meta) = cook(html)
+            wants = wants.split()
             self.assertEqual(len(set(wants)), 1, 'expected uniform stripTags result')
             self.assertEqual(wants[0], 'want', 'expected only "want" from stripTags')
             self.assertEqual(len(wants), expectedWants, 

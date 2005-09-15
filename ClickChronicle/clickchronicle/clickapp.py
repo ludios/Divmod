@@ -3,6 +3,7 @@ from zope.interface import implements
 
 from twisted.python.components import registerAdapter
 from nevow.url import URL
+from nevow import rend, inevow, tags
 
 from epsilon.extime import Time
 
@@ -11,9 +12,52 @@ from axiom import attributes
 
 from xmantissa import ixmantissa, webnav, website, webapp
 
-from clickchronicle import resources, indexinghelp
-from clickchronicle.items.common import Visit, Domain
+from clickchronicle import indexinghelp
+from clickchronicle.util import PagedTableMixin
+from clickchronicle.visit import Visit, Domain
+from clickchronicle.searchparser import parseSearchString
 
+class SearchBox(Item):
+    implements(ixmantissa.INavigableElement)
+    typeName = 'clickchronicle_searchbox'
+    schemaVersion = 1
+
+    searchPattern = attributes.inmemory()
+    formAction = attributes.inmemory()
+
+    searches = attributes.integer(default=0)
+
+    def installOn(self, other):
+        other.powerUp(self, ixmantissa.INavigableElement)
+
+    def activate(self):
+        (privApp,) = list(self.store.query(webapp.PrivateApplication))
+        docFactory = privApp.getDocFactory('search-box-fragment')
+        self.searchPattern = inevow.IQ(docFactory).patternGenerator('search')
+        (searcher,) = list(self.store.query(ClickSearcher))
+        self.formAction = privApp.linkTo(searcher.storeID)
+    
+    def topPanelContent(self):
+        return self.searchPattern.fillSlots('action', self.formAction)
+
+    def getTabs(self):
+        return []
+        
+class CCPagedTableMixin(PagedTableMixin):
+    maxTitleLength = 85
+
+    def makeScriptTag(self, src):
+        return tags.script(type='application/x-javascript', 
+                           src=src)
+    def head(self):
+        return self.makeScriptTag('/static/js/paged-table.js')
+
+    def trimTitle(self, visitDict):
+        title = visitDict['title']
+        if self.maxTitleLength < len(title):
+            visitDict['title'] = '%s...' % title[:self.maxTitleLength - 3]
+        return visitDict
+            
 class ClickChronicleBenefactor(Item):
     '''i am responsible for granting priveleges to avatars, 
        which equates to installing stuff in their store'''
@@ -30,7 +74,8 @@ class ClickChronicleBenefactor(Item):
                                   preferredTheme = u'cc-skin').installOn(avatar)
 
         for item in (website.WebSite, ClickList, Preferences,
-                     ClickRecorder, indexinghelp.SyncIndexer):
+                     ClickRecorder, indexinghelp.SyncIndexer,
+                     ClickSearcher, SearchBox):
             
             item(store=avatar).installOn(avatar)
 
@@ -51,7 +96,29 @@ class ClickList(Item):
         '''show a link to myself in the navbar'''
         return [webnav.Tab('My Clicks', self.storeID, 0.2)]
 
-registerAdapter(resources.ClickListFragment, 
+    def topPanelContent(self):
+        return None
+
+class ClickListFragment(rend.Fragment, CCPagedTableMixin):
+    '''i adapt ClickList to INavigableFragment'''
+    
+    fragmentName = 'click-list-fragment'
+    title = ''
+    live = True
+    
+    def generateRowDicts(self, ctx, pageNumber, itemsPerPage):
+        store = self.original.store 
+        offset = (pageNumber - 1) * itemsPerPage
+        
+        for v in store.query(Visit, sort = Visit.timestamp.descending,
+                             limit = itemsPerPage, offset = offset):
+            
+            yield self.trimTitle(v.asDict())
+        
+    def countTotalItems(self, ctx):
+        return self.original.clicks
+        
+registerAdapter(ClickListFragment, 
                 ClickList,
                 ixmantissa.INavigableFragment)
 
@@ -72,7 +139,26 @@ class Preferences(Item):
     def getTabs(self):
         return [webnav.Tab('Preferences', self.storeID, 0.0)]
 
-registerAdapter(resources.PreferencesFragment,
+    def topPanelContent(self):
+        return None
+
+class PreferencesFragment(rend.Fragment):
+    """I will get an adapter for Preferences instances, who
+       implements INavigableFragment"""
+       
+    fragmentName = 'preferences-fragment'
+    title = ''
+    live = True
+
+    def head(self):
+        return None
+
+    def data_preferences(self, ctx, data):
+        """return a dict of self.original's (Preferences instance) columns"""
+        return dict(displayName = self.original.displayName,
+                    homepage = self.original.homepage)
+
+registerAdapter(PreferencesFragment,
                 Preferences,
                 ixmantissa.INavigableFragment)
 
@@ -83,7 +169,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
     """
     schemaVersion = 1
     implements(ixmantissa.ISiteRootPlugin)
-    typeName = 'clickrecorder'
+    typeName = 'clickchronicle_clickrecorder'
     urlCount = attributes.integer(default = 0)
     prefixURL = 'private/record'
     # Caching needs to be provisioned/bestowed
@@ -95,7 +181,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         other.powerUp(self, ixmantissa.ISiteRootPlugin)
 
     def createResource(self):
-        return resources.URLGrabber(self)
+        return URLGrabber(self)
 
     def recordClick(self, qargs):
         """
@@ -184,3 +270,77 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             visit.deleteFromStore()
             self.urlCount -= 1
         self.store.transact(_)
+
+    
+class SearchClicks(rend.Fragment, CCPagedTableMixin):
+    fragmentName = 'search-fragment'
+    title = ''
+    live = True
+    
+    discriminator = None
+    matchingClicks = 0
+    
+    def __init__(self, orig, docFactory=None):
+        (self.indexer,) = list(orig.store.query(indexinghelp.SyncIndexer))
+        (self.searchbox,) = list(orig.store.query(SearchBox))
+        rend.Fragment.__init__(self, orig, docFactory)
+        
+    def countTotalItems(self, ctx):
+        return self.matchingClicks
+
+    def generateRowDicts(self, ctx, pageNumber, itemsPerPage):
+        offset = (pageNumber - 1) * itemsPerPage
+        specs = self.indexer.search(self.discriminator,
+                                    startingIndex = offset,
+                                    batchSize = itemsPerPage)
+        store = self.item.store
+        for spec in specs:
+            (visit,) = list(store.query(Visit, Visit.storeID == spec['uid']))
+            yield self.trimTitle(visit.asDict())
+
+    def goingLive(self, ctx, client):
+        qargs = dict(URL.fromContext(ctx).queryList())
+        # ignore duplicates & spurious variables
+        discrim = qargs.get('discriminator')
+        if discrim is None:
+            # do something meaninful
+            return
+        self.searchbox.searches += 1
+        discrim = ' '.join(parseSearchString(discrim))
+        (estimated, total) = self.indexer.count(discrim)
+        self.matchingClicks = estimated
+        self.discriminator = discrim
+        CCPagedTableMixin.goingLive(self, ctx, client)
+
+class ClickSearcher(Item):
+    implements(ixmantissa.INavigableElement)
+    typeName = 'clickchronicle_clicksearcher'
+    schemaVersion = 1
+
+    searches = attributes.integer(default = 0)
+
+    def installOn(self, other):
+        other.powerUp(self, ixmantissa.INavigableElement)
+
+    def topPanelContent(self):
+        return None
+
+    def getTabs(self):
+        return []
+
+registerAdapter(SearchClicks,
+                ClickSearcher,
+                ixmantissa.INavigableFragment)
+
+class URLGrabber(rend.Page):
+    """I handle ClickRecorder's HTTP action.  i am not an Item
+       because i have a lot of attributes inherited from rend.Page"""
+    def __init__(self, recorder):
+        self.recorder = recorder
+        
+    def renderHTTP(self, ctx):
+        """get url and title GET variables, supplying sane defaults"""
+        urlpath = inevow.IRequest(ctx).URLPath()
+        qargs = dict(urlpath.queryList())
+        self.recorder.recordClick(qargs)
+        return ''

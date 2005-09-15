@@ -7,7 +7,6 @@ from axiom import attributes
 
 from clickchronicle import indexinghelp
 
-            
 class Domain(Item):
     name = attributes.bytes()
     title = attributes.bytes()
@@ -28,7 +27,6 @@ class Visit(Item):
     schemaVersion = 1
     typeName = 'visit'
 
-    
     def asDocument(self):
         """
         Return a Document in a Deferred.

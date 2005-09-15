@@ -2,7 +2,7 @@ from axiom.store import Store
 from axiom.userbase import LoginSystem
 from xmantissa.website import WebSite, StaticSite
 from xmantissa.signup import TicketBooth
-from clickchronicle.items.private import ClickChronicleBenefactor
+from clickchronicle.clickapp import ClickChronicleBenefactor
 from signup_hack import EmaillessTicketSignup
 
 siteStore = Store('cchronicle.axiom', debug = True)

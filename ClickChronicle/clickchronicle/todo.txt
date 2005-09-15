@@ -11,3 +11,5 @@ Add "ignore" attribute to domains
 Visually distinguish each day in history
 
 Calendar view
+
+Figure out how to deal with unicode at the t.web level

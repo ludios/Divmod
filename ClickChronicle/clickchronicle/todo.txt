@@ -1,0 +1,13 @@
+Empty signup causes exception
+
+Strip css out of html
+
+The visible text for anchors does not get indexed (it's gobbled up by the html tag stripper)
+
+Investigate beautiful soup for html parsing
+
+Add "ignore" attribute to domains
+
+Visually distinguish each day in history
+
+Calendar view

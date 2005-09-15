@@ -2,7 +2,7 @@ from zope.interface import Interface, implements
 from axiom.item import Item
 from axiom import attributes
 from xapwrap.index import SmartIndex, ParsedQuery
-from xapwrap.document import Document, TextField, Keyword, StandardAnalyzer
+from xapwrap.document import Document, TextField, Keyword, StandardAnalyzer, Term
 
 XAPIAN_INDEX_DIR = 'xap.index'
 
@@ -159,7 +159,7 @@ def makeDocument(visit, pageSource):
         for k, v in metaDict:
             toks = sa.tokenize(v)
             for tok in toks:
-                terms.append(tok)
+                terms.append(Term(tok))
     # Add page text
     textFields = [TextField(text)]
     # Use storeID for possibly simpler removal of visit from index at a later stage

@@ -20,6 +20,11 @@ class IIndexer(Interface):
         """
         Search the index for aString and return results.
         """
+
+    def count(self, aString):
+        """
+        Return a 2-tuple of (estimated-matches, total-docs-indexed)
+        """
         
 
 class IIndexable(Interface):

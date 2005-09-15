@@ -1,10 +1,10 @@
 Empty signup causes exception
 
-Strip css out of html
+Strip css out of html (DONE)
 
 The visible text for anchors does not get indexed (it's gobbled up by the html tag stripper)
 
-Investigate beautiful soup for html parsing
+Investigate beautiful soup for html parsing (DONE)
 
 Add "ignore" attribute to domains
 
@@ -13,3 +13,5 @@ Visually distinguish each day in history
 Calendar view
 
 Figure out how to deal with unicode at the t.web level
+
+Make SearchClicks a LivePage, not a live fragment

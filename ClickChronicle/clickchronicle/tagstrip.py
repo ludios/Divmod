@@ -17,9 +17,21 @@ class Minestrone(BeautifulSoup):
             self.onData(data)
         BeautifulSoup.handle_data(self, data)
 
-def stripTags(html):
-    """be friendly and accumulate the results of Minestrone's callback"""
+class OxTail(Minestrone):
+    """i accumulate <meta> tags, and text nodes"""
 
-    texts = []
-    soup = Minestrone(html, texts.append)
-    return ' '.join(texts)
+    def __init__(self, html):
+        self.textNodes = []
+        self.metaTags = {}
+        Minestrone.__init__(self, html, self.textNodes.append)
+
+    def do_meta(self, attrs):
+        attrs = dict(attrs)
+        if 'name' in attrs and 'content' in attrs:
+            values = self.metaTags.setdefault(attrs['name'], [])
+            values.append(attrs['content'])
+
+    def results(self):
+        return (self.textNodes, self.metaTags)
+
+cook = lambda html: OxTail(html).results()

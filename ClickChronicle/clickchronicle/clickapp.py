@@ -44,7 +44,7 @@ class SearchBox(Item):
         return []
         
 class CCPagedTableMixin(PagedTableMixin):
-    maxTitleLength = 85
+    maxTitleLength = 70
 
     def makeScriptTag(self, src):
         return tags.script(type='application/x-javascript', 
@@ -284,34 +284,44 @@ class SearchClicks(rend.Fragment, CCPagedTableMixin):
         (self.indexer,) = list(orig.store.query(indexinghelp.SyncIndexer))
         (self.searchbox,) = list(orig.store.query(SearchBox))
         rend.Fragment.__init__(self, orig, docFactory)
-        
-    def countTotalItems(self, ctx):
-        return self.matchingClicks
-
-    def generateRowDicts(self, ctx, pageNumber, itemsPerPage):
-        offset = (pageNumber - 1) * itemsPerPage
-        specs = self.indexer.search(self.discriminator,
-                                    startingIndex = offset,
-                                    batchSize = itemsPerPage)
-        store = self.item.store
-        for spec in specs:
-            (visit,) = list(store.query(Visit, Visit.storeID == spec['uid']))
-            yield self.trimTitle(visit.asDict())
-
-    def goingLive(self, ctx, client):
+    
+    def setSearchState(self, ctx):
+        # this isn't great - make me a LivePage that somehow also shows tabs
         qargs = dict(URL.fromContext(ctx).queryList())
         # ignore duplicates & spurious variables
         discrim = qargs.get('discriminator')
         if discrim is None:
-            # do something meaninful
-            return
-        self.searchbox.searches += 1
+            # do something meaningful
+            pass
+        self.incrementSearches()
+        
         discrim = ' '.join(parseSearchString(discrim))
         (estimated, total) = self.indexer.count(discrim)
         self.matchingClicks = estimated
         self.discriminator = discrim
-        CCPagedTableMixin.goingLive(self, ctx, client)
+        
+    def countTotalItems(self, ctx):
+        if self.discriminator is None:
+            self.setSearchState(ctx)
+        return self.matchingClicks
 
+    def generateRowDicts(self, ctx, pageNumber, itemsPerPage):
+        if self.discriminator is None:
+            self.setSearchState(ctx)
+        offset = (pageNumber - 1) * itemsPerPage
+        specs = self.indexer.search(self.discriminator,
+                                    startingIndex = offset,
+                                    batchSize = itemsPerPage)
+        store = self.original.store
+        for spec in specs:
+            (visit,) = list(store.query(Visit, Visit.storeID == spec['uid']))
+            yield self.trimTitle(visit.asDict())
+
+    def incrementSearches(self):
+        def txn(): 
+            self.searchbox.searches += 1
+        self.original.store.transact(txn)
+                    
 class ClickSearcher(Item):
     implements(ixmantissa.INavigableElement)
     typeName = 'clickchronicle_clicksearcher'

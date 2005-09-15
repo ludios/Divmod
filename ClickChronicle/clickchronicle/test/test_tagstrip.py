@@ -1,5 +1,5 @@
 from twisted.trial.unittest import TestCase
-from clickchronicle.tagstrip import stripTags
+from clickchronicle.tagstrip import cook
 
 htmls = {'<SCRIPT>cruft {1+2=3<HTML>}</script>want want want<b></i><hello/><hoodwink>want' : 4,
          '<style type="text/css">.ploop { border: none; }></style>want<i>want</b>' : 2,
@@ -10,10 +10,12 @@ htmls = {'<SCRIPT>cruft {1+2=3<HTML>}</script>want want want<b></i><hello/><hood
          '<style>1+2=3</style><script>function f(x) { 3+2-6**2/231 }</script><x onload="alert(f())">want' : 1}
 
 class StripTagsTestCase(TestCase):
-    def testGivens(self):
+    def testStripping(self):
         for (html, expectedWants) in htmls.iteritems():
-            result = stripTags(html)
-            wants = result.split()
+            (_wants, meta) = cook(html)
+            wants = []
+            for w in _wants:
+                wants.extend(w.split())
             self.assertEqual(len(set(wants)), 1, 'expected uniform stripTags result')
             self.assertEqual(wants[0], 'want', 'expected only "want" from stripTags')
             self.assertEqual(len(wants), expectedWants, 

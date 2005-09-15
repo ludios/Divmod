@@ -6,19 +6,6 @@ function selectOptionWithValue( elem, value ) {
         }
 }
 
-function toggleFilter() {
-    var dialog = document.getElementById("filterDialog");
-    var invisible = (dialog.style.display == "" || dialog.style.display == "none");
-    dialog.style.display = invisible ? "block" : "none";
-    document.getElementById("filterAction").firstChild.nodeValue = !invisible ? "show" : "hide";
-    document.getElementById("filterToggleLink").blur();
-}
-
-function doFilter(form) {
-    server.handle('filter', form.elements.discriminator.value);
-    form.elements.submitFilter.blur();
-}
-    
 function changedItemsPerPage() {
     server.handle("changeItemsPerPage", getSelected("pages"), getSelected("itemsPerPage"));
 }

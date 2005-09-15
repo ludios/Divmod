@@ -23,8 +23,7 @@ function changedItemsPerPage() {
     server.handle("changeItemsPerPage", getSelected("pages"), getSelected("itemsPerPage"));
 }
 
-function setCurrentPage( page ) {
-    selectOptionWithValue(document.getElementById("pages"), page);
+function setPageState() {
     /* this image disabling code is a mess */
     var pageElem = document.getElementById("pages");
     var onFirstPage = (pageElem.selectedIndex < 1);
@@ -51,15 +50,26 @@ function setCurrentPage( page ) {
 
     last_d.style.display = next_d.style.display = onLastPage ? "inline" : "none";
 
-    var itemsPerPage = document.getElementById("itemsPerPage");
-    pageElem.disabled = itemsPerPage.disabled = (onFirstPage && onLastPage) ? true : false;
+    pageElem.disabled = (onFirstPage && onLastPage) ? true : false;
     var noItems = (document.getElementById("totalItems").firstChild.nodeValue == 0);
+    document.getElementById("itemsPerPage").enabled = noItems ? 'false' : 'true';
     var linkTable = document.getElementById("tableContainer");
     linkTable.style.display = noItems ? "none" : "block";
     var noClicksDialog = document.getElementById("noClicksDialog");
     noClicksDialog.style.display = noItems ? "block" : "none";
     var posDesc = document.getElementById("positionDescription");
     posDesc.style.display = noItems ? "none" : "table-cell";
+}
+
+function setCurrentPage( page ) {
+    selectOptionWithValue(document.getElementById("pages"), page);
+    setPageState();
+}
+
+function setTotalItems( items ) {
+    alert("called with" + items);
+    document.getElementById("totalItems").firstChild.nodeValue = items;
+    setPageState();
 }
 
 function setItemsPerPage( items ) { 

@@ -1,3 +1,4 @@
+from __future__ import division
 from nevow import inevow, livepage
 from math import ceil
 
@@ -6,13 +7,13 @@ class PagedTableMixin:
     defaultItemsPerPage = 10
     startPage = 1
     
-    def data_totalItems( self, ctx, data ):
+    def data_totalItems(self, ctx, data):
         return self.countTotalItems(ctx)
 
-    def data_itemsPerPage( self, ctx, data ):
+    def data_itemsPerPage(self, ctx, data):
         return self.itemsPerPage
    
-    def handle_updateTable( self, ctx, pageNumber, itemsPerPage ):
+    def handle_updateTable(self, ctx, pageNumber, itemsPerPage):
         yield (self.updateTable(ctx, pageNumber, itemsPerPage), livepage.eol)
         yield (self.changeItemsPerPage(ctx, pageNumber, itemsPerPage), livepage.eol)
 
@@ -33,7 +34,7 @@ class PagedTableMixin:
         yield (self.updateTable(ctx, 1, perPage), livepage.eol)
         yield (self.changeItemsPerPage(ctx, 1, perPage), livepage.eol)
             
-    def changeItemsPerPage( self, ctx, pageNumber, perPage ):
+    def changeItemsPerPage(self, ctx, pageNumber, perPage):
         perPage = int(perPage)
         totalItems = self.countTotalItems(ctx)
         pageNumbers = xrange(1, int(ceil(totalItems / perPage))+1)
@@ -42,13 +43,13 @@ class PagedTableMixin:
         yield (livepage.set('pagingWidgetContainer', pagingWidget), livepage.eol)
         yield (livepage.js.setCurrentPage(pageNumber), livepage.eol)
     
-    def goingLive( self, ctx, client ):
+    def goingLive(self, ctx, client):
         client.call('setItemsPerPage', self.defaultItemsPerPage)
         client.send(self.updateTable(ctx, self.startPage, self.defaultItemsPerPage))
         client.send(self.changeItemsPerPage(ctx, self.startPage, self.defaultItemsPerPage))
 
     # override these methods
-    def generateRowDicts( self, ctx, pageNumber, itemsPerPage ):
+    def generateRowDicts(self, ctx, pageNumber, itemsPerPage):
         """I return a sequence of dictionaries that will be used as data for
            the corresponding template's 'table' pattern.
 
@@ -56,5 +57,5 @@ class PagedTableMixin:
                        
         raise NotImplementedError
 
-    def countTotalItems( self, ctx ):
+    def countTotalItems(self, ctx):
         raise NotImplementedError

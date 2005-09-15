@@ -1,8 +1,8 @@
 from zope.interface import Interface, implements
 from axiom.item import Item
 from axiom import attributes
-from xapwrap.xapwrap import SmartIndex, ParsedQuery
-from xapwrap.xapwrap import Document, TextField, Keyword, StandardAnalyzer
+from xapwrap.index import SmartIndex, ParsedQuery
+from xapwrap.document import Document, TextField, Keyword, StandardAnalyzer
 
 XAPIAN_INDEX_DIR = 'xap.index'
 

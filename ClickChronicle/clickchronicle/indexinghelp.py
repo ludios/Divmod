@@ -2,7 +2,7 @@ from zope.interface import Interface, implements
 from axiom.item import Item
 from axiom import attributes
 from xapwrap.index import SmartIndex, ParsedQuery
-from xapwrap.document import Document, TextField, Keyword, StandardAnalyzer, Term
+from xapwrap.document import Document, TextField, Keyword, StandardAnalyzer, Term, Value
 from clickchronicle import tagstrip
 
 XAPIAN_INDEX_DIR = 'xap.index'
@@ -93,10 +93,10 @@ def getPageSource(url):
     return client.getPage(url)    
 
 def makeDocument(visit, pageSource):
-    keywords = [
-        Keyword('type', 'url'),
-        Keyword('url', visit.url),
-        Keyword('title', visit.title)]
+    values = [
+        Value('type', 'url'),
+        Value('url', visit.url),
+        Value('title', visit.title)]
     (text, meta) = tagstrip.cook(pageSource)
     terms = []
     if meta:
@@ -110,7 +110,7 @@ def makeDocument(visit, pageSource):
     # Use storeID for possibly simpler removal of visit from index at a later stage
     doc = Document(uid=visit.storeID,
                    textFields=textFields,
-                   keywords=keywords,
+                   values=values,
                    terms=terms,
                    source=pageSource)
     return doc

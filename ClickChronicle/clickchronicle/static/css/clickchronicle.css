@@ -68,7 +68,7 @@ img.navIcon {
 }
 #tableContainer { width: 100%; }
 
-.linkTable { 
+.clickTable { 
 	width: 90%;
 	margin-top: 10px; 
 	margin-left: 15px; 
@@ -76,18 +76,18 @@ img.navIcon {
 	border: solid 1px #B0B0B0;
 }
 
-tr.linkRowFirst { 
+tr.clickRowFirst { 
 	background-color: #FFFFFF;
 	background-image: url(/static/images/header_bg.png);
 	background-repeat: repeat-x;
 	background-position: bottom left 
 }
 
-tr.linkRowAlt      { background: #DADADA }
-tr.linkRow > td    { padding: 4px 4px 4px 4px }
-tr.linkRowAlt > td { padding: 4px 4px 4px 4px }
+tr.clickRowAlt      { background: #DADADA }
+tr.clickRow > td    { padding: 4px 4px 4px 4px }
+tr.clickRowAlt > td { padding: 4px 4px 4px 4px }
 
-tr.linkRowFirst > td { 
+tr.clickRowFirst > td { 
 	border-bottom: solid 1px #B0B0B0;
 	padding: 4px 4px 4px 4px;
 	font-weight: bold;

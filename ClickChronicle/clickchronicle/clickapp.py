@@ -42,10 +42,23 @@ class SearchBox(Item):
 
     def getTabs(self):
         return []
-        
-class CCPagedTableMixin(PagedTableMixin):
+
+class CCPrivatePagedTable(rend.Fragment, PagedTableMixin):
+    """adds some CC-specific display logic"""
     maxTitleLength = 70
 
+    def __init__(self, original, docFactory=None):
+        rend.Fragment.__init__(self, original, docFactory)
+        (self.privApp,) = list(original.store.query(webapp.PrivateApplication))
+        pagingPatterns = inevow.IQ(self.privApp.getDocFactory('paging-patterns'))
+
+        pgen = pagingPatterns.patternGenerator
+       
+        self.tablePattern = pgen('clickTable')
+        self.pageNumbersPattern = pgen('pagingWidget')
+        self.itemsPerPagePattern = pgen('itemsPerPage')
+        self.navBarPattern = pgen('navBar')
+    
     def makeScriptTag(self, src):
         return tags.script(type='application/x-javascript', 
                            src=src)
@@ -99,7 +112,7 @@ class ClickList(Item):
     def topPanelContent(self):
         return None
 
-class ClickListFragment(rend.Fragment, CCPagedTableMixin):
+class ClickListFragment(CCPrivatePagedTable):
     '''i adapt ClickList to INavigableFragment'''
     
     fragmentName = 'click-list-fragment'
@@ -279,7 +292,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         self.store.transact(_)
 
     
-class SearchClicks(rend.Fragment, CCPagedTableMixin):
+class SearchClicks(CCPrivatePagedTable):
     fragmentName = 'search-fragment'
     title = ''
     live = True
@@ -290,11 +303,11 @@ class SearchClicks(rend.Fragment, CCPagedTableMixin):
     def __init__(self, orig, docFactory=None):
         (self.indexer,) = list(orig.store.query(indexinghelp.SyncIndexer))
         (self.searchbox,) = list(orig.store.query(SearchBox))
-        rend.Fragment.__init__(self, orig, docFactory)
+        CCPrivatePagedTable.__init__(self, orig, docFactory)
 
     def head(self):
         yield self.makeScriptTag('/static/js/search.js')
-        yield CCPagedTableMixin.head(self)
+        yield CCPrivatePagedTable.head(self)
 
     def setSearchState(self, ctx):
         # this isn't great - make me a LivePage that somehow also shows tabs
@@ -318,7 +331,7 @@ class SearchClicks(rend.Fragment, CCPagedTableMixin):
 
     def goingLive(self, ctx, client):
         client.call('setSearchTerm', self.discriminator)
-        CCPagedTableMixin.goingLive(self, ctx, client)
+        CCPrivatePagedTable.goingLive(self, ctx, client)
 
     def countTotalItems(self, ctx):
         if self.discriminator is None:
@@ -334,7 +347,7 @@ class SearchClicks(rend.Fragment, CCPagedTableMixin):
                                     batchSize = itemsPerPage)
         store = self.original.store
         for spec in specs:
-            (visit,) = list(store.query(Visit, Visit.storeID == spec['uid']))
+            visit = store.getItemByID(spec['uid'])
             yield self.trimTitle(visit.asDict())
 
     def incrementSearches(self):

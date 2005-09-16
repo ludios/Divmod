@@ -1,0 +1,50 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:nevow="http://nevow.com/ns/nevow/0.1">
+
+  <table cellspacing="0" class="clickTable" nevow:pattern="clickTable" nevow:render="sequence">
+    <tr class="clickRowFirst" nevow:pattern="header">
+      <td class="clickCol">Timestamp</td>
+      <td class="clickCol">Link</td>
+      <td class="lastClickCol">Visits</td>
+    </tr>
+    <tr class="clickRowAlt" nevow:pattern="item" nevow:render="mapping">
+      <td class="clickCol"><nevow:slot name="timestamp"/></td>
+      <td class="clickCol"><a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a></td>
+      <td class="lastClickCol"><nevow:slot name="visits"/></td>
+    </tr>
+    <tr class="clickRow" nevow:pattern="item" nevow:render="mapping">
+      <td class="clickCol"><nevow:slot name="timestamp"/></td>
+      <td class="clickCol"><a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a></td>
+      <td class="lastClickCol"><nevow:slot name="visits"/></td>
+    </tr>
+  </table>
+
+  <select onchange="updateTable()" id="pages" 
+    nevow:pattern="pagingWidget" nevow:render="sequence">
+    <option nevow:pattern="item" nevow:render="data"/>
+  </select>
+
+  <table style="width: 100%" cellspacing="0" nevow:pattern="navBar">
+    <tr class="navRow">
+      <td style="padding: 4px">
+        <img class="navIcon" id="first_enabled" src="/static/images/first.png" onclick="first()"/>
+        <img class="navIcon" id="first_disabled" src="/static/images/first_disabled.png"/>
+        <img class="navIcon" id="prev_enabled" src="/static/images/left.png" onclick="prev()"/>
+        <img class="navIcon" id="prev_disabled" src="/static/images/left_disabled.png"/>
+        <img class="navIcon" id="next_enabled" src="/static/images/right.png" onclick="next()"/>
+        <img class="navIcon" id="next_disabled" src="/static/images/right_disabled.png"/>
+        <img class="navIcon" id="last_enabled" src="/static/images/last.png" onclick="last()"/>
+        <img class="navIcon" id="last_disabled" src="/static/images/last_disabled.png"/>
+      </td>
+      <td style="text-align: right; padding: 4px;">
+        per page: <nevow:slot name="itemsPerPage"/>
+        page: <span id="pagingWidgetContainer"><nevow:slot name="pagingWidget"/></span>
+      </td>
+    </tr>
+  </table>
+
+  <select nevow:pattern="itemsPerPage" onchange="changedItemsPerPage()" 
+    id="itemsPerPage" nevow:data="itemsPerPage" nevow:render="sequence">
+    <option nevow:pattern="item" nevow:render="data"/>
+  </select>
+
+</html>

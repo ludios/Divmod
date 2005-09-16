@@ -1,29 +1,39 @@
 from __future__ import division
-from nevow import inevow, livepage
+from nevow import livepage
 from math import ceil
 
 class PagedTableMixin:
     itemsPerPage = (10, 20, 50, 100)
     defaultItemsPerPage = 10
     startPage = 1
+
+    tablePattern = None
+    pageNumbersPattern = None
+    itemsPerPagePattern = None
+    navBarPattern = None
     
     def data_totalItems(self, ctx, data):
         return self.countTotalItems(ctx)
 
-    def data_itemsPerPage(self, ctx, data):
-        return self.itemsPerPage
-   
     def handle_updateTable(self, ctx, pageNumber, itemsPerPage):
         yield (self.updateTable(ctx, pageNumber, itemsPerPage), livepage.eol)
         yield (self.changeItemsPerPage(ctx, pageNumber, itemsPerPage), livepage.eol)
 
+    def render_navBar(self, ctx, data):
+        pageNumData = self.calculatePages(ctx, self.defaultItemsPerPage)
+        content = self.navBarPattern.fillSlots(
+                      'itemsPerPage', self.itemsPerPagePattern(data=self.itemsPerPage)
+                  ).fillSlots(
+                      'pagingWidget', self.pageNumbersPattern(data=pageNumData))
+                  
+        return ctx.tag[content]
+    
     def updateTable(self, ctx, pageNumber, itemsPerPage):
         (pageNumber, itemsPerPage) = (int(pageNumber), int(itemsPerPage))
         
         rowDicts = list(self.generateRowDicts(ctx, pageNumber, itemsPerPage))
-        tablePattern = inevow.IQ(self.docFactory).onePattern('table')
         
-        table = tablePattern(data=rowDicts)
+        table = self.tablePattern(data=rowDicts)
         offset = (pageNumber - 1) * itemsPerPage
         
         yield (livepage.set('tableContainer', table), livepage.eol)
@@ -33,13 +43,14 @@ class PagedTableMixin:
     def handle_changeItemsPerPage(self, ctx, pageNumber, perPage):
         yield (self.updateTable(ctx, 1, perPage), livepage.eol)
         yield (self.changeItemsPerPage(ctx, 1, perPage), livepage.eol)
-            
-    def changeItemsPerPage(self, ctx, pageNumber, perPage):
+
+    def calculatePages(self, ctx, perPage):
         perPage = int(perPage)
         totalItems = self.countTotalItems(ctx)
-        pageNumbers = xrange(1, int(ceil(totalItems / perPage))+1)
-        pageNumsPatt = inevow.IQ(self.docFactory).onePattern('pagingWidget')
-        pagingWidget = pageNumsPatt(data=pageNumbers)
+        return xrange(1, int(ceil(totalItems / perPage))+1)
+            
+    def changeItemsPerPage(self, ctx, pageNumber, perPage):
+        pagingWidget = self.pageNumbersPattern(data=self.calculatePages(ctx, perPage))
         yield (livepage.set('pagingWidgetContainer', pagingWidget), livepage.eol)
         yield (livepage.js.setCurrentPage(pageNumber), livepage.eol)
     

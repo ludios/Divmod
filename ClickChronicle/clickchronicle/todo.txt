@@ -17,3 +17,19 @@ Figure out how to deal with unicode at the t.web level
 Make SearchClicks a LivePage, not a live fragment
 
 Write some tests - need to use ccapp.py to create in-memory db and add visits, domain, ignores, etc.
+
+Allow export of bookmarks in .zip or email. Use mozilla bookmark format.
+
+Implement domain browser that allows visits to that domain to be viewed.
+
+Track and record referrer infromation.
+
+Allow "bookmark this" function from browser and/or clicks list.
+
+Build some tagging UI.
+
+Implement "exits from this page" option in extention.
+
+Incorporate Alexa info: http://www.amazon.com/gp/browse.html/104-7021508-1251135?node=12782661
+
+Look at other APIs that may be relevant/useful: http://www.programmableweb.com/apis

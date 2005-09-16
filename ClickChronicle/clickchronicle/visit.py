@@ -8,9 +8,10 @@ from axiom import attributes
 from clickchronicle import indexinghelp
 
 class Domain(Item):
-    name = attributes.bytes()
+    url = attributes.bytes()
     title = attributes.bytes()
     visitCount = attributes.integer(default=0)
+    ignore = attributes.integer(default=0) # Boolean
 
     schemaVersion = 1
     typeName = 'domain'
@@ -21,7 +22,7 @@ class Visit(Item):
     timestamp = attributes.timestamp()
     url = attributes.bytes()
     title = attributes.bytes()
-    visitCount = attributes.integer(default=1)
+    visitCount = attributes.integer(default=0)
     domain = attributes.reference(allowNone = False)
 
     schemaVersion = 1

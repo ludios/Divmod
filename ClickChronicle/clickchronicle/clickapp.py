@@ -205,18 +205,13 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         If found update the timestamp and return it.
         Otherwise create a new Visit.
         """
-        dtNow = datetime.now()
+        domainStr = URL.fromString(url).netloc
+        domain = self.store.findOrCreate(Domain, url=domainStr, title=domainStr)
+        if domain and domain.ignore:
+            return
+        existingVisit = self.findVisitForToday(url)
         timeNow = Time.fromDatetime(datetime.now())
-        todayBegin = dtNow.replace(hour=0, minute=0, second=0, microsecond=0)
-        tomorrowBegin = (dtNow+timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
         
-        existingVisit = None
-        for existingVisit in self.store.query(Visit,
-                                              attributes.AND(Visit.timestamp >= Time.fromDatetime(todayBegin),
-                                                             Visit.timestamp < Time.fromDatetime(tomorrowBegin),
-                                                             Visit.url == url)):
-            break
-
         if existingVisit:
             # Already visited today
             def _():
@@ -228,22 +223,34 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         else:
             # New visit today
             def _():
-                self.urlCount += 1
-                # Hook up the domain
-                domainStr = URL.fromString(url).netloc
-                domain = self.store.findOrCreate(Domain, name=domainStr, title=domainStr)
-                domain.visitCount +=1 
                 visit = Visit(store = self.store,
                               url = url,
                               timestamp = timeNow,
                               title = title,
                               domain = domain)
-                visit.domain.visitCount += 1
                 (clickList,) = list(self.store.query(ClickList))
                 clickList.clicks += 1
+                self.urlCount += 1
+                visit.visitCount += 1
+                visit.domain.visitCount +=1
                 return visit
             visit = self.store.transact(_)
             self.postProcess(visit)
+
+    def findVisitForToday(self, url):
+        dtNow = datetime.now()
+        timeNow = Time.fromDatetime(dtNow)
+        todayBegin = dtNow.replace(hour=0, minute=0, second=0, microsecond=0)
+        tomorrowBegin = (dtNow+timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        existingVisit = None
+        for existingVisit in self.store.query(
+            Visit,
+            attributes.AND(Visit.timestamp >= Time.fromDatetime(todayBegin),
+                           Visit.timestamp < Time.fromDatetime(tomorrowBegin),
+                           Visit.url == url)):
+            break
+        return existingVisit
 
     def postProcess(self, visit):
         def cbCachePage(doc):

@@ -291,7 +291,11 @@ class SearchClicks(rend.Fragment, CCPagedTableMixin):
         (self.indexer,) = list(orig.store.query(indexinghelp.SyncIndexer))
         (self.searchbox,) = list(orig.store.query(SearchBox))
         rend.Fragment.__init__(self, orig, docFactory)
-    
+
+    def head(self):
+        yield self.makeScriptTag('/static/js/search.js')
+        yield CCPagedTableMixin.head(self)
+
     def setSearchState(self, ctx):
         # this isn't great - make me a LivePage that somehow also shows tabs
         qargs = dict(URL.fromContext(ctx).queryList())
@@ -306,7 +310,16 @@ class SearchClicks(rend.Fragment, CCPagedTableMixin):
         (estimated, total) = self.indexer.count(discrim)
         self.matchingClicks = estimated
         self.discriminator = discrim
-        
+       
+    def data_searchTerm(self, ctx, data):
+        if self.discriminator is None:
+            self.setSearchState(ctx)
+        return self.discriminator
+
+    def goingLive(self, ctx, client):
+        client.call('setSearchTerm', self.discriminator)
+        CCPagedTableMixin.goingLive(self, ctx, client)
+
     def countTotalItems(self, ctx):
         if self.discriminator is None:
             self.setSearchState(ctx)

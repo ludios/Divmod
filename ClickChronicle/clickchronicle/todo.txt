@@ -2,11 +2,11 @@ Empty signup causes exception
 
 Strip css out of html (DONE)
 
-The visible text for anchors does not get indexed (it's gobbled up by the html tag stripper)
+The visible text for anchors does not get indexed (it's gobbled up by the html tag stripper) (DONE)
 
 Investigate beautiful soup for html parsing (DONE)
 
-Add "ignore" attribute to domains
+Add "ignore" attribute to domains (DONE)
 
 Visually distinguish each day in history
 

@@ -6,6 +6,10 @@ function selectOptionWithValue( elem, value ) {
         }
 }
 
+function ignore(url) {
+    server.handle('ignore', url);
+}
+
 function changedItemsPerPage() {
     server.handle("changeItemsPerPage", getSelected("pages"), getSelected("itemsPerPage"));
 }
@@ -54,7 +58,6 @@ function setCurrentPage( page ) {
 }
 
 function setTotalItems( items ) {
-    alert("called with" + items);
     document.getElementById("totalItems").firstChild.nodeValue = items;
     setPageState();
 }

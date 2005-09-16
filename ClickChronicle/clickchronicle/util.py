@@ -39,6 +39,7 @@ class PagedTableMixin:
         yield (livepage.set('tableContainer', table), livepage.eol)
         yield (livepage.set('startItem', offset + 1), livepage.eol)
         yield (livepage.set('endItem', offset + len(rowDicts)), livepage.eol)
+        yield (livepage.js.setTotalItems(self.countTotalItems(ctx)), livepage.eol)
 
     def handle_changeItemsPerPage(self, ctx, pageNumber, perPage):
         yield (self.updateTable(ctx, 1, perPage), livepage.eol)

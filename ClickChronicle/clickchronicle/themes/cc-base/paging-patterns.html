@@ -4,17 +4,33 @@
     <tr class="clickRowFirst" nevow:pattern="header">
       <td class="clickCol">Timestamp</td>
       <td class="clickCol">Link</td>
+      <td class="clickCol">Action</td>
       <td class="lastClickCol">Visits</td>
     </tr>
     <tr class="clickRowAlt" nevow:pattern="item" nevow:render="mapping">
       <td class="clickCol"><nevow:slot name="timestamp"/></td>
-      <td class="clickCol"><a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a></td>
-      <td class="lastClickCol"><nevow:slot name="visits"/></td>
+      <td class="clickCol">
+        <a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a>
+      </td>
+      <td class="clickCol" style="text-align: center">
+        <a onclick="ignore(this.href); return false">
+          <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
+          <img src="/static/images/ignore_link.png" class="linkIcon"/></a>
+      </td>
+      <td class="lastClickCol" style="text-align: center"><nevow:slot name="visits"/></td>
     </tr>
     <tr class="clickRow" nevow:pattern="item" nevow:render="mapping">
       <td class="clickCol"><nevow:slot name="timestamp"/></td>
-      <td class="clickCol"><a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a></td>
-      <td class="lastClickCol"><nevow:slot name="visits"/></td>
+      <td class="clickCol">
+        <a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a>
+      </td>
+      <td class="clickCol" style="text-align: center">
+        <a onclick="ignore(this.href); return false">
+          <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
+          <img src="/static/images/ignore_link.png" class="linkIcon"/>
+        </a>
+      </td>
+      <td class="lastClickCol" style="text-align: center"><nevow:slot name="visits"/></td>
     </tr>
   </table>
 

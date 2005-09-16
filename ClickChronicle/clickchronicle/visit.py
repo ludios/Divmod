@@ -68,4 +68,8 @@ class Visit(Item):
 
     def forget(self):
         fName = self.cachedFileName()
-        os.remove(fName)
+        try:
+            os.remove(fName)
+        except OSError:
+            # perhaps the page was unreachable and never got indexed
+            pass

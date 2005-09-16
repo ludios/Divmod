@@ -50,6 +50,7 @@ class CCPrivatePagedTable(rend.Fragment, PagedTableMixin):
     def __init__(self, original, docFactory=None):
         rend.Fragment.__init__(self, original, docFactory)
         (self.privApp,) = list(original.store.query(webapp.PrivateApplication))
+        (self.clickList,) = list(original.store.query(ClickList))
         pagingPatterns = inevow.IQ(self.privApp.getDocFactory('paging-patterns'))
 
         pgen = pagingPatterns.patternGenerator
@@ -65,12 +66,37 @@ class CCPrivatePagedTable(rend.Fragment, PagedTableMixin):
     def head(self):
         return self.makeScriptTag('/static/js/paged-table.js')
 
+    def handle_ignore(self, ctx, url):
+        store = self.original.store
+        # find any Visit with this url
+        (visit,) = list(store.query(Visit, Visit.url == url, limit = 1))
+        
+        def txn():
+            # ignore the Domain
+            visit.domain.ignore = 1
+            # find Visits sharing the same domain 
+            for (i, similarVisit) in enumerate(store.query(Visit, Visit.domain == visit.domain)):
+                # delete their page contents
+                similarVisit.forget()
+                # delete them from store
+                similarVisit.deleteFromStore()
+            # do the same for original visit
+            visit.forget()
+            visit.deleteFromStore()
+            # decrement ClickList's counter
+            self.clickList.clicks -= i + 1
+        
+        store.transact(txn)
+        # rewind to the first page, to reflect changes
+        return self.updateTable(ctx, self.startPage, 
+                                self.defaultItemsPerPage)
+
     def trimTitle(self, visitDict):
         title = visitDict['title']
         if self.maxTitleLength < len(title):
             visitDict['title'] = '%s...' % title[:self.maxTitleLength - 3]
         return visitDict
-            
+
 class ClickChronicleBenefactor(Item):
     '''i am responsible for granting priveleges to avatars, 
        which equates to installing stuff in their store'''

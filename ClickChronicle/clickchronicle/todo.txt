@@ -15,3 +15,5 @@ Calendar view
 Figure out how to deal with unicode at the t.web level
 
 Make SearchClicks a LivePage, not a live fragment
+
+Write some tests - need to use ccapp.py to create in-memory db and add visits, domain, ignores, etc.

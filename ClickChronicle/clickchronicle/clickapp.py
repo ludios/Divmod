@@ -11,6 +11,7 @@ from axiom.item import Item
 from axiom import attributes
 
 from xmantissa import ixmantissa, webnav, website, webapp
+from xmantissa.webgestalt import AuthenticationApplication
 
 from clickchronicle import indexinghelp
 from clickchronicle.util import PagedTableMixin
@@ -114,7 +115,7 @@ class ClickChronicleBenefactor(Item):
 
         for item in (website.WebSite, ClickList, Preferences,
                      ClickRecorder, indexinghelp.SyncIndexer,
-                     ClickSearcher, SearchBox):
+                     ClickSearcher, SearchBox, AuthenticationApplication):
             
             item(store=avatar).installOn(avatar)
 

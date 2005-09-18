@@ -102,10 +102,9 @@ class BranchManager:
             noTrunk = False
             if not os.path.exists(fsPath):
                 if branchPath != 'trunk':
-                    warnings.warn(
-                        UserWarning,
-                        "branch %s:%s at %r does not exist, trying trunk" % (
-                        projName, branchPath, fsPath))
+                    m = "branch %s:%s at %r does not exist, trying trunk" % (
+                        projName, branchPath, fsPath)
+                    warnings.warn(m, UserWarning)
                     trunkFsPath = self.projectBranchDir(projName)
             if os.path.isdir(fsPath):
                 yield fsPath

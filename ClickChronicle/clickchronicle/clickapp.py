@@ -15,7 +15,7 @@ from xmantissa.webgestalt import AuthenticationApplication
 
 from clickchronicle import indexinghelp
 from clickchronicle.util import PagedTableMixin
-from clickchronicle.visit import Visit, Domain
+from clickchronicle.visit import Visit, Domain, BookmarkVisit
 from clickchronicle.searchparser import parseSearchString
 import os
 
@@ -206,6 +206,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
     caching = True
     # Number of MRU visits to keep
     maxCount = 500
+    bookmarkVist = None
 
     def installOn(self, other):
         other.powerUp(self, ixmantissa.ISiteRootPlugin)
@@ -225,7 +226,24 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         title = qargs.get('title')
         if not title or title.isspace():
             title = url
-        visit = self.findOrCreateVisit(url, title)#, referrer)
+        referrer = qargs.get('ref')
+        # The referrer stuff is a little dodgy
+        # should distinguish between referrer = '' which seems to mean it was
+        # fired from a bookmark and referrer = None which should be used for the
+        # referrer or a referrer
+        if referrer is None:
+            # Brower did not send '?ref='. Should do something smart here
+            pass
+        elif referrer == '':
+            # Most likely selected a bookmark/shortcut
+            if self.bookmarkVisit is None:
+                def _():
+                    self.bookmarkVist = BookmarkVisit(url='bookmark', title='bookmark')
+                self.store.transact(_)
+            referrer = self.bookmarkVisit
+        else:
+            referrer = self.findOrCreateVisit(url, title)
+        visit = self.findOrCreateVisit(url, title, referrer)
         if self.urlCount > self.maxCount:
             self.forgetOldestVisit()
         

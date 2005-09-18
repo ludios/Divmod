@@ -45,3 +45,16 @@ class Visit(Item):
         return dict(url = self.url, title = self.title,
                     timestamp = self.timestamp.asHumanly(), visits=self.visitCount)
         
+class BookmarkVisit(Item):
+    """A special visit that is used as visit.referrer if the visit was referred
+    by being selected from a bookmark or shortcut. Should be a singleton and
+    should only be used as a visit.referrer"""
+
+    # XXX Not sure which attributes we need. Particularly referrer?
+    url = attributes.bytes()
+    title = attributes.bytes()
+    
+    referrer = attributes.reference(allowNone=True)
+
+    schemaVersion = 1
+    typeName = 'bookmark_visit'

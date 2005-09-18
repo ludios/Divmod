@@ -222,6 +222,8 @@ class RadicalApplication(item.Item, website.PrefixURLMixin):
                                        0.0)],
                            authoritative=False)]
 
+    def topPanelContent(self):
+        return None
 
 
 class ILocated(Interface):

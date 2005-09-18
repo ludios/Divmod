@@ -1,7 +1,7 @@
 from xapwrap.document import StandardAnalyzer
 from math import log
 
-def buildCounts(text):
+def buildCounts(text, stopList=(), filterDigits=True):
     sa = StandardAnalyzer()
     toks = sa.tokenize(text)
     unigrams = {}
@@ -9,37 +9,44 @@ def buildCounts(text):
     count = 0
 
     prev = None
+    
     for tok in toks:
         count+=1
-        if tok in unigrams:
-            unigrams[tok]+=1
-        else:
-            unigrams[tok]=1
-        if not prev:
-            prev = tok
-            continue
-        else:
-            bigram=(prev, tok)
-            if bigram in bigrams:
-                bigrams[bigram]+=1
+        if tok not in stopList:
+            if tok in unigrams:
+                unigrams[tok]+=1
             else:
-                bigrams[bigram]=1
-            prev = tok
+                unigrams[tok]=1
+            if not prev:
+                prev = tok
+                continue
+            else:
+                if not ((prev in stopList or tok in stopList) \
+                    or (filterDigits and (prev.isdigit() or tok.isdigit()))):
+                    bigram=(prev, tok)
+                    if bigram in bigrams:
+                        bigrams[bigram]+=1
+                    else:
+                        bigrams[bigram]=1
+        prev = tok
     return count, unigrams, bigrams
-
-def buildMutualInfo(count, unigrams, bigrams):
+        
+def buildInfo(count, unigrams, bigrams, limit=0, buildMI=True):
     mutualInfo = []
     count=float(count)
     for (first, second), pairCount in bigrams.iteritems():
-        fCount=unigrams[first]
-        fProb=log(fCount/count)
-        sCount=unigrams[second]
-        sProb=log(sCount/count)
-        pairProb=(pairCount/count)
-        mi=pairProb - fProb + sProb
-        mi=log(count*pairCount/(fCount*sCount))/log(2.0)
-        #log(N*$1/(f[$2]*f[$3]))/log(2.0), f[$2], f[$3], $0)}
-        mutualInfo.append((mi, fCount, sCount, pairCount, first, second))
+        if pairCount > limit:
+            fCount=unigrams[first]
+            sCount=unigrams[second]
+            if buildMI:
+                fProb=log(fCount/count)
+                sProb=log(sCount/count)
+                pairProb=(pairCount/count)
+                mi=pairProb - fProb + sProb
+                mi=log(count*pairCount/(fCount*sCount))/log(2.0)
+            else:
+                mi=0
+            mutualInfo.append((mi, fCount, sCount, pairCount, first, second))
     mutualInfo.sort(lambda a, b: cmp(b[0], a[0]))
     return mutualInfo
 
@@ -106,13 +113,15 @@ if __name__ == '__main__':
         print '---'
         print fname, 
         source = open(fname, 'rb').read()
-        #(text, meta) = tagstrip.cook(source)
-        text = source
+        if fname.endswith('.html'):
+            (text, meta) = tagstrip.cook(source)
+        else:
+            text = source
         
-        count, unigrams, bigrams= buildCounts(text)
+        count, unigrams, bigrams= buildCounts(text, stopwords)
         print count
-        count -= 1
-        res = buildMutualInfo(count, unigrams, bigrams)
+                
+        res = buildInfo(count, unigrams, bigrams, limit=2, buildMI=False)
         #for r in res:
         #    print r
         final = [likelihoodRatio(count, r) for r in res]

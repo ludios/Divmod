@@ -33,3 +33,5 @@ Implement "exits from this page" option in extention.
 Incorporate Alexa info: http://www.amazon.com/gp/browse.html/104-7021508-1251135?node=12782661
 
 Look at other APIs that may be relevant/useful: http://www.programmableweb.com/apis
+
+Create queue for indexing and removing from index to defend against race conditions and batch index changes for effieciency

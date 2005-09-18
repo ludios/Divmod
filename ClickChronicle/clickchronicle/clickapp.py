@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from zope.interface import implements
+from zope.interface import Interface, implements
 
 from twisted.python.components import registerAdapter
 from nevow.url import URL
@@ -17,6 +17,7 @@ from clickchronicle import indexinghelp
 from clickchronicle.util import PagedTableMixin
 from clickchronicle.visit import Visit, Domain
 from clickchronicle.searchparser import parseSearchString
+import os
 
 class SearchBox(Item):
     implements(ixmantissa.INavigableElement)
@@ -32,10 +33,10 @@ class SearchBox(Item):
         other.powerUp(self, ixmantissa.INavigableElement)
 
     def activate(self):
-        (privApp,) = list(self.store.query(webapp.PrivateApplication))
+        (privApp,) = self.store.query(webapp.PrivateApplication, limit=1)
         docFactory = privApp.getDocFactory('search-box-fragment')
         self.searchPattern = inevow.IQ(docFactory).patternGenerator('search')
-        (searcher,) = list(self.store.query(ClickSearcher))
+        (searcher,) = self.store.query(ClickSearcher, limit=1)
         self.formAction = privApp.linkTo(searcher.storeID)
     
     def topPanelContent(self):
@@ -50,8 +51,8 @@ class CCPrivatePagedTable(rend.Fragment, PagedTableMixin):
 
     def __init__(self, original, docFactory=None):
         rend.Fragment.__init__(self, original, docFactory)
-        (self.privApp,) = list(original.store.query(webapp.PrivateApplication))
-        (self.clickList,) = list(original.store.query(ClickList))
+        (self.privApp,) = original.store.query(webapp.PrivateApplication, limit=1)
+        (self.clickList,) = original.store.query(ClickList, limit=1)
         pagingPatterns = inevow.IQ(self.privApp.getDocFactory('paging-patterns'))
 
         pgen = pagingPatterns.patternGenerator
@@ -70,24 +71,8 @@ class CCPrivatePagedTable(rend.Fragment, PagedTableMixin):
     def handle_ignore(self, ctx, url):
         store = self.original.store
         # find any Visit with this url
-        (visit,) = list(store.query(Visit, Visit.url == url, limit = 1))
-        
-        def txn():
-            # ignore the Domain
-            visit.domain.ignore = 1
-            # find Visits sharing the same domain 
-            for (i, similarVisit) in enumerate(store.query(Visit, Visit.domain == visit.domain)):
-                # delete their page contents
-                similarVisit.forget()
-                # delete them from store
-                similarVisit.deleteFromStore()
-            # do the same for original visit
-            visit.forget()
-            visit.deleteFromStore()
-            # decrement ClickList's counter
-            self.clickList.clicks -= i + 1
-        
-        store.transact(txn)
+        (visit,) = store.query(Visit, Visit.url == url, limit = 1)
+        IClickRecorder(store).ignoreVisit(visit)
         # rewind to the first page, to reflect changes
         return self.updateTable(ctx, self.startPage, 
                                 self.defaultItemsPerPage)
@@ -202,13 +187,18 @@ registerAdapter(PreferencesFragment,
                 Preferences,
                 ixmantissa.INavigableFragment)
 
+class IClickRecorder(Interface):
+    """
+    ClickRecorder interface.
+    """
+    
 class ClickRecorder(Item, website.PrefixURLMixin):
     """
     I exist independently of the rest of the application and accept
     HTTP requests at private/record, which i farm off to URLGrabber.
     """
     schemaVersion = 1
-    implements(ixmantissa.ISiteRootPlugin)
+    implements(ixmantissa.ISiteRootPlugin, IClickRecorder)
     typeName = 'clickchronicle_clickrecorder'
     urlCount = attributes.integer(default = 0)
     prefixURL = 'private/record'
@@ -219,6 +209,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
 
     def installOn(self, other):
         other.powerUp(self, ixmantissa.ISiteRootPlugin)
+        other.powerUp(self, IClickRecorder)
 
     def createResource(self):
         return URLGrabber(self)
@@ -227,9 +218,6 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         """
         Extract POST arguments and create a Visit object before indexing and caching.
         """
-        
-        if self.urlCount > self.maxCount:
-            self.forgetOldestVisit()
         url = qargs.get('url')
         if url is None:
             # No url, no deal.
@@ -237,9 +225,11 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         title = qargs.get('title')
         if not title or title.isspace():
             title = url
-        visit = self.findOrCreateVisit(url, title)
+        visit = self.findOrCreateVisit(url, title)#, referrer)
+        if self.urlCount > self.maxCount:
+            self.forgetOldestVisit()
         
-    def findOrCreateVisit(self, url, title):
+    def findOrCreateVisit(self, url, title, referrer=None):
         """
         Try to find a visit to the same url TODAY.
         If found update the timestamp and return it.
@@ -254,6 +244,8 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         
         if existingVisit:
             # Already visited today
+            # XXX What should we do about referrer for existing visit
+            # XXX we'll conveniently ignore it for now 
             def _():
                 existingVisit.timestamp = timeNow
                 existingVisit.visitCount += 1
@@ -267,15 +259,16 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                               url = url,
                               timestamp = timeNow,
                               title = title,
-                              domain = domain)
-                (clickList,) = list(self.store.query(ClickList))
+                              domain = domain,
+                              referrer = referrer)
+                (clickList,) = self.store.query(ClickList, limit=1)
                 clickList.clicks += 1
                 self.urlCount += 1
                 visit.visitCount += 1
                 visit.domain.visitCount +=1
                 return visit
             visit = self.store.transact(_)
-            self.postProcess(visit)
+            self.rememberVisit(visit)
 
     def findVisitForToday(self, url):
         dtNow = datetime.now()
@@ -292,13 +285,34 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             break
         return existingVisit
 
-    def postProcess(self, visit):
+    def rememberVisit(self, visit):
         def cbCachePage(doc):
-            visit.cachePage(doc.source)
+            """
+            Cache the source for this visit.
+            """
+            newFile = self.store.newFile(self.cachedFileNameFor(visit))
+            newFile.write(doc.source)
+            newFile.close()
         indexer = indexinghelp.IIndexer(self.store)
         d=indexer.index(visit)
         if self.caching:
             d.addCallback(cbCachePage)
+    
+    def forgetVisit(self, visit):
+        indexer = indexinghelp.IIndexer(self.store)
+        indexer.delete(visit)
+        fName = self.cachedFileNameFor(visit)
+        os.remove(fName)
+        #try:
+        #    os.remove(fName)
+        #except OSError:
+        #    # XXX - If it was unreachable would the visit have been created?
+        #    # perhaps the page was unreachable and never got indexed
+        #    pass
+        def _():
+            visit.deleteFromStore()
+            self.urlCount -= 1
+        self.store.transact(_)
 
     def forgetOldestVisit(self):
         """
@@ -307,18 +321,41 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         # XXX - This needs to be more sophisticated since there is a known race
         # condition for a Visit being deleted from the index before the page has
         # been fetched and indexed/cahced
-        def _():
-            for visit in self.store.query(Visit, sort=Visit.timestamp.ascending):
-                break
-            print 'deleting visit %s' % visit.storeID
-            indexer = indexinghelp.IIndexer(self.store)
-            indexer.delete(visit)
-            visit.forget()
-            visit.deleteFromStore()
-            self.urlCount -= 1
-        self.store.transact(_)
+        (visit,)= self.store.query(Visit, sort=Visit.timestamp.ascending, limit=1)
+        self.forgetVisit(visit)
 
-    
+    def cachedFileNameFor(self, visit):
+        """
+        Return the path to the cached source for this visit.
+        The path consists of the iso date for the visit as directory and the
+        storeID as the filename.
+        e.g. cchronicle.axiom/files/account/test.com/user/files/cache/2005-09-10/55.html
+        """
+        # XXX - I doubt that this is how these path objects are supposed to
+        # be manipulated. Check for sanity/style.
+        dirName = visit.timestamp.asDatetime().date().isoformat()
+        cacheDir = self.store.newDirectory('cache/%s' % dirName)
+        fileName = str(cacheDir.path)+ '/' + str(visit.storeID) + '.html'
+        return fileName
+
+    def ignoreVisit(self, visit):
+        def txn():
+            # ignore the Domain
+            visit.domain.ignore = 1
+            # find Visits sharing the same domain 
+            for (i, similarVisit) in enumerate(self.store.query(Visit, Visit.domain == visit.domain)):
+                # delete their page contents
+                self.forgetVisit(similarVisit)
+            # do the same for original visit - XXX - I think we already deleted this?
+            # self.forgetVisit(visit)
+            # decrement ClickList's counter
+            
+            # XXX Are how are we using clickList.clicks vs. self.urlCount?
+            (clickList,) = self.store.query(ClickList, limit=1)
+            clickList.clicks -= i + 1
+        self.store.transact(txn)
+
+
 class SearchClicks(CCPrivatePagedTable):
     fragmentName = 'search-fragment'
     title = ''

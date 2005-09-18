@@ -24,6 +24,7 @@ class Visit(Item):
     title = attributes.bytes()
     visitCount = attributes.integer(default=0)
     domain = attributes.reference(allowNone = False)
+    referrer = attributes.reference(allowNone=True)
 
     schemaVersion = 1
     typeName = 'visit'
@@ -44,32 +45,3 @@ class Visit(Item):
         return dict(url = self.url, title = self.title,
                     timestamp = self.timestamp.asHumanly(), visits=self.visitCount)
         
-    def cachePage(self, pageSource):
-        """
-        Cache the source for this Visit.
-        """
-        newFile = self.store.newFile(self.cachedFileName())
-        newFile.write(pageSource)
-        newFile.close()
-
-    def cachedFileName(self):
-        """
-        Return the path to the cached source for this visit.
-        The path consists of the iso date for the visit as directory and the
-        storeID as the filename.
-        e.g. cchronicle.axiom/files/account/test.com/user/files/cache/2005-09-10/55.html
-        """
-        # XXX - I doubt that this is how these path objects are supposed to
-        # be manipulated. Check for sanity/style.
-        dirName = self.timestamp.asDatetime().date().isoformat()
-        cacheDir = self.store.newDirectory('cache/%s' % dirName)
-        fileName = str(cacheDir.path)+ '/' + str(self.storeID) + '.html'
-        return fileName
-
-    def forget(self):
-        fName = self.cachedFileName()
-        try:
-            os.remove(fName)
-        except OSError:
-            # perhaps the page was unreachable and never got indexed
-            pass

@@ -1,20 +1,19 @@
+from twisted.python.util import sibpath
 from axiom.store import Store
 from axiom.userbase import LoginSystem
 from xmantissa.website import WebSite, StaticSite
 from xmantissa.signup import TicketBooth
 from clickchronicle.clickapp import ClickChronicleBenefactor
-from signup_hack import EmaillessTicketSignup
+from clickchronicle.signup_hack import EmaillessTicketSignup
 
 siteStore = Store('cchronicle.axiom', debug = True)
 
 def installSite():
     LoginSystem(store = siteStore).installOn(siteStore)
 
-    siteStore.checkpoint()
-
     WebSite(store = siteStore, portno = 8080).installOn(siteStore)
     StaticSite(store = siteStore, prefixURL = u'static', 
-               staticContentPath = u'static').installOn(siteStore)
+               staticContentPath = sibpath(__file__, u'static')).installOn(siteStore)
 
     booth = TicketBooth(store = siteStore)
     booth.installOn(siteStore)

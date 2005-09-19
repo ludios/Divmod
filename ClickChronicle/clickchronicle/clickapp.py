@@ -94,14 +94,12 @@ class ClickChronicleBenefactor(Item):
 
     def endow(self, ticket, avatar):
         self.endowed += 1
-        webapp.PrivateApplication(store = avatar,
-                                  preferredTheme = u'cc-skin').installOn(avatar)
+        avatar.findOrCreate(webapp.PrivateApplication).installOn(avatar)
 
         for item in (website.WebSite, ClickList, Preferences,
                      ClickRecorder, indexinghelp.SyncIndexer,
                      ClickSearcher, SearchBox, AuthenticationApplication):
-
-            item(store=avatar).installOn(avatar)
+            avatar.findOrCreate(item).installOn(avatar)
 
 class ClickList(Item):
     """similar to Preferences, i am an implementor of INavigableElement,
@@ -125,6 +123,7 @@ class ClickList(Item):
 
 class ClickListFragment(CCPrivatePagedTable):
     '''i adapt ClickList to INavigableFragment'''
+    implements(ixmantissa.INavigableFragment)
 
     fragmentName = 'click-list-fragment'
     title = ''
@@ -169,6 +168,7 @@ class Preferences(Item):
 class PreferencesFragment(rend.Fragment):
     """I will get an adapter for Preferences instances, who
        implements INavigableFragment"""
+    implements(ixmantissa.INavigableFragment)
 
     fragmentName = 'preferences-fragment'
     title = ''
@@ -367,6 +367,8 @@ class ClickRecorder(Item, website.PrefixURLMixin):
 
 
 class SearchClicks(CCPrivatePagedTable):
+    implements(ixmantissa.INavigableFragment)
+
     fragmentName = 'search-fragment'
     title = ''
     live = True

@@ -17,7 +17,6 @@ from clickchronicle import indexinghelp
 from clickchronicle.util import PagedTableMixin
 from clickchronicle.visit import Visit, Domain, BookmarkVisit
 from clickchronicle.searchparser import parseSearchString
-import os
 
 class SearchBox(Item):
     implements(ixmantissa.INavigableElement)
@@ -38,7 +37,7 @@ class SearchBox(Item):
         self.searchPattern = inevow.IQ(docFactory).patternGenerator('search')
         searcher = self.store.query(ClickSearcher).next()
         self.formAction = privApp.linkTo(searcher.storeID)
-    
+
     def topPanelContent(self):
         return self.searchPattern.fillSlots('action', self.formAction)
 
@@ -56,14 +55,14 @@ class CCPrivatePagedTable(rend.Fragment, PagedTableMixin):
         pagingPatterns = inevow.IQ(self.privApp.getDocFactory('paging-patterns'))
 
         pgen = pagingPatterns.patternGenerator
-       
+
         self.tablePattern = pgen('clickTable')
         self.pageNumbersPattern = pgen('pagingWidget')
         self.itemsPerPagePattern = pgen('itemsPerPage')
         self.navBarPattern = pgen('navBar')
-    
+
     def makeScriptTag(self, src):
-        return tags.script(type='application/x-javascript', 
+        return tags.script(type='application/x-javascript',
                            src=src)
     def head(self):
         return self.makeScriptTag('/static/js/paged-table.js')
@@ -74,7 +73,7 @@ class CCPrivatePagedTable(rend.Fragment, PagedTableMixin):
         visit = store.query(Visit, Visit.url == url).next()
         IClickRecorder(store).ignoreVisit(visit)
         # rewind to the first page, to reflect changes
-        return self.updateTable(ctx, self.startPage, 
+        return self.updateTable(ctx, self.startPage,
                                 self.defaultItemsPerPage)
 
     def trimTitle(self, visitDict):
@@ -84,9 +83,9 @@ class CCPrivatePagedTable(rend.Fragment, PagedTableMixin):
         return visitDict
 
 class ClickChronicleBenefactor(Item):
-    '''i am responsible for granting priveleges to avatars, 
+    '''i am responsible for granting priveleges to avatars,
        which equates to installing stuff in their store'''
-       
+
     implements(ixmantissa.IBenefactor)
     typeName = 'clickchronicle_benefactor'
     schemaVersion = 1
@@ -95,20 +94,20 @@ class ClickChronicleBenefactor(Item):
 
     def endow(self, ticket, avatar):
         self.endowed += 1
-        webapp.PrivateApplication(store = avatar, 
+        webapp.PrivateApplication(store = avatar,
                                   preferredTheme = u'cc-skin').installOn(avatar)
 
         for item in (website.WebSite, ClickList, Preferences,
                      ClickRecorder, indexinghelp.SyncIndexer,
                      ClickSearcher, SearchBox, AuthenticationApplication):
-            
+
             item(store=avatar).installOn(avatar)
 
 class ClickList(Item):
     """similar to Preferences, i am an implementor of INavigableElement,
        and PrivateApplication will find me when when it looks in the user's
        store"""
-       
+
     implements(ixmantissa.INavigableElement)
     typeName = 'clickchronicle_clicklist'
     clicks = attributes.integer(default = 0)
@@ -126,24 +125,24 @@ class ClickList(Item):
 
 class ClickListFragment(CCPrivatePagedTable):
     '''i adapt ClickList to INavigableFragment'''
-    
+
     fragmentName = 'click-list-fragment'
     title = ''
     live = True
-    
+
     def generateRowDicts(self, ctx, pageNumber, itemsPerPage):
-        store = self.original.store 
+        store = self.original.store
         offset = (pageNumber - 1) * itemsPerPage
-        
+
         for v in store.query(Visit, sort = Visit.timestamp.descending,
                              limit = itemsPerPage, offset = offset):
-            
+
             yield self.trimTitle(v.asDict())
-        
+
     def countTotalItems(self, ctx):
         return self.original.clicks
-        
-registerAdapter(ClickListFragment, 
+
+registerAdapter(ClickListFragment,
                 ClickList,
                 ixmantissa.INavigableFragment)
 
@@ -154,7 +153,7 @@ class Preferences(Item):
     implements(ixmantissa.INavigableElement)
     typeName = 'clickchronicle_preferences'
     schemaVersion = 1
-        
+
     displayName = attributes.bytes(default='none set')
     homepage = attributes.bytes(default='http://www.clickchronicle.com')
 
@@ -170,7 +169,7 @@ class Preferences(Item):
 class PreferencesFragment(rend.Fragment):
     """I will get an adapter for Preferences instances, who
        implements INavigableFragment"""
-       
+
     fragmentName = 'preferences-fragment'
     title = ''
     live = True
@@ -191,7 +190,7 @@ class IClickRecorder(Interface):
     """
     ClickRecorder interface.
     """
-    
+
 class ClickRecorder(Item, website.PrefixURLMixin):
     """
     I exist independently of the rest of the application and accept
@@ -246,7 +245,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         self.findOrCreateVisit(url, title, referrer, index=index)
         if self.urlCount > self.maxCount:
             self.forgetOldestVisit()
-        
+
     def findOrCreateVisit(self, url, title, referrer=None, index=True):
         """
         Try to find a visit to the same url TODAY.
@@ -259,11 +258,11 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             return
         existingVisit = self.findVisitForToday(url)
         timeNow = Time.fromDatetime(datetime.now())
-        
+
         if existingVisit:
             # Already visited today
             # XXX What should we do about referrer for existing visit
-            # XXX we'll conveniently ignore it for now 
+            # XXX we'll conveniently ignore it for now
             def _():
                 existingVisit.timestamp = timeNow
                 existingVisit.visitCount += 1
@@ -288,13 +287,13 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             visit = self.store.transact(_)
             if index:
                 self.rememberVisit(visit)
-            
+
     def findVisitForToday(self, url):
         dtNow = datetime.now()
         timeNow = Time.fromDatetime(dtNow)
         todayBegin = dtNow.replace(hour=0, minute=0, second=0, microsecond=0)
         tomorrowBegin = (dtNow+timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
-        
+
         existingVisit = None
         for existingVisit in self.store.query(
             Visit,
@@ -309,19 +308,18 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             """
             Cache the source for this visit.
             """
-            newFile = self.store.newFile(self.cachedFileNameFor(visit))
+            newFile = self.store.newFile(self.cachedFileNameFor(visit).path)
             newFile.write(doc.source)
             newFile.close()
         indexer = indexinghelp.IIndexer(self.store)
         d=indexer.index(visit)
         if self.caching:
             d.addCallback(cbCachePage)
-    
+
     def forgetVisit(self, visit):
         indexer = indexinghelp.IIndexer(self.store)
         indexer.delete(visit)
-        fName = self.cachedFileNameFor(visit)
-        os.remove(fName)
+        self.cachedFileNameFor(visit).remove()
         #try:
         #    os.remove(fName)
         #except OSError:
@@ -351,7 +349,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         """
         dirName = visit.timestamp.asDatetime().date().isoformat()
         cacheDir = self.store.newDirectory('cache/%s' % dirName)
-        fileName = os.path.join(cacheDir.path, '%s.html' % visit.storeID)
+        fileName = cacheDir.child('%s.html' % visit.storeID)
         return fileName
 
     def ignoreVisit(self, visit):
@@ -361,20 +359,21 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             for (i, similarVisit) in enumerate(self.store.query(Visit, Visit.domain == visit.domain)):
                 self.forgetVisit(similarVisit)
             # "clicks" is a presentation attribute, "urlCount" is a
-            # bookkeeping one.  the latter shouldn't get decremented 
+            # bookkeeping one.  the latter shouldn't get decremented
             clickList = self.store.query(ClickList).next()
             clickList.clicks -= i + 1
 
         self.store.transact(txn)
 
+
 class SearchClicks(CCPrivatePagedTable):
     fragmentName = 'search-fragment'
     title = ''
     live = True
-    
+
     discriminator = None
     matchingClicks = 0
-    
+
     def __init__(self, orig, docFactory=None):
         self.indexer = orig.store.query(indexinghelp.SyncIndexer).next()
         self.searchbox = orig.store.query(SearchBox).next()
@@ -393,12 +392,12 @@ class SearchClicks(CCPrivatePagedTable):
             # do something meaningful
             pass
         self.incrementSearches()
-        
+
         discrim = ' '.join(parseSearchString(discrim))
         (estimated, total) = self.indexer.count(discrim)
         self.matchingClicks = estimated
         self.discriminator = discrim
-       
+
     def data_searchTerm(self, ctx, data):
         if self.discriminator is None:
             self.setSearchState(ctx)
@@ -426,10 +425,10 @@ class SearchClicks(CCPrivatePagedTable):
             yield self.trimTitle(visit.asDict())
 
     def incrementSearches(self):
-        def txn(): 
+        def txn():
             self.searchbox.searches += 1
         self.original.store.transact(txn)
-                    
+
 class ClickSearcher(Item):
     implements(ixmantissa.INavigableElement)
     typeName = 'clickchronicle_clicksearcher'
@@ -455,7 +454,7 @@ class URLGrabber(rend.Page):
        because i have a lot of attributes inherited from rend.Page"""
     def __init__(self, recorder):
         self.recorder = recorder
-        
+
     def renderHTTP(self, ctx):
         """get url and title GET variables, supplying sane defaults"""
         urlpath = inevow.IRequest(ctx).URLPath()

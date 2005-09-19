@@ -53,7 +53,9 @@ img.navIcon {
 	  text-align: center;
 	  width: 100%;
 }
-	   
+
+ul { list-style: none }
+/*
 .tab { 
 	border: solid 1px #B0B0B0;
 	padding: 6px 6px 6px 6px;
@@ -66,6 +68,7 @@ img.navIcon {
 	letter-spacing: 1.5px;
 	margin-right: 6px;
 }
+*/
 #tableContainer { width: 100%; }
 
 .clickTable { 

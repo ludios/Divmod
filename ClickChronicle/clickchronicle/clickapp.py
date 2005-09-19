@@ -33,10 +33,10 @@ class SearchBox(Item):
         other.powerUp(self, ixmantissa.INavigableElement)
 
     def activate(self):
-        (privApp,) = self.store.query(webapp.PrivateApplication, limit=1)
+        privApp = self.store.query(webapp.PrivateApplication).next()
         docFactory = privApp.getDocFactory('search-box-fragment')
         self.searchPattern = inevow.IQ(docFactory).patternGenerator('search')
-        (searcher,) = self.store.query(ClickSearcher, limit=1)
+        searcher = self.store.query(ClickSearcher).next()
         self.formAction = privApp.linkTo(searcher.storeID)
     
     def topPanelContent(self):
@@ -51,8 +51,8 @@ class CCPrivatePagedTable(rend.Fragment, PagedTableMixin):
 
     def __init__(self, original, docFactory=None):
         rend.Fragment.__init__(self, original, docFactory)
-        (self.privApp,) = original.store.query(webapp.PrivateApplication, limit=1)
-        (self.clickList,) = original.store.query(ClickList, limit=1)
+        self.privApp = original.store.query(webapp.PrivateApplication).next()
+        self.clickList = original.store.query(ClickList).next()
         pagingPatterns = inevow.IQ(self.privApp.getDocFactory('paging-patterns'))
 
         pgen = pagingPatterns.patternGenerator
@@ -71,7 +71,7 @@ class CCPrivatePagedTable(rend.Fragment, PagedTableMixin):
     def handle_ignore(self, ctx, url):
         store = self.original.store
         # find any Visit with this url
-        (visit,) = store.query(Visit, Visit.url == url, limit = 1)
+        visit = store.query(Visit, Visit.url == url).next()
         IClickRecorder(store).ignoreVisit(visit)
         # rewind to the first page, to reflect changes
         return self.updateTable(ctx, self.startPage, 
@@ -215,7 +215,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
     def createResource(self):
         return URLGrabber(self)
 
-    def recordClick(self, qargs):
+    def recordClick(self, qargs, index=True):
         """
         Extract POST arguments and create a Visit object before indexing and caching.
         """
@@ -238,23 +238,23 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             # Most likely selected a bookmark/shortcut
             if self.bookmarkVisit is None:
                 def _():
-                    self.bookmarkVist = BookmarkVisit(url='bookmark', title='bookmark')
+                    self.bookmarkVisit = BookmarkVisit(url='bookmark', title='bookmark')
                 self.store.transact(_)
             referrer = self.bookmarkVisit
         else:
-            referrer = self.findOrCreateVisit(url, title)
-        visit = self.findOrCreateVisit(url, title, referrer)
+            self.findOrCreateVisit(url, title, index=index)
+        self.findOrCreateVisit(url, title, referrer, index=index)
         if self.urlCount > self.maxCount:
             self.forgetOldestVisit()
         
-    def findOrCreateVisit(self, url, title, referrer=None):
+    def findOrCreateVisit(self, url, title, referrer=None, index=True):
         """
         Try to find a visit to the same url TODAY.
         If found update the timestamp and return it.
         Otherwise create a new Visit.
         """
-        domainStr = URL.fromString(url).netloc
-        domain = self.store.findOrCreate(Domain, url=domainStr, title=domainStr)
+        host = URL.fromString(url).netloc
+        domain = self.store.findOrCreate(Domain, host=host, title=host)
         if domain and domain.ignore:
             return
         existingVisit = self.findVisitForToday(url)
@@ -279,15 +279,16 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                               title = title,
                               domain = domain,
                               referrer = referrer)
-                (clickList,) = self.store.query(ClickList, limit=1)
+                clickList = self.store.query(ClickList).next()
                 clickList.clicks += 1
                 self.urlCount += 1
                 visit.visitCount += 1
                 visit.domain.visitCount +=1
                 return visit
             visit = self.store.transact(_)
-            self.rememberVisit(visit)
-
+            if index:
+                self.rememberVisit(visit)
+            
     def findVisitForToday(self, url):
         dtNow = datetime.now()
         timeNow = Time.fromDatetime(dtNow)
@@ -338,7 +339,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         # XXX - This needs to be more sophisticated since there is a known race
         # condition for a Visit being deleted from the index before the page has
         # been fetched and indexed/cahced
-        (visit,)= self.store.query(Visit, sort=Visit.timestamp.ascending, limit=1)
+        visit = self.store.query(Visit, sort=Visit.timestamp.ascending).next()
         self.forgetVisit(visit)
 
     def cachedFileNameFor(self, visit):
@@ -361,7 +362,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                 self.forgetVisit(similarVisit)
             # "clicks" is a presentation attribute, "urlCount" is a
             # bookkeeping one.  the latter shouldn't get decremented 
-            (clickList,) = self.store.query(ClickList, limit=1)
+            clickList = self.store.query(ClickList).next()
             clickList.clicks -= i + 1
 
         self.store.transact(txn)
@@ -375,8 +376,8 @@ class SearchClicks(CCPrivatePagedTable):
     matchingClicks = 0
     
     def __init__(self, orig, docFactory=None):
-        (self.indexer,) = list(orig.store.query(indexinghelp.SyncIndexer))
-        (self.searchbox,) = list(orig.store.query(SearchBox))
+        self.indexer = orig.store.query(indexinghelp.SyncIndexer).next()
+        self.searchbox = orig.store.query(SearchBox).next()
         CCPrivatePagedTable.__init__(self, orig, docFactory)
 
     def head(self):

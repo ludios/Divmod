@@ -8,7 +8,7 @@ from axiom import attributes
 from clickchronicle import indexinghelp
 
 class Domain(Item):
-    url = attributes.bytes()
+    host = attributes.bytes()
     title = attributes.bytes()
     visitCount = attributes.integer(default=0)
     ignore = attributes.integer(default=0) # Boolean

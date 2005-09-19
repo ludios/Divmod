@@ -329,7 +329,6 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         #    pass
         def _():
             visit.deleteFromStore()
-            self.urlCount -= 1
         self.store.transact(_)
 
     def forgetOldestVisit(self):
@@ -349,30 +348,23 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         storeID as the filename.
         e.g. cchronicle.axiom/files/account/test.com/user/files/cache/2005-09-10/55.html
         """
-        # XXX - I doubt that this is how these path objects are supposed to
-        # be manipulated. Check for sanity/style.
         dirName = visit.timestamp.asDatetime().date().isoformat()
         cacheDir = self.store.newDirectory('cache/%s' % dirName)
-        fileName = str(cacheDir.path)+ '/' + str(visit.storeID) + '.html'
+        fileName = os.path.join(cacheDir.path, '%s.html' % visit.storeID)
         return fileName
 
     def ignoreVisit(self, visit):
         def txn():
             # ignore the Domain
             visit.domain.ignore = 1
-            # find Visits sharing the same domain 
             for (i, similarVisit) in enumerate(self.store.query(Visit, Visit.domain == visit.domain)):
-                # delete their page contents
                 self.forgetVisit(similarVisit)
-            # do the same for original visit - XXX - I think we already deleted this?
-            # self.forgetVisit(visit)
-            # decrement ClickList's counter
-            
-            # XXX Are how are we using clickList.clicks vs. self.urlCount?
+            # "clicks" is a presentation attribute, "urlCount" is a
+            # bookkeeping one.  the latter shouldn't get decremented 
             (clickList,) = self.store.query(ClickList, limit=1)
             clickList.clicks -= i + 1
-        self.store.transact(txn)
 
+        self.store.transact(txn)
 
 class SearchClicks(CCPrivatePagedTable):
     fragmentName = 'search-fragment'

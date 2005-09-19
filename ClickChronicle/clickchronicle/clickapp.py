@@ -44,12 +44,13 @@ class SearchBox(Item):
     def getTabs(self):
         return []
 
-class CCPrivatePagedTable(rend.Fragment, PagedTableMixin):
+class CCPrivatePagedTable(website.AxiomFragment, PagedTableMixin):
     """adds some CC-specific display logic"""
     maxTitleLength = 70
 
     def __init__(self, original, docFactory=None):
-        rend.Fragment.__init__(self, original, docFactory)
+        self.store = original.store
+        website.AxiomFragment.__init__(self, original, docFactory)
         self.privApp = original.store.query(webapp.PrivateApplication).next()
         self.clickList = original.store.query(ClickList).next()
         pagingPatterns = inevow.IQ(self.privApp.getDocFactory('paging-patterns'))
@@ -94,7 +95,8 @@ class ClickChronicleBenefactor(Item):
 
     def endow(self, ticket, avatar):
         self.endowed += 1
-        avatar.findOrCreate(webapp.PrivateApplication).installOn(avatar)
+        avatar.findOrCreate(webapp.PrivateApplication, 
+                            preferredTheme=u'cc-skin').installOn(avatar)
 
         for item in (website.WebSite, ClickList, Preferences,
                      ClickRecorder, indexinghelp.SyncIndexer,

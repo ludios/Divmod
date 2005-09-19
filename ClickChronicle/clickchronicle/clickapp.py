@@ -208,7 +208,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
     bookmarkVist = None
 
     def installOn(self, other):
-        other.powerUp(self, ixmantissa.ISiteRootPlugin)
+        super(ClickRecorder, self).installOn(other)
         other.powerUp(self, IClickRecorder)
 
     def createResource(self):

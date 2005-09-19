@@ -38,8 +38,8 @@ Create queue for indexing and removing from index to defend against race conditi
 
 Tests to write:
 Visit added
-- Domain created
-- Visit count adjusted
+- Domain created (DONE)
+- Visit count adjusted (DONE)
 
 Visit cached
 - File exists
@@ -65,7 +65,7 @@ Domain Blocked
 - Subsequent visits to blocked domain do not create visits or increment counts
 
 Visit counts
-- Visit an url multiple times and ensure domain and visit visitCounts increment
+- Visit an url multiple times and ensure domain and visit visitCounts increment (DONE)
 
 Visit MRU
 - set maxVisits to a small number and ensure that visits get removed correclty

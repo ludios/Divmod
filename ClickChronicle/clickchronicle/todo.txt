@@ -1,28 +1,22 @@
+Features/Fixed to do:
+---------------------
 Empty signup causes exception
-
-Strip css out of html (DONE)
-
-The visible text for anchors does not get indexed (it's gobbled up by the html tag stripper) (DONE)
-
-Investigate beautiful soup for html parsing (DONE)
-
-Add "ignore" attribute to domains (DONE)
 
 Visually distinguish each day in history
 
 Calendar view
 
-Figure out how to deal with unicode at the t.web level
+Figure out how to deal with unicode display, indexing and search
 
 Make SearchClicks a LivePage, not a live fragment
 
 Write some tests - need to use ccapp.py to create in-memory db and add visits, domain, ignores, etc.
 
-Allow export of bookmarks in .zip or email. Use mozilla bookmark format.
+Allow export of clicks and bookmarks in .zip or email. Use mozilla bookmark format.
 
-Implement domain browser that allows visits to that domain to be viewed.
+Implement domain browser that allows visits to domains to be viewed.
 
-Track and record referrer infromation.
+Allow blocked domains to be browsed and edited
 
 Allow "bookmark this" function from browser and/or clicks list.
 
@@ -36,11 +30,27 @@ Look at other APIs that may be relevant/useful: http://www.programmableweb.com/a
 
 Create queue for indexing and removing from index to defend against race conditions and batch index changes for effieciency
 
-Tests to write:
-Visit added
-- Domain created (DONE)
-- Visit count adjusted (DONE)
+Logout link to __logout__
 
+Display favicon
+
+Charts of activity over time
+
+Display referrer information
+
+Bookmarks view
+
+Features/Fixed done:
+--------------------
+Strip css out of html (DONE)
+The visible text for anchors does not get indexed (it's gobbled up by the html tag stripper) (DONE)
+Investigate beautiful soup for html parsing (DONE)
+Add "ignore" attribute to domains (DONE)
+Track and record referrer information.
+
+
+Tests to do:
+------------
 Visit cached
 - File exists
 - Length of file is not 0
@@ -64,12 +74,17 @@ Domain Blocked
 - Exisiting visits removed; counts adjusted
 - Subsequent visits to blocked domain do not create visits or increment counts
 
-Visit counts
-- Visit an url multiple times and ensure domain and visit visitCounts increment (DONE)
-
 Visit MRU
 - set maxVisits to a small number and ensure that visits get removed correclty
 - try revisiting a site in the list and make sure it does the right thing
 
 Referrer
 - referrer set to Visit or BookmarkVisit as needed
+
+Tests done:
+-----------
+Visit added
+- Domain created (DONE)
+- Visit count adjusted (DONE)
+Visit counts
+- Visit an url multiple times and ensure domain and visit visitCounts increment (DONE)

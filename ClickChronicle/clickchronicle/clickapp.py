@@ -288,7 +288,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                 return visit
             visit = self.store.transact(_)
             if index:
-                self.rememberVisit(visit)
+                return self.rememberVisit(visit)
 
     def findVisitForToday(self, url):
         dtNow = datetime.now()
@@ -317,6 +317,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         d=indexer.index(visit)
         if self.caching:
             d.addCallback(cbCachePage)
+        return d
 
     def forgetVisit(self, visit):
         indexer = indexinghelp.IIndexer(self.store)

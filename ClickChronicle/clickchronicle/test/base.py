@@ -1,3 +1,4 @@
+from twisted.internet import reactor
 from clickchronicle import clickapp
 from clickchronicle.visit import Visit, Domain
 from xmantissa import signup
@@ -5,9 +6,7 @@ from axiom.store import Store
 from axiom.userbase import LoginSystem
 from nevow.url import URL
 from tempfile import mktemp
-from twisted.application import service, strports
-from twisted.web import server, resource, static
-import os
+from twisted.web import server, resource, static, http
 
 itemCount = lambda store, item: len(list(store.query(item)))
 firstItem = lambda store, item: store.query(item).next()
@@ -43,9 +42,9 @@ class CCTestBase:
         else:
             domainCount = 0
         
-        (seenURL, visitCount, prevVisit) = (False, 0, None)
+        (seenURL, visitCount, prevTimestamp) = (False, 0, None)
         for visit in self.substore.query(Visit, Visit.url==url):
-            (seenURL, visitCount, prevVisit) = (True, visit.visitCount, visit)
+            (seenURL, visitCount, prevTimestamp) = (True, visit.visitCount, visit.timestamp)
             break
 
         preClicks = self.clicklist.clicks
@@ -58,7 +57,7 @@ class CCTestBase:
             
             if seenURL:
                 self.assertEqual(self.substore.count(Visit, Visit.url==url), 1)
-                #self.failUnless(prevVisit.timestamp < visit.timestamp)
+                self.failUnless(prevTimestamp < visit.timestamp)
             else:
                 self.assertEqual(visit.title, title)
 
@@ -83,24 +82,42 @@ class CCTestBase:
         return '%s.com' % mktemp(dir='http://', suffix='/')
 
 class DataServingTestBase(CCTestBase):
-    defaultWebPort = 8989
-    
+    """
+        i start a website, serving three resources with the following contents:
+            'first'  - letters a-h
+            'second' - letters i-p
+            'both'   - letters a-p
+        e.g. GET /first will return a document containing "a b c d e f g h"
+        override getResourceMap if you want to change this
+    """
+        
+    def listen(self, site):
+        return reactor.listenTCP(0, site, interface='127.0.0.1')
+
+    def getResourceMap(self):
+        (first, second) = ('a b c d e f g', 'i j k l m n o p')
+        data = dict(first=first, second=second, both=' '.join((first, second)))
+        return data
+
     def setUpClass(self):
-        self.multiSvc = service.MultiService()
-        self.multiSvc.startService()
-    
-    def serve(self, resources, port=defaultWebPort):
-        """i start a webserver on 'port' - 'resources' is a dictionary of 
-           resource-name:resource-data strings"""
-           
+        self.data = self.getResourceMap()
         root = resource.Resource()
-        urls = dict()
-        for (resname, content) in resources.iteritems():
-            root.putChild(resname, static.Data(content, 'text/html'))
-            urls[resname] = 'http://127.0.0.1:%d/%s' % (port, resname)
-        svc = strports.service('tcp:%d' % port, server.Site(root))
-        svc.setServiceParent(self.multiSvc)
-        return urls
+        for (resname, content) in self.data.iteritems():
+            root.putChild(resname, static.Data(content, 'text/plain'))
+            
+        site = server.Site(root, timeout=None)
+        self.port = self.listen(site)
+        reactor.iterate(); reactor.iterate()
+        self.portno = self.port.getHost().port
+        self.urls = dict((n, self.makeURL(n)) for n in self.data)
+
+    def tearDown(self):
+        http._logDateTimeStop()
+
+    def makeURL(self, path):
+        return 'http://127.0.0.1:%d/%s' % (self.portno, path)
 
     def tearDownClass(self):
-        return self.multiSvc.stopService()
+        self.port.stopListening()
+        reactor.iterate(); reactor.iterate()
+        del self.port

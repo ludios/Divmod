@@ -10,9 +10,11 @@ Figure out how to deal with unicode display, indexing and search
 
 Make SearchClicks a LivePage, not a live fragment
 
-Write some tests - need to use ccapp.py to create in-memory db and add visits, domain, ignores, etc.
+Write some tests - need to use ccapp.py to create in-memory db and add
+visits, domain, ignores, etc.
 
-Allow export of clicks and bookmarks in .zip or email. Use mozilla bookmark format.
+Allow export of clicks and bookmarks in .zip or email. Use mozilla
+bookmark format.
 
 Implement domain browser that allows visits to domains to be viewed.
 
@@ -24,11 +26,14 @@ Build some tagging UI.
 
 Implement "exits from this page" option in extention.
 
-Incorporate Alexa info: http://www.amazon.com/gp/browse.html/104-7021508-1251135?node=12782661
+Incorporate Alexa info:
+http://www.amazon.com/gp/browse.html/104-7021508-1251135?node=12782661
 
-Look at other APIs that may be relevant/useful: http://www.programmableweb.com/apis
+Look at other APIs that may be relevant/useful:
+http://www.programmableweb.com/apis
 
-Create queue for indexing and removing from index to defend against race conditions and batch index changes for effieciency
+Create queue for indexing and removing from index to defend against
+race conditions and batch index changes for effieciency
 
 Logout link to __logout__
 
@@ -39,6 +44,13 @@ Charts of activity over time
 Display referrer information
 
 Bookmarks view
+
+Display username at the top of the page. Make sure it's visible at
+initial login/ticket claim e.g "set password for amir@divmod.com"
+
+Remember "per page" setting e.g. don't reset to 10 when user clicks
+"my clicks". Also consider removing 100 as an option due to
+performance reasons
 
 Features/Fixed done:
 --------------------

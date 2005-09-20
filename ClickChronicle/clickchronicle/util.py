@@ -1,6 +1,14 @@
 from __future__ import division
 from nevow import livepage
 from math import ceil
+from twisted.internet.defer import maybeDeferred
+from twisted.python.util import mergeFunctionMetadata
+
+def maybeDeferredWrapper(f):
+    """nicer than maybeDeferred.__get__"""
+    def wrapped(*a, **k):
+        return maybeDeferred(f, *a, **k)
+    return mergeFunctionMetadata(f, wrapped)
 
 class PagedTableMixin:
     itemsPerPage = (10, 20, 50, 100)

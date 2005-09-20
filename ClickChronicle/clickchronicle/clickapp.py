@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from zope.interface import Interface, implements
 
 from twisted.python.components import registerAdapter
+from twisted.internet import defer
 from nevow.url import URL
 from nevow import rend, inevow, tags
 
@@ -14,7 +15,7 @@ from xmantissa import ixmantissa, webnav, website, webapp
 from xmantissa.webgestalt import AuthenticationApplication
 
 from clickchronicle import indexinghelp
-from clickchronicle.util import PagedTableMixin
+from clickchronicle.util import PagedTableMixin, maybeDeferredWrapper
 from clickchronicle.visit import Visit, Domain, BookmarkVisit
 from clickchronicle.searchparser import parseSearchString
 
@@ -243,10 +244,16 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                 self.store.transact(_)
             referrer = self.bookmarkVisit
         else:
-            self.findOrCreateVisit(url, title, index=index)
-        self.findOrCreateVisit(url, title, referrer, index=index)
+            pending = defer.waitForDeferred(self.findOrCreateVisit(url, title, index=index))
+            yield pending; pending.getResult()
+            
+        pending = defer.waitForDeferred(self.findOrCreateVisit(url, title, referrer, index=index))
+        yield pending; pending.getResult()
+
         if self.urlCount > self.maxCount:
             self.forgetOldestVisit()
+            
+    recordClick = defer.deferredGenerator(recordClick)
 
     def findOrCreateVisit(self, url, title, referrer=None, index=True):
         """
@@ -290,6 +297,8 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             if index:
                 return self.rememberVisit(visit)
 
+    findOrCreateVisit = maybeDeferredWrapper(findOrCreateVisit)
+            
     def findVisitForToday(self, url):
         dtNow = datetime.now()
         timeNow = Time.fromDatetime(dtNow)

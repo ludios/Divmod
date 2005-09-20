@@ -1,9 +1,12 @@
 import os
+from datetime import datetime
 
 from zope.interface import implements
 
 from axiom.item import Item
 from axiom import attributes
+
+from epsilon.extime import Time
 
 from clickchronicle import indexinghelp
 
@@ -16,6 +19,11 @@ class Domain(Item):
     schemaVersion = 1
     typeName = 'domain'
 
+    def asDict(self):
+        """Return a friendly dictionary of url/title/timestamp"""
+        return dict(url = self.host, title = self.title,
+                    timestamp = (Time.fromDatetime(datetime.now())).asHumanly(), visits=self.visitCount)
+    
 class Visit(Item):
     """I correspond to a webpage-visit logged by a clickchronicle user"""
     implements(indexinghelp.IIndexable)

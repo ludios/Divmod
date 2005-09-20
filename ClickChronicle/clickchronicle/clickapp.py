@@ -99,7 +99,7 @@ class ClickChronicleBenefactor(Item):
         avatar.findOrCreate(webapp.PrivateApplication, 
                             preferredTheme=u'cc-skin').installOn(avatar)
 
-        for item in (website.WebSite, ClickList, Preferences,
+        for item in (website.WebSite, ClickList, DomainList, Preferences,
                      ClickRecorder, indexinghelp.SyncIndexer,
                      ClickSearcher, SearchBox, AuthenticationApplication):
             avatar.findOrCreate(item).installOn(avatar)
@@ -120,6 +120,26 @@ class ClickList(Item):
     def getTabs(self):
         '''show a link to myself in the navbar'''
         return [webnav.Tab('My Clicks', self.storeID, 0.2)]
+
+    def topPanelContent(self):
+        return None
+
+class DomainList(Item):
+    """similar to Preferences, i am an implementor of INavigableElement,
+       and PrivateApplication will find me when when it looks in the user's
+       store"""
+
+    implements(ixmantissa.INavigableElement)
+    typeName = 'clickchronicle_domainlist'
+    clicks = attributes.integer(default = 0)
+    schemaVersion = 1
+
+    def installOn(self, other):
+        other.powerUp(self, ixmantissa.INavigableElement)
+
+    def getTabs(self):
+        '''show a link to myself in the navbar'''
+        return [webnav.Tab('My Domains', self.storeID, 0.1)]
 
     def topPanelContent(self):
         return None
@@ -146,6 +166,30 @@ class ClickListFragment(CCPrivatePagedTable):
 
 registerAdapter(ClickListFragment,
                 ClickList,
+                ixmantissa.INavigableFragment)
+
+class DomainListFragment(CCPrivatePagedTable):
+    '''i adapt DomainList to INavigableFragment'''
+    implements(ixmantissa.INavigableFragment)
+
+    fragmentName = 'domain-list-fragment'
+    title = ''
+    live = True
+
+    def generateRowDicts(self, ctx, pageNumber, itemsPerPage):
+        store = self.original.store
+        offset = (pageNumber - 1) * itemsPerPage
+
+        for v in store.query(Domain, sort = Domain.visitCount.descending,
+                             limit = itemsPerPage, offset = offset):
+
+            yield v.asDict()
+
+    def countTotalItems(self, ctx):
+        return self.original.clicks
+
+registerAdapter(DomainListFragment,
+                DomainList,
                 ixmantissa.INavigableFragment)
 
 class Preferences(Item):
@@ -294,6 +338,8 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                               referrer = referrer)
                 clickList = self.store.query(ClickList).next()
                 clickList.clicks += 1
+                domainList = self.store.query(DomainList).next()
+                domainList.clicks += 1
                 self.urlCount += 1
                 visit.visitCount += 1
                 visit.domain.visitCount +=1

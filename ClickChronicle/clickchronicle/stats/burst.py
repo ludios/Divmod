@@ -21,8 +21,8 @@ class Burst:
         self.data=gapSpace
         self.statesUsed=[0 for i in range(len(gapSpace))]
                 
-    def process(self):
-        self.calcCost(11)
+    def process(self, n=11):
+        self.calcCost(n)
 
     def calcCost(self, pos):
         #print 'calc', pos
@@ -75,10 +75,12 @@ class Burst:
         return self.statesUsed
 
 if __name__ == '__main__':
+    data = [9,9,10,10,14,5,7,5,9,9,9,9,9,9,10,10,14,5,2,2,2,2,7,5,9,9,9,9]
     b=Burst()
     b.generateStates(3,.111,2)
     b.setGamma(.5)
-    b.setData([9,9,10,10,14,5,2,2,2,2,7,5,9,9,9])
-    b.process()
+    b.setData(data)
+    b.process(30)
     statesUsed=b.getStatesUsed()
+    print 'data      ', data
     print 'statesUsed', statesUsed

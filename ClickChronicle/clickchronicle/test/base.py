@@ -7,14 +7,18 @@ from nevow.url import URL
 from tempfile import mktemp
 from twisted.application import service, strports
 from twisted.web import server, resource, static
-from twisted.internet.defer import maybeDeferred
 import os
 
 itemCount = lambda store, item: len(list(store.query(item)))
 firstItem = lambda store, item: store.query(item).next()
+firstPowerup = lambda store, iface: store.powerupsFor(iface).next()
 
 class CCTestBase:
-    def setUp(self):
+    def setUpStore(self):
+        """i set up a temporary store & substore  call me in setUp or setUpClass, depending
+           on your requirements (if you have lots of test methods that dont modify the store,
+           i won't need to be recreated before each one)"""
+
         store = Store(self.mktemp())
         LoginSystem(store = store).installOn(store)
         benefactor = clickapp.ClickChronicleBenefactor(store = store)
@@ -39,9 +43,9 @@ class CCTestBase:
         else:
             domainCount = 0
         
-        (seenURL, visitCount, prevTitle) = (False, 0, None)
+        (seenURL, visitCount, prevVisit) = (False, 0, None)
         for visit in self.substore.query(Visit, Visit.url==url):
-            (seenURL, visitCount, prevTitle) = (True, visit.visitCount, visit.title)
+            (seenURL, visitCount, prevVisit) = (True, visit.visitCount, visit)
             break
 
         preClicks = self.clicklist.clicks
@@ -53,7 +57,8 @@ class CCTestBase:
             self.assertEqual(visit.visitCount, visitCount+1)
             
             if seenURL:
-                self.assertEqual(visit.title, prevTitle)
+                self.assertEqual(self.substore.count(Visit, Visit.url==url), 1)
+                #self.failUnless(prevVisit.timestamp < visit.timestamp)
             else:
                 self.assertEqual(visit.title, title)
 
@@ -62,26 +67,30 @@ class CCTestBase:
                 
             return visit    
 
-        futureSuccess = maybeDeferred(self.recorder.recordClick, 
-                                      dict(url=url, title=title), index=index)
+        futureSuccess = self.recorder.recordClick(dict(url=url, title=title), index=index)
         return futureSuccess.addCallback(lambda v: postRecord())
     
     def assertNItems(self, store, item, count):
         self.assertEqual(itemCount(store, item), count)
 
+    def assertUniform(self, *sequences):
+        if 0 < len(sequences):
+            first = sorted(sequences[0])
+            for other in sequences[1:]:
+                self.assertEqual(first, sorted(other))
+            
     def randURL(self):
         return '%s.com' % mktemp(dir='http://', suffix='/')
 
 class DataServingTestBase(CCTestBase):
     defaultWebPort = 8989
     
-    def setUp(self):
-        CCTestBase.setUp(self)
+    def setUpClass(self):
         self.multiSvc = service.MultiService()
         self.multiSvc.startService()
     
     def serve(self, resources, port=defaultWebPort):
-        """i start a webserver on "port" - "resources" is a dictionary of 
+        """i start a webserver on 'port' - 'resources' is a dictionary of 
            resource-name:resource-data strings"""
            
         root = resource.Resource()
@@ -93,5 +102,5 @@ class DataServingTestBase(CCTestBase):
         svc.setServiceParent(self.multiSvc)
         return urls
 
-    def tearDown(self):
+    def tearDownClass(self):
         return self.multiSvc.stopService()

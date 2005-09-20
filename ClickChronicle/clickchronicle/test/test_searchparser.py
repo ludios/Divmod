@@ -1,12 +1,7 @@
 from twisted.trial.unittest import TestCase
 from clickchronicle.searchparser import parseSearchString
-from operator import eq as op_eq
 
 class SearchParserTestCase(TestCase):
-    def assertUniform(self, *sequences):
-        msg = 'not uniform: %s' % ','.join(repr(i) for i in sequences)
-        self.failUnless(reduce(op_eq, (sorted(s) for s in sequences)), msg)
-
     def testPlainStrings(self):
         positive = ['hello', 'hello world', 'goodbye cruel world']
         for s in positive:

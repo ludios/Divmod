@@ -233,6 +233,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         # should distinguish between referrer = '' which seems to mean it was
         # fired from a bookmark and referrer = None which should be used for the
         # referrer or a referrer
+        deferred = None
         if referrer is None:
             # Brower did not send '?ref='. Should do something smart here
             pass
@@ -244,17 +245,21 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                 self.store.transact(_)
             referrer = self.bookmarkVisit
         else:
-            pending = defer.waitForDeferred(self.findOrCreateVisit(url, title, index=index))
-            yield pending; pending.getResult()
-            
-        pending = defer.waitForDeferred(self.findOrCreateVisit(url, title, referrer, index=index))
-        yield pending; pending.getResult()
+            deferred = self.findOrCreateVisit(url, title, index=index)
+        
+        def finishUp():
+            def forget():
+                if self.maxCount < self.urlCount:
+                    self.forgetOldestVisit()
 
-        if self.urlCount > self.maxCount:
-            self.forgetOldestVisit()
-            
-    recordClick = defer.deferredGenerator(recordClick)
+            futureSuccess = self.findOrCreateVisit(url, title, referrer, index=index)
+            return futureSuccess.addCallback(lambda ign: forget())
 
+        if deferred is None:
+            return finishUp()
+        else:
+            return deferred.addCallback(lambda ign: finishUp())
+            
     def findOrCreateVisit(self, url, title, referrer=None, index=True):
         """
         Try to find a visit to the same url TODAY.

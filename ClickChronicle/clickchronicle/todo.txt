@@ -68,18 +68,10 @@ Visit cached
 - Length of file is not 0
 
 Visit indexed
-- able to retrieve Documente by storeID
-- get a hit when searching
 - number of docs in index makes sense (NB. an empty SmartIndex contains 1 doc before any have been added)
-
-Repeat visits
-- Existing visit time is update
-- New visit is not created
-- visitCount is incremented
 
 Visit removed/forgotten
 - cached file is removed
-- document with Visit storeID is removed from index
 
 Domain Blocked
 - Flag is set correctly on domain
@@ -98,5 +90,18 @@ Tests done:
 Visit added
 - Domain created (DONE)
 - Visit count adjusted (DONE)
+
 Visit counts
 - Visit an url multiple times and ensure domain and visit visitCounts increment (DONE)
+
+Repeat visits
+- New visit is not created (DONE)
+- visitCount is incremented (DONE)
+- Existing visit time is updated (DONE)
+
+Visit removed/forgotten
+- document with Visit storeID is removed from index (DONE)
+
+Visit indexed
+- able to retrieve Documente by storeID (DONE)
+- get a hit when searching (DONE)

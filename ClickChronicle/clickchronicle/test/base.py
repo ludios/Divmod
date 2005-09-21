@@ -1,4 +1,4 @@
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
 from clickchronicle import clickapp
 from clickchronicle.visit import Visit, Domain
 from clickchronicle.indexinghelp import IIndexer
@@ -9,11 +9,11 @@ from nevow.url import URL
 from tempfile import mktemp
 from twisted.web import server, resource, static, http
 
-itemCount = lambda store, item: len(list(store.query(item)))
-firstItem = lambda store, item: store.query(item).next()
-firstPowerup = lambda store, iface: store.powerupsFor(iface).next()
-
 class CCTestBase:
+    itemCount = lambda self, store, item: len(list(store.query(item)))
+    firstItem = lambda self, store, item: store.query(item).next()
+    firstPowerup = lambda self, store, iface: store.powerupsFor(iface).next()
+
     def setUpStore(self):
         """i set up a temporary store & substore  call me in setUp or setUpClass, depending
            on your requirements (if you have lots of test methods that dont modify the store,
@@ -31,8 +31,8 @@ class CCTestBase:
         self.superstore = store
         self.substore = ticket.avatar.avatars.substore
 
-        self.recorder = firstItem(self.substore, clickapp.ClickRecorder)
-        self.clicklist = firstItem(self.substore, clickapp.ClickList)
+        self.recorder = self.firstItem(self.substore, clickapp.ClickRecorder)
+        self.clicklist = self.firstItem(self.substore, clickapp.ClickList)
 
     def makeVisit(self, url='http://some.where', title='Some Where', index=True):
 
@@ -71,7 +71,7 @@ class CCTestBase:
         return futureSuccess.addCallback(lambda v: postRecord())
     
     def assertNItems(self, store, item, count):
-        self.assertEqual(itemCount(store, item), count)
+        self.assertEqual(self.itemCount(store, item), count)
 
     def assertUniform(self, *sequences):
         if 0 < len(sequences):
@@ -135,10 +135,17 @@ class IndexAwareTestBase(DataServingTestBase):
     def setUpClass(self):
         DataServingTestBase.setUpClass(self)
         self.setUpStore()
-        self.indexer = firstPowerup(self.substore, IIndexer)
+        self.indexer = self.firstPowerup(self.substore, IIndexer)
 
     def itemsForTerm(self, term):
         return (self.substore.getItemByID(d['uid']) for d in self.indexer.search(term))
+
+    def visitURLs(self, urls):
+        deferreds = []
+        for (resname, url) in urls.iteritems():
+            futureVisit = self.recorder.recordClick(dict(url=url, title=resname), index=True)
+            deferreds.append(futureVisit)
+        return defer.gatherResults(deferreds)
 
 class MeanResourceTestBase(IndexAwareTestBase):
     """

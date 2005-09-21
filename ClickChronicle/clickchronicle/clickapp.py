@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 from zope.interface import Interface, implements
 
 from twisted.python.components import registerAdapter
-from twisted.internet import defer
 from nevow.url import URL
 from nevow import rend, inevow, tags
 

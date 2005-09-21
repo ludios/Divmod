@@ -1,11 +1,12 @@
 from tempfile import mktemp
 from twisted.trial.unittest import TestCase
 from twisted.trial.util import wait
+from twisted.web.error import Error
 from nevow.url import URL
-from twisted.internet import defer
 from clickchronicle.visit import Visit, Domain
-from clickchronicle.test.base import (IndexAwareTestBase, MeanResourceTestBase, 
-                                      CCTestBase, firstItem)
+from clickchronicle.test.base import (IndexAwareTestBase, 
+                                      MeanResourceTestBase, 
+                                      CCTestBase)
 
 class ClickRecorderTestCase(CCTestBase, TestCase):
     def setUp(self):
@@ -28,14 +29,9 @@ class ClickRecorderTestCase(CCTestBase, TestCase):
 allTitles = lambda visits: (v.title for v in visits)
 
 class IndexingClickRecorderTestCase(IndexAwareTestBase, TestCase):
-    
     def setUpClass(self):
         IndexAwareTestBase.setUpClass(self)
-        deferreds = []
-        for (resname, url) in self.urls.iteritems():
-            futureVisit = self.recorder.recordClick(dict(url=url, title=resname), index=True)
-            deferreds.append(futureVisit)
-        return defer.gatherResults(deferreds)
+        return self.visitURLs(self.urls)
 
     def testCommonTermsMatchAll(self):
         data = dict((k, v.data) for (k, v) in self.resourceMap.iteritems())
@@ -72,13 +68,14 @@ class IndexingClickRecorderTestCase(IndexAwareTestBase, TestCase):
 class MeanResourceTestCase(MeanResourceTestBase, TestCase):
     
     def testNoRecord(self):
-        def onRecordingError():
+        def onRecordingError(f):
+            f.trap(Error)
             # assert nothing was indexed
             self.assertEqual(preIndexCount, self.indexer.indexCount)
             # assert a visit was created
             self.assertEqual(preVisitCount+1, self.recorder.visitCount)
             self.assertNItems(self.substore, Visit, 1)
-            visit = firstItem(self.substore, Visit)
+            visit = self.firstItem(self.substore, Visit)
             self.recorder.forgetVisit(visit)
             self.assertNItems(self.substore, Visit, 0)
             self.assertEqual(preVisitCount, self.recorder.visitCount)
@@ -90,6 +87,6 @@ class MeanResourceTestCase(MeanResourceTestBase, TestCase):
         self.assertEqual(preVisitCount, 0)
         futureSuccess = self.recorder.recordClick(dict(url=self.urls['mean'], 
                                                        title='mean'), index=True)
-        return futureSuccess.addCallbacks(lambda ign: self.fail('expected BAD REQUEST'),
-                                          lambda ign: onRecordingError())
-
+        
+        return futureSuccess.addCallbacks(lambda ign: self.fail('expected 400 "BAD REQUEST"'),
+                                          onRecordingError)

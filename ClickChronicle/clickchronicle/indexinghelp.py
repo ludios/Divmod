@@ -2,7 +2,7 @@ from zope.interface import Interface, implements
 from axiom.item import Item
 from axiom import attributes
 from xapwrap.index import SmartIndex, ParsedQuery, DocNotFoundError
-from xapwrap.document import Document, TextField, Keyword, StandardAnalyzer, Term, Value
+from xapwrap.document import Document, TextField, StandardAnalyzer, Term, Value
 from clickchronicle import tagstrip
 
 XAPIAN_INDEX_DIR = 'xap.index'

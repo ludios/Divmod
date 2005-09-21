@@ -1,4 +1,3 @@
-import os
 from datetime import datetime
 
 from zope.interface import implements

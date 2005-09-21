@@ -20,17 +20,17 @@ class Burst:
     def setData(self, gapSpace):
         self.data=gapSpace
         self.statesUsed=[0 for i in range(len(gapSpace))]
-                
+
     def process(self, n=11):
         self.calcCost(n)
 
     def calcCost(self, pos):
         #print 'calc', pos
-        
+
         if pos == 0:
             self.statesUsed[0]=0
             return 0,0
-        
+
         numStates = len(self.states)
         minCost = 99999.0
         state = -1
@@ -62,13 +62,13 @@ class Burst:
             return 0
         else:
             return self.gamma * (curr - prev) * log(datum)
-            
+
     def func(self, lamba, x):
         e=2.718
         value = lamba * e ** (lamba * x * -1.0)
         #print 'func', value, lamba, x
         return value
-    
+
     def getStatesUsed(self):
         return self.statesUsed
 

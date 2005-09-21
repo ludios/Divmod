@@ -97,7 +97,7 @@ if __name__ == '__main__':
         agree, it truly is the best cover ever. The O.Reilly designers
         nailed it"""
         count, unigrams, bigrams= buildCounts(str)
-        res = buildMutualInfo(count, unigrams, bigrams)
+        res = buildInfo(count, unigrams, bigrams)
         final = [likelihoodRatio(count, r) for r in res]
     
         zipped = zip(final, res)

@@ -84,12 +84,13 @@ Track and record referrer information. (DONE)
 Tests to do:
 ------------
 
-Visit MRU
-- set maxVisits to a small number and ensure that visits get removed correclty
-- try revisiting a site in the list and make sure it does the right thing
 
 Tests done:
 -----------
+Visit MRU
+- set maxVisits to a small number and ensure that visits get removed correclty (DONE)
+- try revisiting a site in the list and make sure it does the right thing (DONE)
+  
 Referrer
 - referrer set to Visit or BookmarkVisit as needed (DONE)
 

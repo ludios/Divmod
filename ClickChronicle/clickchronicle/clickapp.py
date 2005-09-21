@@ -254,7 +254,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
     # Caching needs to be provisioned/bestowed
     caching = True
     # Number of MRU visits to keep
-    maxCount = 500
+    maxCount = attributes.integer(default=500)
     bookmarkVisit = attributes.inmemory()
     
 

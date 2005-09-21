@@ -1,7 +1,7 @@
 from zope.interface import Interface, implements
 from axiom.item import Item
 from axiom import attributes
-from xapwrap.index import SmartIndex, ParsedQuery
+from xapwrap.index import SmartIndex, ParsedQuery, DocNotFoundError
 from xapwrap.document import Document, TextField, Keyword, StandardAnalyzer, Term, Value
 from clickchronicle import tagstrip
 
@@ -79,9 +79,13 @@ class SyncIndexer(Item):
     def delete(self, item):
         xapDir = self.store.newDirectory(XAPIAN_INDEX_DIR)
         xapIndex = SmartIndex(str(xapDir.path), True)
-        xapIndex.delete_document(item.storeID)
+        try:
+            xapIndex.delete_document(item.storeID)
+        except DocNotFoundError:
+            pass
+        else:
+            self.decrementIndexCount()
         xapIndex.close()
-        self.decrementIndexCount()
 
     def search(self, aString, **kwargs):
         xapDir = self.store.newDirectory(XAPIAN_INDEX_DIR)

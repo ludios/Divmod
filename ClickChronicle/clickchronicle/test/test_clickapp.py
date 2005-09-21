@@ -4,8 +4,8 @@ from twisted.trial.util import wait
 from nevow.url import URL
 from twisted.internet import defer
 from clickchronicle.visit import Visit, Domain
-from clickchronicle.test.base import DataServingTestBase, CCTestBase, firstPowerup
-from clickchronicle.indexinghelp import IIndexer
+from clickchronicle.test.base import (IndexAwareTestBase, MeanResourceTestBase, 
+                                      CCTestBase, firstItem)
 
 class ClickRecorderTestCase(CCTestBase, TestCase):
     def setUp(self):
@@ -27,23 +27,20 @@ class ClickRecorderTestCase(CCTestBase, TestCase):
 
 allTitles = lambda visits: (v.title for v in visits)
 
-class IndexingClickRecorderTestCase(DataServingTestBase, TestCase):
+class IndexingClickRecorderTestCase(IndexAwareTestBase, TestCase):
     
     def setUpClass(self):
-        DataServingTestBase.setUpClass(self)
-        self.setUpStore()
-        self.indexer = firstPowerup(self.substore, IIndexer)
+        IndexAwareTestBase.setUpClass(self)
         deferreds = []
         for (resname, url) in self.urls.iteritems():
             futureVisit = self.recorder.recordClick(dict(url=url, title=resname), index=True)
             deferreds.append(futureVisit)
         return defer.gatherResults(deferreds)
 
-    def itemsForTerm(self, term):
-        return (self.substore.getItemByID(d['uid']) for d in self.indexer.search(term))
-    
     def testCommonTermsMatchAll(self):
-        (first, second) = (self.data['first'], self.data['second'])
+        data = dict((k, v.data) for (k, v) in self.resourceMap.iteritems())
+
+        (first, second) = (data['first'], data['second'])
         
         self.assertUniform(('first', 'both'),
                            *(allTitles(self.itemsForTerm(t)) for t in first.split()))
@@ -52,7 +49,7 @@ class IndexingClickRecorderTestCase(DataServingTestBase, TestCase):
                            *(allTitles(self.itemsForTerm(t)) for t in second.split()))
         
     def testNonUniversalTermsDontMatchAll(self):
-        both = self.data['both']
+        both = self.resourceMap['both'].data
         self.assertUniform(allTitles(self.itemsForTerm('a i')), ('both',))
         self.assertUniform(allTitles(self.itemsForTerm(both)), ('both',))
 
@@ -71,3 +68,28 @@ class IndexingClickRecorderTestCase(DataServingTestBase, TestCase):
         # do everything in setUp() and tearDown() but my laptop is old and
         # slow and setUpStore() takes a really long time to run
         self.tearDownClass(); return self.setUpClass()
+
+class MeanResourceTestCase(MeanResourceTestBase, TestCase):
+    
+    def testNoRecord(self):
+        def onRecordingError():
+            # assert nothing was indexed
+            self.assertEqual(preIndexCount, self.indexer.indexCount)
+            # assert a visit was created
+            self.assertEqual(preVisitCount+1, self.recorder.visitCount)
+            self.assertNItems(self.substore, Visit, 1)
+            visit = firstItem(self.substore, Visit)
+            self.recorder.forgetVisit(visit)
+            self.assertNItems(self.substore, Visit, 0)
+            self.assertEqual(preVisitCount, self.recorder.visitCount)
+
+        self.assertNItems(self.substore, Visit, 0)
+        preIndexCount = self.indexer.indexCount
+        self.assertEqual(preIndexCount, 0)
+        preVisitCount = self.recorder.visitCount
+        self.assertEqual(preVisitCount, 0)
+        futureSuccess = self.recorder.recordClick(dict(url=self.urls['mean'], 
+                                                       title='mean'), index=True)
+        return futureSuccess.addCallbacks(lambda ign: self.fail('expected BAD REQUEST'),
+                                          lambda ign: onRecordingError())
+

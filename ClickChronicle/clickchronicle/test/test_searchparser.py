@@ -1,7 +1,8 @@
 from twisted.trial.unittest import TestCase
 from clickchronicle.searchparser import parseSearchString
+from clickchronicle.test.base import CCTestBase
 
-class SearchParserTestCase(TestCase):
+class SearchParserTestCase(CCTestBase, TestCase):
     def testPlainStrings(self):
         positive = ['hello', 'hello world', 'goodbye cruel world']
         for s in positive:

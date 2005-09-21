@@ -386,13 +386,10 @@ class ClickRecorder(Item, website.PrefixURLMixin):
     def forgetVisit(self, visit):
         indexer = indexinghelp.IIndexer(self.store)
         indexer.delete(visit)
-        self.cachedFileNameFor(visit).remove()
-        #try:
-        #    os.remove(fName)
-        #except OSError:
-        #    # XXX - If it was unreachable would the visit have been created?
-        #    # perhaps the page was unreachable and never got indexed
-        #    pass
+        try:
+            self.cachedFileNameFor(visit).remove()
+        except OSError:
+            pass
         def _():
             visit.deleteFromStore()
             self.visitCount -= 1

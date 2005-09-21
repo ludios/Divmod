@@ -1,6 +1,7 @@
 from twisted.internet import reactor
 from clickchronicle import clickapp
 from clickchronicle.visit import Visit, Domain
+from clickchronicle.indexinghelp import IIndexer
 from xmantissa import signup
 from axiom.store import Store
 from axiom.userbase import LoginSystem
@@ -47,10 +48,10 @@ class CCTestBase:
             (seenURL, visitCount, prevTimestamp) = (True, visit.visitCount, visit.timestamp)
             break
 
-        preClicks = self.clicklist.clicks
+        preClicks = self.recorder.visitCount
         def postRecord():
             if not seenURL:
-                self.assertEqual(self.clicklist.clicks, preClicks+1)
+                self.assertEqual(self.recorder.visitCount, preClicks+1)
 
             visit = self.substore.query(Visit, Visit.url==url).next()
             self.assertEqual(visit.visitCount, visitCount+1)
@@ -97,19 +98,19 @@ class DataServingTestBase(CCTestBase):
     def getResourceMap(self):
         (first, second) = ('a b c d e f g', 'i j k l m n o p')
         data = dict(first=first, second=second, both=' '.join((first, second)))
-        return data
+        return dict((k, static.Data(v, 'text/plain')) for (k, v) in data.iteritems())
 
     def setUpClass(self):
-        self.data = self.getResourceMap()
+        self.resourceMap = self.getResourceMap()
         root = resource.Resource()
-        for (resname, content) in self.data.iteritems():
-            root.putChild(resname, static.Data(content, 'text/plain'))
+        for (resname, res) in self.resourceMap.iteritems():
+            root.putChild(resname, res)
             
         site = server.Site(root, timeout=None)
         self.port = self.listen(site)
         reactor.iterate(); reactor.iterate()
         self.portno = self.port.getHost().port
-        self.urls = dict((n, self.makeURL(n)) for n in self.data)
+        self.urls = dict((n, self.makeURL(n)) for n in self.resourceMap)
 
     def tearDown(self):
         http._logDateTimeStop()
@@ -121,3 +122,31 @@ class DataServingTestBase(CCTestBase):
         self.port.stopListening()
         reactor.iterate(); reactor.iterate()
         del self.port
+
+class MeanResource(resource.Resource):
+    def __init__(self, responseCode=http.BAD_REQUEST):
+        self.responseCode = responseCode
+        
+    def render_GET(self, request):
+        request.setResponseCode(self.responseCode)
+        return ''
+    
+class IndexAwareTestBase(DataServingTestBase):
+    def setUpClass(self):
+        DataServingTestBase.setUpClass(self)
+        self.setUpStore()
+        self.indexer = firstPowerup(self.substore, IIndexer)
+
+    def itemsForTerm(self, term):
+        return (self.substore.getItemByID(d['uid']) for d in self.indexer.search(term))
+
+class MeanResourceTestBase(IndexAwareTestBase):
+    """
+    same as IndexAwareTestBase, but i add a resource 
+    that always sets the response code to 400 BAD REQUEST 
+    """
+    def getResourceMap(self):
+        rmap = DataServingTestBase.getResourceMap(self)
+        rmap['mean'] = MeanResource()
+        return rmap
+    

@@ -53,8 +53,20 @@ class SyncIndexer(Item):
     def installOn(self, other):
         other.powerUp(self, IIndexer)
 
+    def _setIndexCount(self, newCount):
+        def txn():
+            self.indexCount = newCount
+        self.store.transact(txn)
+        
+    def incrementIndexCount(self):
+        self._setIndexCount(self.indexCount + 1)
+
+    def decrementIndexCount(self):
+        self._setIndexCount(self.indexCount - 1)
+        
     def index(self, item):
         def cbIndex(doc):
+            self.incrementIndexCount()
             xapDir = self.store.newDirectory(XAPIAN_INDEX_DIR)
             xapIndex = SmartIndex(str(xapDir.path), True)
             xapIndex.index(doc)
@@ -69,6 +81,7 @@ class SyncIndexer(Item):
         xapIndex = SmartIndex(str(xapDir.path), True)
         xapIndex.delete_document(item.storeID)
         xapIndex.close()
+        self.decrementIndexCount()
 
     def search(self, aString, **kwargs):
         xapDir = self.store.newDirectory(XAPIAN_INDEX_DIR)

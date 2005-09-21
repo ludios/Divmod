@@ -162,7 +162,7 @@ class ClickListFragment(CCPrivatePagedTable):
             yield self.trimTitle(v.asDict())
 
     def countTotalItems(self, ctx):
-        return self.original.clicks
+        return IClickRecorder(self.original.store).visitCount
 
 registerAdapter(ClickListFragment,
                 ClickList,
@@ -246,13 +246,18 @@ class ClickRecorder(Item, website.PrefixURLMixin):
     schemaVersion = 1
     implements(ixmantissa.ISiteRootPlugin, IClickRecorder)
     typeName = 'clickchronicle_clickrecorder'
-    urlCount = attributes.integer(default = 0)
+    # Total number of clicks we have ever received
+    clickCount = attributes.integer(default = 0)
+    # Total number of visits currently in store. An optimization for
+    # forgetting/maxCount.
+    visitCount = attributes.integer(default = 0)
     prefixURL = 'private/record'
     # Caching needs to be provisioned/bestowed
     caching = True
     # Number of MRU visits to keep
     maxCount = 500
     bookmarkVist = None
+    
 
     def installOn(self, other):
         super(ClickRecorder, self).installOn(other)
@@ -293,7 +298,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         
         def finishUp():
             def forget():
-                if self.maxCount < self.urlCount:
+                if self.visitCount > self.maxCount:
                     self.forgetOldestVisit()
 
             futureSuccess = self.findOrCreateVisit(url, title, referrer, index=index)
@@ -336,11 +341,10 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                               title = title,
                               domain = domain,
                               referrer = referrer)
-                clickList = self.store.query(ClickList).next()
-                clickList.clicks += 1
+                self.visitCount += 1
                 domainList = self.store.query(DomainList).next()
                 domainList.clicks += 1
-                self.urlCount += 1
+                self.clickCount += 1
                 visit.visitCount += 1
                 visit.domain.visitCount +=1
                 return visit
@@ -391,6 +395,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         #    pass
         def _():
             visit.deleteFromStore()
+            self.visitCount -= 1
         self.store.transact(_)
 
     def forgetOldestVisit(self):
@@ -421,10 +426,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             visit.domain.ignore = 1
             for (i, similarVisit) in enumerate(self.store.query(Visit, Visit.domain == visit.domain)):
                 self.forgetVisit(similarVisit)
-            # "clicks" is a presentation attribute, "urlCount" is a
-            # bookkeeping one.  the latter shouldn't get decremented
-            clickList = self.store.query(ClickList).next()
-            clickList.clicks -= i + 1
+            self.visitCount -= i + 1
 
         self.store.transact(txn)
 

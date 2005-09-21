@@ -26,44 +26,42 @@ class Burst:
 
     def calcCost(self, pos):
         #print 'calc', pos
-        lamba=self.states
-        stateCount = len(lamba)
+        
         if pos == 0:
             self.statesUsed[0]=0
             return 0,0
-
-        minCosts = 99999.0
+        
+        numStates = len(self.states)
+        minCost = 99999.0
         state = -1
-        gap_space = self.data
         costImprove = True
 
-        for tryState in range(stateCount):
-            if not costImprove:
+        for tryState in range(numStates):
+            if costImprove is False:
                 break
-            newState, newCosts =self.calcCost(pos-1)
-            trans = self.transition(newState, tryState, gap_space[pos])
-            pc = newCosts
-            alignment = -1 * log(self.func(lamba[tryState], gap_space[pos]))
-            cost = alignment + pc + trans
-            #print "%s: %s -> %s = a:%s prev:%s +trans: %s" % (pos, tryState, cost, alignment, pc, trans)
-            #print 'cm', cost, minCosts
-            if cost < minCosts:
-                #print 'cost < minCosts'
-                minCosts = cost
+            newState, newCost = self.calcCost(pos-1)
+            trans = self.transition(newState, tryState, self.data[pos])
+            alignment = -1 * log(self.func(self.states[tryState], self.data[pos]))
+            cost = alignment + newCost + trans
+            #print "%s: %s -> %s = a:%s prev:%s +trans: %s" % (pos, tryState, cost, alignment, newCost, trans)
+            #print 'cm', cost, minCost
+            if cost < minCost:
+                #print 'cost < minCost'
+                minCost = cost
                 state = tryState
                 self.statesUsed[pos]=state
                 #self.statesUsed.append(state)
             else:
                 #print 'ci set to False'
                 costImprove = False
-        return state, minCosts
+        return state, minCost
 
-    def transition(self, prev, curr, pos):
+    def transition(self, prev, curr, datum):
         #print "trans:", prev, curr, pos
         if prev >= curr:
             return 0
         else:
-            return self.gamma * (curr - prev) * log(pos)
+            return self.gamma * (curr - prev) * log(datum)
             
     def func(self, lamba, x):
         e=2.718
@@ -75,12 +73,14 @@ class Burst:
         return self.statesUsed
 
 if __name__ == '__main__':
-    data = [9,9,10,10,14,5,7,5,9,9,9,9,9,9,10,10,14,5,2,2,2,2,7,5,9,9,9,9]
+    data = [9,9,9,9,9,6,7,8,9,9,2,2,2,2,9,9,9,9,1,1,9,9,9,9,9,9]
     b=Burst()
-    b.generateStates(3,.111,2)
+    b.generateStates(5,.111,2)
     b.setGamma(.5)
     b.setData(data)
-    b.process(30)
+    n = 13
+    b.process(n)
     statesUsed=b.getStatesUsed()
     print 'data      ', data
+    print 'data %s  %s', n, data[:n]
     print 'statesUsed', statesUsed

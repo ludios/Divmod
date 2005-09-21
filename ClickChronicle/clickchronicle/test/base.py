@@ -100,7 +100,7 @@ class DataServingTestBase(CCTestBase):
         data = dict(first=first, second=second, both=' '.join((first, second)))
         return dict((k, static.Data(v, 'text/plain')) for (k, v) in data.iteritems())
 
-    def setUpClass(self):
+    def setUpWebServer(self):
         self.resourceMap = self.getResourceMap()
         root = resource.Resource()
         for (resname, res) in self.resourceMap.iteritems():
@@ -118,7 +118,7 @@ class DataServingTestBase(CCTestBase):
     def makeURL(self, path):
         return 'http://127.0.0.1:%d/%s' % (self.portno, path)
 
-    def tearDownClass(self):
+    def tearDownWebServer(self):
         self.port.stopListening()
         reactor.iterate(); reactor.iterate()
         del self.port
@@ -132,10 +132,13 @@ class MeanResource(resource.Resource):
         return ''
     
 class IndexAwareTestBase(DataServingTestBase):
-    def setUpClass(self):
-        DataServingTestBase.setUpClass(self)
+    def setUpWebIndexer(self):
+        self.setUpWebServer()
         self.setUpStore()
         self.indexer = self.firstPowerup(self.substore, IIndexer)
+
+    def tearDownWebIndexer(self):
+        self.tearDownWebServer()
 
     def itemsForTerm(self, term):
         return (self.substore.getItemByID(d['uid']) for d in self.indexer.search(term))

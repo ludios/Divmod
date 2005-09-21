@@ -8,9 +8,12 @@ from clickchronicle.test.base import IndexAwareTestBase
 import os
 
 class CacheFileAwareIndexingTestCase(IndexAwareTestBase, TestCase):
-    def setUpClass(self):
-        IndexAwareTestBase.setUpClass(self)
-    
+    def setUp(self):
+        self.setUpWebIndexer()
+
+    def tearDown(self):
+        self.tearDownWebIndexer()
+
     def testCacheFileCreation(self):
         def afterVisitAll():
             for (i, visit) in enumerate(self.substore.query(Visit)):

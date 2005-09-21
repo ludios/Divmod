@@ -58,15 +58,11 @@ Strip css out of html (DONE)
 The visible text for anchors does not get indexed (it's gobbled up by the html tag stripper) (DONE)
 Investigate beautiful soup for html parsing (DONE)
 Add "ignore" attribute to domains (DONE)
-Track and record referrer information.
+Track and record referrer information. (DONE)
 
 
 Tests to do:
 ------------
-Domain Blocked
-- Flag is set correctly on domain
-- Exisiting visits removed; counts adjusted
-- Subsequent visits to blocked domain do not create visits or increment counts
 
 Visit MRU
 - set maxVisits to a small number and ensure that visits get removed correclty
@@ -96,6 +92,11 @@ Repeat visits
 Visit removed/forgotten
 - document with Visit storeID is removed from index (DONE)
 - cached file is removed (DONE)
+
+Domain Blocked
+- Flag is set correctly on domain (DONE)
+- Exisiting visits removed; counts adjusted (DONE)
+- Subsequent visits to blocked domain do not create visits or increment counts (DONE)
 
 Visit indexed
 - able to retrieve Documente by storeID (DONE)

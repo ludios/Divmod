@@ -9,9 +9,9 @@ from clickchronicle.test.base import (IndexAwareTestBase,
                                       CCTestBase)
 
 class ClickRecorderTestCase(CCTestBase, TestCase):
-    def setUp(self):
+    def setUpClass(self):
         self.setUpStore()
-        
+
     def testRecordNoIndex(self):
         ss = self.substore
         
@@ -26,12 +26,62 @@ class ClickRecorderTestCase(CCTestBase, TestCase):
         # same URL, different title
         wait(self.makeVisit(url=nextUrl, title=mktemp(), index=False))
 
+class IgnoreDomainTestCase(IndexAwareTestBase, TestCase):
+
+    def setUp(self):
+        self.setUpWebIndexer()
+
+    def tearDown(self):
+        self.tearDownWebIndexer()
+
+    def testIgnoreVisitIgnoresDomain(self):
+        (title, url) = self.urls.iteritems().next()
+        visit = self.record(title, url) 
+        domain = visit.domain
+        self.ignore(visit)
+        self.assertEqual(domain.ignore, 1)
+
+    def testVisitsToIgnoredDomains(self):
+        iterurls = self.urls.iteritems()
+        (title, url) = iterurls.next()
+        self.ignore(self.record(title, url))
+        self.assertNItems(self.substore, Visit, 0)
+        self.assertEqual(self.recorder.visitCount, 0)
+        for (title, url) in iterurls:
+            self.record(title, url)
+            self.assertNItems(self.substore, Visit, 0)
+            self.assertEqual(self.recorder.visitCount, 0)
+
+    def testIgnoreVisitIgnoresOldVisits(self):
+        def afterVisits():
+            self.assertEqual(self.recorder.visitCount, len(self.urls))
+            self.assertNItems(self.substore, Visit, len(self.urls))
+            visit = self.firstItem(self.substore, Visit)
+            self.ignore(visit)
+            self.assertEqual(self.recorder.visitCount, 0)
+            self.assertNItems(self.substore, Visit, 0)
+        return self.visitURLs(self.urls).addCallback(lambda ign: afterVisits())
+            
+    def ignore(self, visit):
+        self.recorder.ignoreVisit(visit)
+
+    def record(self, title, url):
+        wait(self.recorder.recordClick(dict(url=url, title=title), 
+                                        index=False))
+        try:
+            return self.substore.query(Visit, Visit.url==url).next()
+        except StopIteration:
+            return
+                                        
 allTitles = lambda visits: (v.title for v in visits)
 
 class IndexingClickRecorderTestCase(IndexAwareTestBase, TestCase):
     def setUpClass(self):
-        IndexAwareTestBase.setUpClass(self)
+        self.setUpWebIndexer()
         return self.visitURLs(self.urls)
+
+    def tearDownClass(self):
+        self.tearDownWebIndexer()
 
     def testCommonTermsMatchAll(self):
         data = dict((k, v.data) for (k, v) in self.resourceMap.iteritems())
@@ -66,7 +116,12 @@ class IndexingClickRecorderTestCase(IndexAwareTestBase, TestCase):
         self.tearDownClass(); return self.setUpClass()
 
 class MeanResourceTestCase(MeanResourceTestBase, TestCase):
-    
+    def setUp(self):
+        self.setUpWebIndexer()
+
+    def tearDown(self):
+        self.tearDownWebIndexer()
+        
     def testNoRecord(self):
         def onRecordingError(f):
             f.trap(Error)

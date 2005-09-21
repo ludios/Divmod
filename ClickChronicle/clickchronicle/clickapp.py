@@ -422,7 +422,6 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             visit.domain.ignore = 1
             for (i, similarVisit) in enumerate(self.store.query(Visit, Visit.domain == visit.domain)):
                 self.forgetVisit(similarVisit)
-            self.visitCount -= i + 1
 
         self.store.transact(txn)
 

@@ -1,3 +1,4 @@
+from twisted.trial.util import wait
 from twisted.internet import reactor, defer
 from clickchronicle import clickapp
 from clickchronicle.visit import Visit, Domain
@@ -82,6 +83,30 @@ class CCTestBase:
     def randURL(self):
         return '%s.com' % mktemp(dir='http://', suffix='/')
 
+    def ignore(self, visit):
+        self.recorder.ignoreVisit(visit)
+
+    def record(self, title, url, **k):
+        wait(self.recorder.recordClick(dict(url=url, title=title, **k), 
+                                        index=False))
+        try:
+            return self.substore.query(Visit, Visit.url==url).next()
+        except StopIteration:
+            return
+                                        
+    def urlsWithSameDomain(self, count=10):
+        base = URL.fromString(self.randURL())
+        yield str(base)
+        for i in xrange(count-1):
+            yield str(base.child(str(i)))
+
+    def visitURLs(self, urls, index=True):
+        deferreds = []
+        for (resname, url) in urls.iteritems():
+            futureVisit = self.recorder.recordClick(dict(url=url, title=resname), index=index)
+            deferreds.append(futureVisit)
+        return defer.gatherResults(deferreds)
+
 class DataServingTestBase(CCTestBase):
     """
         i start a website, serving three resources with the following contents:
@@ -142,13 +167,6 @@ class IndexAwareTestBase(DataServingTestBase):
 
     def itemsForTerm(self, term):
         return (self.substore.getItemByID(d['uid']) for d in self.indexer.search(term))
-
-    def visitURLs(self, urls):
-        deferreds = []
-        for (resname, url) in urls.iteritems():
-            futureVisit = self.recorder.recordClick(dict(url=url, title=resname), index=True)
-            deferreds.append(futureVisit)
-        return defer.gatherResults(deferreds)
 
 class MeanResourceTestBase(IndexAwareTestBase):
     """

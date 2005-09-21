@@ -3,7 +3,7 @@ from twisted.trial.unittest import TestCase
 from twisted.trial.util import wait
 from twisted.web.error import Error
 from nevow.url import URL
-from clickchronicle.visit import Visit, Domain
+from clickchronicle.visit import Visit, Domain, BookmarkVisit
 from clickchronicle.test.base import (IndexAwareTestBase, 
                                       MeanResourceTestBase, 
                                       CCTestBase)
@@ -26,53 +26,53 @@ class ClickRecorderTestCase(CCTestBase, TestCase):
         # same URL, different title
         wait(self.makeVisit(url=nextUrl, title=mktemp(), index=False))
 
-class IgnoreDomainTestCase(IndexAwareTestBase, TestCase):
+    def testReferrer(self):
+        iterurls = self.urlsWithSameDomain()
+        url = iterurls.next()
+        visit = self.record(title=url, url=url)
+        # better way to do this comparison?
+        self.assertEqual(visit.referrer.typeName, BookmarkVisit.typeName)
+        refereeUrl = iterurls.next()
+        refereeVisit = self.record(title=refereeUrl, url=refereeUrl, ref=url)
+        self.assertEqual(refereeVisit.referrer.url, visit.url)
+        
+class IgnoreDomainTestCase(CCTestBase, TestCase):
 
     def setUp(self):
-        self.setUpWebIndexer()
-
-    def tearDown(self):
-        self.tearDownWebIndexer()
+        self.setUpStore()
 
     def testIgnoreVisitIgnoresDomain(self):
-        (title, url) = self.urls.iteritems().next()
-        visit = self.record(title, url) 
+        url = self.randURL()
+        visit = self.record(title=url, url=url) 
         domain = visit.domain
         self.ignore(visit)
         self.assertEqual(domain.ignore, 1)
 
     def testVisitsToIgnoredDomains(self):
-        iterurls = self.urls.iteritems()
-        (title, url) = iterurls.next()
-        self.ignore(self.record(title, url))
+        iterurls = self.urlsWithSameDomain()
+        url = iterurls.next()
+        self.ignore(self.record(title=url, url=url))
         self.assertNItems(self.substore, Visit, 0)
         self.assertEqual(self.recorder.visitCount, 0)
-        for (title, url) in iterurls:
-            self.record(title, url)
+        for url in iterurls:
+            self.record(title=url, url=url)
             self.assertNItems(self.substore, Visit, 0)
             self.assertEqual(self.recorder.visitCount, 0)
 
     def testIgnoreVisitIgnoresOldVisits(self):
+        # visitURLs wants a title -> url dictionary
+        urls = dict((u, u) for u in self.urlsWithSameDomain())
+        
         def afterVisits():
-            self.assertEqual(self.recorder.visitCount, len(self.urls))
-            self.assertNItems(self.substore, Visit, len(self.urls))
+            self.assertEqual(self.recorder.visitCount, len(urls))
+            self.assertNItems(self.substore, Visit, len(urls))
             visit = self.firstItem(self.substore, Visit)
             self.ignore(visit)
             self.assertEqual(self.recorder.visitCount, 0)
             self.assertNItems(self.substore, Visit, 0)
-        return self.visitURLs(self.urls).addCallback(lambda ign: afterVisits())
-            
-    def ignore(self, visit):
-        self.recorder.ignoreVisit(visit)
 
-    def record(self, title, url):
-        wait(self.recorder.recordClick(dict(url=url, title=title), 
-                                        index=False))
-        try:
-            return self.substore.query(Visit, Visit.url==url).next()
-        except StopIteration:
-            return
-                                        
+        return self.visitURLs(urls, index=False).addCallback(lambda ign: afterVisits())
+            
 allTitles = lambda visits: (v.title for v in visits)
 
 class IndexingClickRecorderTestCase(IndexAwareTestBase, TestCase):

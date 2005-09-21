@@ -68,11 +68,11 @@ Visit MRU
 - set maxVisits to a small number and ensure that visits get removed correclty
 - try revisiting a site in the list and make sure it does the right thing
 
-Referrer
-- referrer set to Visit or BookmarkVisit as needed
-
 Tests done:
 -----------
+Referrer
+- referrer set to Visit or BookmarkVisit as needed (DONE)
+
 Visit added
 - Domain created (DONE)
 - Visit count adjusted (DONE)

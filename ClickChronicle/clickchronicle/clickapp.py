@@ -255,13 +255,16 @@ class ClickRecorder(Item, website.PrefixURLMixin):
     caching = True
     # Number of MRU visits to keep
     maxCount = 500
-    bookmarkVist = None
+    bookmarkVisit = attributes.inmemory()
     
 
     def installOn(self, other):
         super(ClickRecorder, self).installOn(other)
         other.powerUp(self, IClickRecorder)
 
+    def activate(self):
+        self.bookmarkVisit = self.store.findOrCreate(BookmarkVisit)
+        
     def createResource(self):
         return URLGrabber(self)
 
@@ -276,37 +279,31 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         title = qargs.get('title')
         if not title or title.isspace():
             title = url
-        referrer = qargs.get('ref')
-        # The referrer stuff is a little dodgy
-        # should distinguish between referrer = '' which seems to mean it was
-        # fired from a bookmark and referrer = None which should be used for the
-        # referrer or a referrer
-        deferred = None
-        if referrer is None:
-            # Brower did not send '?ref='. Should do something smart here
-            pass
-        elif referrer == '':
-            # Most likely selected a bookmark/shortcut
-            if self.bookmarkVisit is None:
-                def _():
-                    self.bookmarkVisit = BookmarkVisit(url='bookmark', title='bookmark')
-                self.store.transact(_)
-            referrer = self.bookmarkVisit
-        else:
-            deferred = self.findOrCreateVisit(url, title, index=index)
         
-        def finishUp():
+        def storeReferee(referrer):
             def forget():
                 if self.visitCount > self.maxCount:
                     self.forgetOldestVisit()
 
-            futureSuccess = self.findOrCreateVisit(url, title, referrer, index=index)
+            futureSuccess = self.findOrCreateVisit(url, title, 
+                                                   referrer, index=index)
             return futureSuccess.addCallback(lambda ign: forget())
 
-        if deferred is None:
-            return finishUp()
+        ref = qargs.get('ref')
+        
+        if ref:
+            # we got some value for "ref".  pass the referrer url to
+            # findOrCreateVisit, using same for title, because on the
+            # off chance that we didn't record the click when the user
+            # was viewing the referrer page, we don't have much else
+            # meaningful to use
+            deferred = self.findOrCreateVisit(ref, ref, index=index)
+            deferred.addCallback(storeReferee)
         else:
-            return deferred.addCallback(lambda ign: finishUp())
+            # Most likely selected a bookmark/shortcut
+            deferred = storeReferee(self.bookmarkVisit)
+        
+        return deferred
             
     def findOrCreateVisit(self, url, title, referrer=None, index=True):
         """
@@ -330,26 +327,28 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                 existingVisit.visitCount += 1
                 existingVisit.domain.visitCount += 1
                 return existingVisit
-            visit = self.store.transact(_)
-        else:
-            # New visit today
-            def _():
-                visit = Visit(store = self.store,
-                              url = url,
-                              timestamp = timeNow,
-                              title = title,
-                              domain = domain,
-                              referrer = referrer)
-                self.visitCount += 1
-                domainList = self.store.query(DomainList).next()
-                domainList.clicks += 1
-                self.clickCount += 1
-                visit.visitCount += 1
-                visit.domain.visitCount +=1
-                return visit
-            visit = self.store.transact(_)
-            if index:
-                return self.rememberVisit(visit)
+            return self.store.transact(_)
+            
+        # New visit today
+        def _():
+            visit = Visit(store = self.store,
+                            url = url,
+                            timestamp = timeNow,
+                            title = title,
+                            domain = domain,
+                            referrer = referrer)
+            self.visitCount += 1
+            domainList = self.store.query(DomainList).next()
+            domainList.clicks += 1
+            self.clickCount += 1
+            visit.visitCount += 1
+            visit.domain.visitCount +=1
+            return visit
+        
+        visit = self.store.transact(_)
+        if index:
+            return self.rememberVisit(visit).addCallback(lambda ign: visit)
+        return visit
 
     findOrCreateVisit = maybeDeferredWrapper(findOrCreateVisit)
             

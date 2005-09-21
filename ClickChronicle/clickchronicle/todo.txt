@@ -1,26 +1,34 @@
 Features/Fixed to do:
 ---------------------
-Empty signup causes exception
+Display favicon
+
+Figure out how to deal with unicode display, indexing and search
+
+Display referrer information
+
+Allow blocked domains to be browsed and edited
+
+Implement domain browser that allows visits to domains to be viewed.
+
+Allow clicky sorting of table by visits, etc.
+
+Charts of activity over time (clicks per hour/day. different sites)
+
+Create queue for indexing and removing from index to defend against
+race conditions and batch index changes for effieciency
 
 Visually distinguish each day in history
 
 Calendar view
 
-Figure out how to deal with unicode display, indexing and search
-
 Make SearchClicks a LivePage, not a live fragment
-
-Write some tests - need to use ccapp.py to create in-memory db and add
-visits, domain, ignores, etc.
 
 Allow export of clicks and bookmarks in .zip or email. Use mozilla
 bookmark format.
 
-Implement domain browser that allows visits to domains to be viewed.
-
-Allow blocked domains to be browsed and edited
-
 Allow "bookmark this" function from browser and/or clicks list.
+
+Bookmarks view
 
 Build some tagging UI.
 
@@ -32,25 +40,37 @@ http://www.amazon.com/gp/browse.html/104-7021508-1251135?node=12782661
 Look at other APIs that may be relevant/useful:
 http://www.programmableweb.com/apis
 
-Create queue for indexing and removing from index to defend against
-race conditions and batch index changes for effieciency
-
+-UI
+Visual tweaks (bring back old nav style or better)
 Logout link to __logout__
+Display username at the top of the page
 
-Display favicon
+- Signup
+Enter email address
+Receive email from cc.com
+Go to cc.com and see "Welcome moe@divmod.com" please enter password
+Email address entry checks (empty string, no @, etc. Quotient may have some code for this)
 
-Charts of activity over time
+- Options
+Number of items per page (remove from browser page)
+Don't share anonymous clicks
+Password
+Export data
 
-Display referrer information
+- Public site (i.e. non-logged in view of cc.com)
+Scrolling "Recent clicks"
+Privacy Policy
+FAQ
+Popular most clicks
+Zeitgeist highest rate of change of clicks
+Clicks per day chart
+Sites per day chart
 
-Bookmarks view
+- Private stats
+Same as public site
 
-Display username at the top of the page. Make sure it's visible at
-initial login/ticket claim e.g "set password for amir@divmod.com"
 
-Remember "per page" setting e.g. don't reset to 10 when user clicks
-"my clicks". Also consider removing 100 as an option due to
-performance reasons
+
 
 Features/Fixed done:
 --------------------

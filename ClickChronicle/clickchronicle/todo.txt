@@ -63,16 +63,6 @@ Track and record referrer information.
 
 Tests to do:
 ------------
-Visit cached
-- File exists
-- Length of file is not 0
-
-Visit indexed
-- number of docs in index makes sense (NB. an empty SmartIndex contains 1 doc before any have been added)
-
-Visit removed/forgotten
-- cached file is removed
-
 Domain Blocked
 - Flag is set correctly on domain
 - Exisiting visits removed; counts adjusted
@@ -91,6 +81,10 @@ Visit added
 - Domain created (DONE)
 - Visit count adjusted (DONE)
 
+Visit cached
+- File exists (DONE)
+- Length of file is not 0 (DONE)
+
 Visit counts
 - Visit an url multiple times and ensure domain and visit visitCounts increment (DONE)
 
@@ -101,7 +95,9 @@ Repeat visits
 
 Visit removed/forgotten
 - document with Visit storeID is removed from index (DONE)
+- cached file is removed (DONE)
 
 Visit indexed
 - able to retrieve Documente by storeID (DONE)
+- number of docs in index makes sense (NB. an empty SmartIndex contains 1 doc before any have been added) (DONE)
 - get a hit when searching (DONE)

@@ -5,7 +5,7 @@ from nevow.url import URL
 from twisted.internet import defer
 from clickchronicle.visit import Visit, Domain
 from clickchronicle.test.base import IndexAwareTestBase
-from os import path as osp
+import os
 
 class CacheFileAwareIndexingTestCase(IndexAwareTestBase, TestCase):
     def setUpClass(self):
@@ -14,9 +14,9 @@ class CacheFileAwareIndexingTestCase(IndexAwareTestBase, TestCase):
     def testCacheFileCreation(self):
         def afterVisitAll():
             for (i, visit) in enumerate(self.substore.query(Visit)):
-                cachedFilename = self.recorder.cachedFileNameFor(visit).path
-                self.failUnless(osp.exists(cachedFilename), 'bad cache filename')
-                cachedText = file(cachedFilename).read()
+                cachedFilename = self.recorder.cachedFileNameFor(visit)
+                self.failUnless(os.path.exists(cachedFilename.path), 'bad cache filename')
+                cachedText = file(cachedFilename.path).read()
                 # resourceData = the text served by the resource at the 
                 # visit's url (we control this)
                 resourceData = self.resourceMap[visit.title].data
@@ -24,9 +24,10 @@ class CacheFileAwareIndexingTestCase(IndexAwareTestBase, TestCase):
                 # now delete the visit!
                 self.recorder.forgetVisit(visit)
                 # and hope the cached file got removed as well
-                self.failIf(osp.exists(cachedFilename), 'cached file didnt get removed')
-            
+                self.failIf(os.path.exists(cachedFilename.path), 'cached file didnt get removed')
+                cachedFiles = len(os.listdir(cachedFilename.parent().path))
+                self.assertEqual(cachedFiles, len(self.urls)-(i+1))
+            self.assertEqual(cachedFiles, 0)
+
         self.assertNItems(self.substore, Visit, 0)
         return self.visitURLs(self.urls).addCallback(lambda ign: afterVisitAll())
-        
-        

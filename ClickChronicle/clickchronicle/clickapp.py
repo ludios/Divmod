@@ -26,20 +26,23 @@ class SearchBox(Item):
     searchPattern = attributes.inmemory()
     formAction = attributes.inmemory()
 
+    installedOn = attributes.reference()
+
     searches = attributes.integer(default=0)
 
     def installOn(self, other):
+        assert self.installedOn is None, "Cannot install SearchBox on more than one thing"
         other.powerUp(self, ixmantissa.INavigableElement)
-
-    def activate(self):
-        privApp = self.store.query(webapp.PrivateApplication).next()
-        docFactory = privApp.getDocFactory('search-box-fragment')
-        self.searchPattern = inevow.IQ(docFactory).patternGenerator('search')
-        searcher = self.store.query(ClickSearcher).next()
-        self.formAction = privApp.linkTo(searcher.storeID)
+        self.installedOn = other
 
     def topPanelContent(self):
-        return self.searchPattern.fillSlots('action', self.formAction)
+        translator = ixmantissa.IWebTranslator(self.installedOn, None)
+        if translator is not None:
+            docFactory = translator.getDocFactory('search-box-fragment')
+            self.searchPattern = inevow.IQ(docFactory).patternGenerator('search')
+            self.formAction = translator.linkTo(self.storeID)
+            return self.searchPattern.fillSlots('action', self.formAction)
+        return None
 
     def getTabs(self):
         return []
@@ -51,9 +54,9 @@ class CCPrivatePagedTable(website.AxiomFragment, PagedTableMixin):
     def __init__(self, original, docFactory=None):
         self.store = original.store
         website.AxiomFragment.__init__(self, original, docFactory)
-        self.privApp = original.store.query(webapp.PrivateApplication).next()
+        self.translator = ixmantissa.IWebTranslator(original.installedOn)
         self.clickList = original.store.query(ClickList).next()
-        pagingPatterns = inevow.IQ(self.privApp.getDocFactory('paging-patterns'))
+        pagingPatterns = inevow.IQ(self.translator.getDocFactory('paging-patterns'))
 
         pgen = pagingPatterns.patternGenerator
 
@@ -95,12 +98,12 @@ class ClickChronicleBenefactor(Item):
 
     def endow(self, ticket, avatar):
         self.endowed += 1
-        avatar.findOrCreate(webapp.PrivateApplication, 
+        avatar.findOrCreate(webapp.PrivateApplication,
                             preferredTheme=u'cc-skin').installOn(avatar)
 
         for item in (website.WebSite, ClickList, DomainList, Preferences,
                      ClickRecorder, indexinghelp.SyncIndexer,
-                     ClickSearcher, SearchBox, AuthenticationApplication):
+                     SearchBox, AuthenticationApplication):
             avatar.findOrCreate(item).installOn(avatar)
 
 class ClickList(Item):
@@ -110,11 +113,16 @@ class ClickList(Item):
 
     implements(ixmantissa.INavigableElement)
     typeName = 'clickchronicle_clicklist'
-    clicks = attributes.integer(default = 0)
     schemaVersion = 1
 
+    installedOn = attributes.reference()
+    clicks = attributes.integer(default = 0)
+
+
     def installOn(self, other):
+        assert self.installedOn is None, "Cannot install ClickList on more than one thing"
         other.powerUp(self, ixmantissa.INavigableElement)
+        self.installedOn = other
 
     def getTabs(self):
         '''show a link to myself in the navbar'''
@@ -130,11 +138,15 @@ class DomainList(Item):
 
     implements(ixmantissa.INavigableElement)
     typeName = 'clickchronicle_domainlist'
-    clicks = attributes.integer(default = 0)
     schemaVersion = 1
 
+    installedOn = attributes.reference()
+    clicks = attributes.integer(default = 0)
+
     def installOn(self, other):
+        assert self.installedOn is None, "Cannot install DomainList on more than one thing"
         other.powerUp(self, ixmantissa.INavigableElement)
+        self.installedOn = other
 
     def getTabs(self):
         '''show a link to myself in the navbar'''
@@ -256,7 +268,6 @@ class ClickRecorder(Item, website.PrefixURLMixin):
     # Number of MRU visits to keep
     maxCount = attributes.integer(default=500)
     bookmarkVisit = attributes.inmemory()
-    
 
     def installOn(self, other):
         super(ClickRecorder, self).installOn(other)
@@ -264,7 +275,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
 
     def activate(self):
         self.bookmarkVisit = self.store.findOrCreate(BookmarkVisit)
-        
+
     def createResource(self):
         return URLGrabber(self)
 
@@ -279,18 +290,18 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         title = qargs.get('title')
         if not title or title.isspace():
             title = url
-        
+
         def storeReferee(referrer):
             def forget():
                 if self.visitCount > self.maxCount:
                     self.forgetOldestVisit()
 
-            futureSuccess = self.findOrCreateVisit(url, title, 
+            futureSuccess = self.findOrCreateVisit(url, title,
                                                    referrer, index=index)
             return futureSuccess.addCallback(lambda ign: forget())
 
         ref = qargs.get('ref')
-        
+
         if ref:
             # we got some value for "ref".  pass the referrer url to
             # findOrCreateVisit, using same for title, because on the
@@ -302,9 +313,9 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         else:
             # Most likely selected a bookmark/shortcut
             deferred = storeReferee(self.bookmarkVisit)
-        
+
         return deferred
-            
+
     def findOrCreateVisit(self, url, title, referrer=None, index=True):
         """
         Try to find a visit to the same url TODAY.
@@ -328,7 +339,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                 existingVisit.domain.visitCount += 1
                 return existingVisit
             return self.store.transact(_)
-            
+
         # New visit today
         def _():
             visit = Visit(store = self.store,
@@ -344,14 +355,14 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             visit.visitCount += 1
             visit.domain.visitCount +=1
             return visit
-        
+
         visit = self.store.transact(_)
         if index:
             return self.rememberVisit(visit).addCallback(lambda ign: visit)
         return visit
 
     findOrCreateVisit = maybeDeferredWrapper(findOrCreateVisit)
-            
+
     def findVisitForToday(self, url):
         dtNow = datetime.now()
         timeNow = Time.fromDatetime(dtNow)
@@ -437,7 +448,7 @@ class SearchClicks(CCPrivatePagedTable):
 
     def __init__(self, orig, docFactory=None):
         self.indexer = orig.store.query(indexinghelp.SyncIndexer).next()
-        self.searchbox = orig.store.query(SearchBox).next()
+        self.searchbox = orig
         CCPrivatePagedTable.__init__(self, orig, docFactory)
 
     def head(self):
@@ -490,24 +501,8 @@ class SearchClicks(CCPrivatePagedTable):
             self.searchbox.searches += 1
         self.original.store.transact(txn)
 
-class ClickSearcher(Item):
-    implements(ixmantissa.INavigableElement)
-    typeName = 'clickchronicle_clicksearcher'
-    schemaVersion = 1
-
-    searches = attributes.integer(default = 0)
-
-    def installOn(self, other):
-        other.powerUp(self, ixmantissa.INavigableElement)
-
-    def topPanelContent(self):
-        return None
-
-    def getTabs(self):
-        return []
-
 registerAdapter(SearchClicks,
-                ClickSearcher,
+                SearchBox,
                 ixmantissa.INavigableFragment)
 
 class URLGrabber(rend.Page):

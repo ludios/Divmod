@@ -1,5 +1,7 @@
 Features/Fixed to do:
 ---------------------
+base64 each domain's favicon and embed in exported bookmarks, because ffox supports it
+
 Look for rel="icon" link elements in HTML (some sites, like ours, don't put the icon at /favicon.ico)
 
 Figure out how to deal unicode indexing and search
@@ -95,6 +97,8 @@ Track and record referrer information. (DONE)
 Tests to do:
 ------------
 Search fragment test
+Performance tests
+Automated code coverage reporting
 
 Tests done:
 -----------

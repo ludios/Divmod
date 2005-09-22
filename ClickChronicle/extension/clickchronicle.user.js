@@ -3,7 +3,8 @@
 // @namespace     http://clickchronicle.com/
 // @description   Capture surfing to ClickChronicle
 // @include       *
-// @exclude       *divmod.com*, *.clickchronicle.com
+// @exclude       *divmod.com*
+// @exclude       *clickchronicle.com*
 // ==/UserScript==
 
 (function() {
@@ -16,12 +17,13 @@
     // Post the URL to the divmod server
     if(intercept_on){
       GM_xmlhttpRequest({ method:"POST",
-			    url:'http://clickchronicle.com/private/record' +
-		            '?url=' + escape(document.location.href) +
-			    '&title=' + escape(document.title),
+			    url:'http://shannon:8080/private/record' +
+		            '?url=' + encodeURIComponent(document.location.href) +
+			    '&title=' + encodeURIComponent(document.title) +
+			    '&referrer=' + encodeURIComponent(document.referrer),
 			    
 			    onload:function(result) {
-			    GM_log(result.status + ' ' + result.statusText + ' ' +
+			    GM_log('logging: ' + result.status + ' ' + result.statusText + ' ' +
 				   document.location.href + ' ' +
 				   document.title)
 			      }
@@ -73,12 +75,12 @@
 	}
 
 	if (intercept_on) {
-	    pi.textContent = 'DH On';
+	    pi.textContent = 'CC On';
 	    pi.setAttribute('title', 'Click to turn Divmod History Recording Off');
 	    pi.style.backgroundColor = '#0c2369';
 	    pi.style.color = '#ddff00';
 	} else {
-	    pi.textContent = 'DH Off';
+	    pi.textContent = 'CC Off';
 	    pi.setAttribute('title', 'Click to turn Divmod History Recoding On');
 	    pi.style.backgroundColor = '#ccc';
 	    pi.style.color = '#888';
@@ -88,7 +90,6 @@
     function interceptor_setup()
     {
       intercept_on = GM_getValue(POST_INTERCEPT, false);
-      GM_log('intercept_on = ' + intercept_on);
       setup_pi_button();
     }
 

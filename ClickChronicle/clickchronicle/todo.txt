@@ -32,8 +32,6 @@ Bookmarks view
 
 Build some tagging UI.
 
-Implement "exits from this page" option in extention.
-
 Incorporate Alexa info:
 http://www.amazon.com/gp/browse.html/104-7021508-1251135?node=12782661
 
@@ -69,7 +67,18 @@ Sites per day chart
 - Private stats
 Same as public site
 
+- Extension
+Compile Greasemonkey script into standalone extension
+OR
+Fix our extension and move title stuff to server
+OR
+Look at ATX and see if they figured out something with the title
+Allow uname, pword to be set so user does not need to log in
+Add record/pause UI
+Implement "exits from this page" option in extention.
 
+- Environment for going live
+Set XAPIAN_PREFER_FLINT=1 in the environment to ensure flint format xapian db
 
 
 Features/Fixed done:

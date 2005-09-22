@@ -1,6 +1,6 @@
 Features/Fixed to do:
 ---------------------
-Display favicon
+Look for rel="icon" link elements in HTML (some sites, like ours, don't put the icon at /favicon.ico)
 
 Figure out how to deal with unicode display, indexing and search
 
@@ -75,6 +75,7 @@ OR
 Fix our extension and move title stuff to server
 OR
 Look at ATX and see if they figured out something with the title
+3A
 Allow uname, pword to be set so user does not need to log in
 Add record/pause UI
 Implement "exits from this page" option in extention.
@@ -85,6 +86,7 @@ Set XAPIAN_PREFER_FLINT=1 in the environment to ensure flint format xapian db
 
 Features/Fixed done:
 --------------------
+Display favicon (DONE)
 Strip css out of html (DONE)
 The visible text for anchors does not get indexed (it's gobbled up by the html tag stripper) (DONE)
 Investigate beautiful soup for html parsing (DONE)

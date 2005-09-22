@@ -10,6 +10,8 @@ Allow blocked domains to be browsed and edited
 
 Implement domain browser that allows visits to domains to be viewed.
 
+Ignore pages with a Content-Length header over a threshold
+
 Allow clicky sorting of table by visits, etc.
 
 Charts of activity over time (clicks per hour/day. different sites)

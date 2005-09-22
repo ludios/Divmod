@@ -15,7 +15,7 @@ class ClickRecorderTestCase(CCTestBase, TestCase):
     def setUp(self):
         self.setUpStore()
 
-    def _testRecordNoIndex(self):
+    def testRecordNoIndex(self):
         ss = self.substore
         
         self.assertNItems(ss, Visit, 0)
@@ -29,7 +29,7 @@ class ClickRecorderTestCase(CCTestBase, TestCase):
         # same URL, different title
         wait(self.makeVisit(url=nextUrl, title=mktemp(), index=False))
 
-    def _testReferrer(self):
+    def testReferrer(self):
         iterurls = self.urlsWithSameDomain()
         url = iterurls.next()
         visit = self.record(title=url, url=url)
@@ -71,14 +71,14 @@ class IgnoreDomainTestCase(CCTestBase, TestCase):
     def setUp(self):
         self.setUpStore()
 
-    def _testIgnoreVisitIgnoresDomain(self):
+    def testIgnoreVisitIgnoresDomain(self):
         url = self.randURL()
         visit = self.record(title=url, url=url) 
         domain = visit.domain
         self.ignore(visit)
         self.assertEqual(domain.ignore, 1)
 
-    def _testVisitsToIgnoredDomains(self):
+    def testVisitsToIgnoredDomains(self):
         iterurls = self.urlsWithSameDomain()
         url = iterurls.next()
         self.ignore(self.record(title=url, url=url))
@@ -89,7 +89,7 @@ class IgnoreDomainTestCase(CCTestBase, TestCase):
             self.assertNItems(self.substore, Visit, 0)
             self.assertEqual(self.recorder.visitCount, 0)
 
-    def _testIgnoreVisitIgnoresOldVisits(self):
+    def testIgnoreVisitIgnoresOldVisits(self):
         # visitURLs wants a title -> url dictionary
         urls = dict((u, u) for u in self.urlsWithSameDomain())
         
@@ -111,7 +111,7 @@ class IndexingClickRecorderTestCase(IndexAwareTestBase, TestCase):
     def tearDownClass(self):
         self.tearDownWebIndexer()
 
-    def _testCommonTermsMatchAll(self):
+    def testCommonTermsMatchAll(self):
         data = dict((k, v.data) for (k, v) in self.resourceMap.iteritems())
 
         (first, second) = (data['first'], data['second'])
@@ -122,16 +122,16 @@ class IndexingClickRecorderTestCase(IndexAwareTestBase, TestCase):
         self.assertUniform(('second', 'both'),
                            *(allTitles(self.itemsForTerm(t)) for t in second.split()))
         
-    def _testNonUniversalTermsDontMatchAll(self):
+    def testNonUniversalTermsDontMatchAll(self):
         both = self.resourceMap['both'].data
         self.assertUniform(allTitles(self.itemsForTerm('a i')), ('both',))
         self.assertUniform(allTitles(self.itemsForTerm(both)), ('both',))
 
-    def _testCounterfeitMatches(self):
+    def testCounterfeitMatches(self):
         self.assertEqual(len(list(self.itemsForTerm('z'))), 0)
         self.assertEqual(len(list(self.itemsForTerm('xyz'))), 0)
 
-    def _testForgottenVisitsDontMatch(self):
+    def testForgottenVisitsDontMatch(self):
         both = self.substore.query(Visit, Visit.title=='both').next()
         self.recorder.forgetVisit(both)
         # we've removed the "both" visit - nothing should match terms
@@ -150,9 +150,8 @@ class MeanResourceTestCase(MeanResourceTestBase, TestCase):
     def tearDown(self):
         self.tearDownWebIndexer()
         
-    def _testNoRecord(self):
-        def onRecordingError(f):
-            f.trap(Error)
+    def testNoRecord(self):
+        def onRecordingError():
             # assert nothing was indexed
             self.assertEqual(preIndexCount, self.indexer.indexCount)
             # assert a visit was created
@@ -171,5 +170,4 @@ class MeanResourceTestCase(MeanResourceTestBase, TestCase):
         futureSuccess = self.recorder.recordClick(dict(url=self.urls['mean'], 
                                                        title='mean'), index=True)
         
-        return futureSuccess.addCallbacks(lambda ign: self.fail('expected 400 "BAD REQUEST"'),
-                                          onRecordingError)
+        return futureSuccess.addCallback(lambda ign: onRecordingError())

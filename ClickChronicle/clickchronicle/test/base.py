@@ -68,7 +68,8 @@ class CCTestBase:
                 
             return visit    
 
-        futureSuccess = self.recorder.recordClick(dict(url=url, title=title), index=index)
+        futureSuccess = self.recorder.recordClick(dict(url=url, title=title), index=index,
+                                                  storeFavicon=False)
         return futureSuccess.addCallback(lambda v: postRecord())
     
     def assertNItems(self, store, item, count):
@@ -88,7 +89,7 @@ class CCTestBase:
 
     def record(self, title, url, **k):
         wait(self.recorder.recordClick(dict(url=url, title=title, **k), 
-                                        index=False))
+                                        index=False, storeFavicon=False))
         try:
             return self.substore.query(Visit, Visit.url==url).next()
         except StopIteration:
@@ -103,7 +104,8 @@ class CCTestBase:
     def visitURLs(self, urls, index=True):
         deferreds = []
         for (resname, url) in urls.iteritems():
-            futureVisit = self.recorder.recordClick(dict(url=url, title=resname), index=index)
+            futureVisit = self.recorder.recordClick(dict(url=url, title=resname), index=index,
+                                                    storeFavicon=False)
             deferreds.append(futureVisit)
         return defer.gatherResults(deferreds)
 
@@ -130,7 +132,8 @@ class DataServingTestBase(CCTestBase):
         root = resource.Resource()
         for (resname, res) in self.resourceMap.iteritems():
             root.putChild(resname, res)
-            
+        # fix this:
+        root.putChild('favicon.ico', static.Data('', 'text/plain')) 
         site = server.Site(root, timeout=None)
         self.port = self.listen(site)
         reactor.iterate(); reactor.iterate()

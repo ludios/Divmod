@@ -10,6 +10,7 @@
     <tr class="clickRowAlt" nevow:pattern="item" nevow:render="mapping">
       <td class="clickCol"><nevow:slot name="timestamp"/></td>
       <td class="clickCol">
+        <img class="linkIcon"><nevow:attr name="src"><nevow:slot name="icon"/></nevow:attr></img>
         <a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a>
       </td>
       <td class="clickCol" style="text-align: center">
@@ -22,6 +23,7 @@
     <tr class="clickRow" nevow:pattern="item" nevow:render="mapping">
       <td class="clickCol"><nevow:slot name="timestamp"/></td>
       <td class="clickCol">
+        <img class="linkIcon"><nevow:attr name="src"><nevow:slot name="icon"/></nevow:attr></img>
         <a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a>
       </td>
       <td class="clickCol" style="text-align: center">

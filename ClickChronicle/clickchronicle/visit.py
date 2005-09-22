@@ -7,31 +7,39 @@ from axiom import attributes
 
 from epsilon.extime import Time
 
-from clickchronicle import indexinghelp
+from clickchronicle import iclickchronicle, indexinghelp
 
 class Domain(Item):
+    implements(iclickchronicle.IVisited)
+    
     host = attributes.bytes()
     title = attributes.bytes()
     visitCount = attributes.integer(default=0)
     ignore = attributes.integer(default=0) # Boolean
-
+    favIcon = attributes.reference()
+    timestamp = attributes.timestamp()
+    
     schemaVersion = 1
     typeName = 'domain'
 
     def asDict(self):
-        """Return a friendly dictionary of url/title/timestamp"""
         return dict(url = self.host, title = self.title,
-                    timestamp = (Time.fromDatetime(datetime.now())).asHumanly(), visits=self.visitCount)
+                    timestamp = (Time.fromDatetime(datetime.now())).asHumanly(), 
+                    visits=self.visitCount)
+
+    def asIcon(self):
+        return self.favIcon
     
 class Visit(Item):
     """I correspond to a webpage-visit logged by a clickchronicle user"""
-    implements(indexinghelp.IIndexable)
+    implements(iclickchronicle.IIndexable, iclickchronicle.IVisited)
+    
     timestamp = attributes.timestamp()
     url = attributes.bytes()
     title = attributes.bytes()
     visitCount = attributes.integer(default=0)
-    domain = attributes.reference(allowNone = False)
-    referrer = attributes.reference(allowNone=True)
+    domain = attributes.reference(allowNone=False)
+    referrer = attributes.reference()
 
     schemaVersion = 1
     typeName = 'visit'
@@ -48,9 +56,12 @@ class Visit(Item):
         return d
 
     def asDict(self):
-        """Return a friendly dictionary of url/title/timestamp"""
         return dict(url = self.url, title = self.title,
-                    timestamp = self.timestamp.asHumanly(), visits=self.visitCount)
+                    timestamp = self.timestamp.asHumanly(), 
+                    visits=self.visitCount)
+
+    def asIcon(self):
+        return self.domain.favIcon
         
 class BookmarkVisit(Item):
     """A special visit that is used as visit.referrer if the visit was referred

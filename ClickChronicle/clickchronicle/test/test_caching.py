@@ -1,9 +1,5 @@
-from tempfile import mktemp
 from twisted.trial.unittest import TestCase
-from twisted.trial.util import wait
-from nevow.url import URL
-from twisted.internet import defer
-from clickchronicle.visit import Visit, Domain
+from clickchronicle.visit import Visit
 from clickchronicle.test.base import IndexAwareTestBase
 import os
 

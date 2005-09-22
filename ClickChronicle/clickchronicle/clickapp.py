@@ -555,7 +555,7 @@ class SearchClicks(CCPrivatePagedTable):
         store = self.original.store
         for spec in specs:
             visit = store.getItemByID(spec['uid'])
-            yield self.prepareVisited(iclickchronicle.IVisted(visit))
+            yield self.prepareVisited(iclickchronicle.IVisited(visit))
 
     def incrementSearches(self):
         def txn():

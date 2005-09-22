@@ -2,7 +2,7 @@ Features/Fixed to do:
 ---------------------
 Look for rel="icon" link elements in HTML (some sites, like ours, don't put the icon at /favicon.ico)
 
-Figure out how to deal with unicode display, indexing and search
+Figure out how to deal unicode indexing and search
 
 Display referrer information
 
@@ -11,6 +11,8 @@ Allow blocked domains to be browsed and edited
 Implement domain browser that allows visits to domains to be viewed.
 
 Ignore pages with a Content-Length header over a threshold
+
+Some kind of disk space usage statistics
 
 Allow clicky sorting of table by visits, etc.
 
@@ -70,12 +72,8 @@ Sites per day chart
 Same as public site
 
 - Extension
-Compile Greasemonkey script into standalone extension
-OR
-Fix our extension and move title stuff to server
-OR
-Look at ATX and see if they figured out something with the title
-3A
+Compile Greasemonkey script into standalone extension OR Fix our
+extension and move title stuff to server
 Allow uname, pword to be set so user does not need to log in
 Add record/pause UI
 Implement "exits from this page" option in extention.

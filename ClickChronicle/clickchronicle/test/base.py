@@ -25,12 +25,15 @@ class CCTestBase:
         benefactor = clickapp.ClickChronicleBenefactor(store = store)
         booth = signup.TicketBooth(store = store)
         booth.installOn(store)
-        
+
         ticket = booth.createTicket(booth, u'x@y.z', benefactor)
         ticket.claim()
-        
+
         self.superstore = store
         self.substore = ticket.avatar.avatars.substore
+
+        init = self.substore.query(clickapp.ClickChronicleInitializer).next()
+        init.setPassword('123pass456')
 
         self.recorder = self.firstItem(self.substore, clickapp.ClickRecorder)
         self.clicklist = self.firstItem(self.substore, clickapp.ClickList)
@@ -43,7 +46,7 @@ class CCTestBase:
             break
         else:
             domainCount = 0
-        
+
         (seenURL, visitCount, prevTimestamp) = (False, 0, None)
         for visit in self.substore.query(Visit, Visit.url==url):
             (seenURL, visitCount, prevTimestamp) = (True, visit.visitCount, visit.timestamp)
@@ -56,7 +59,7 @@ class CCTestBase:
 
             visit = self.substore.query(Visit, Visit.url==url).next()
             self.assertEqual(visit.visitCount, visitCount+1)
-            
+
             if seenURL:
                 self.assertEqual(self.substore.count(Visit, Visit.url==url), 1)
                 self.failUnless(prevTimestamp < visit.timestamp)
@@ -65,13 +68,13 @@ class CCTestBase:
 
             self.assertEqual(visit.domain.visitCount, domainCount+1)
             self.assertEqual(visit.domain.host, host)
-                
-            return visit    
+
+            return visit
 
         futureSuccess = self.recorder.recordClick(dict(url=url, title=title), index=index,
                                                   storeFavicon=False)
         return futureSuccess.addCallback(lambda v: postRecord())
-    
+
     def assertNItems(self, store, item, count):
         self.assertEqual(self.itemCount(store, item), count)
 
@@ -80,7 +83,7 @@ class CCTestBase:
             first = sorted(sequences[0])
             for other in sequences[1:]:
                 self.assertEqual(first, sorted(other))
-            
+
     def randURL(self):
         return '%s.com' % mktemp(dir='http://', suffix='/')
 
@@ -88,13 +91,13 @@ class CCTestBase:
         self.recorder.ignoreVisit(visit)
 
     def record(self, title, url, **k):
-        wait(self.recorder.recordClick(dict(url=url, title=title, **k), 
+        wait(self.recorder.recordClick(dict(url=url, title=title, **k),
                                         index=False, storeFavicon=False))
         try:
             return self.substore.query(Visit, Visit.url==url).next()
         except StopIteration:
             return
-                                        
+
     def urlsWithSameDomain(self, count=10):
         base = URL.fromString(self.randURL())
         yield str(base)
@@ -118,7 +121,7 @@ class DataServingTestBase(CCTestBase):
         e.g. GET /first will return a document containing "a b c d e f g h"
         override getResourceMap if you want to change this
     """
-        
+
     def listen(self, site):
         return reactor.listenTCP(0, site, interface='127.0.0.1')
 
@@ -133,7 +136,7 @@ class DataServingTestBase(CCTestBase):
         for (resname, res) in self.resourceMap.iteritems():
             root.putChild(resname, res)
         # fix this:
-        root.putChild('favicon.ico', static.Data('', 'text/plain')) 
+        root.putChild('favicon.ico', static.Data('', 'text/plain'))
         site = server.Site(root, timeout=None)
         self.port = self.listen(site)
         reactor.iterate(); reactor.iterate()
@@ -154,11 +157,11 @@ class DataServingTestBase(CCTestBase):
 class MeanResource(resource.Resource):
     def __init__(self, responseCode=http.BAD_REQUEST):
         self.responseCode = responseCode
-        
+
     def render_GET(self, request):
         request.setResponseCode(self.responseCode)
         return ''
-    
+
 class IndexAwareTestBase(DataServingTestBase):
     def setUpWebIndexer(self):
         self.setUpWebServer()
@@ -173,11 +176,10 @@ class IndexAwareTestBase(DataServingTestBase):
 
 class MeanResourceTestBase(IndexAwareTestBase):
     """
-    same as IndexAwareTestBase, but i add a resource 
-    that always sets the response code to 400 BAD REQUEST 
+    same as IndexAwareTestBase, but i add a resource
+    that always sets the response code to 400 BAD REQUEST
     """
     def getResourceMap(self):
         rmap = DataServingTestBase.getResourceMap(self)
         rmap['mean'] = MeanResource()
         return rmap
-    

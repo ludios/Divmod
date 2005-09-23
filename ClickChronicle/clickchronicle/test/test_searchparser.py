@@ -7,7 +7,7 @@ class SearchParserTestCase(CCTestBase, TestCase):
         positive = ['hello', 'hello world', 'goodbye cruel world']
         for s in positive:
             self.assertUniform(s.split(), parseSearchString(s))
-                                              
+
     def testQuoting(self):
         positive = {'hello "cruel world"'  : ['hello', '"cruel world"'],
                     'squeamish "ossifrage"' : ['squeamish', '"ossifrage"'],
@@ -24,5 +24,3 @@ class SearchParserTestCase(CCTestBase, TestCase):
 
         for (source, expected) in positive.iteritems():
             self.assertUniform(expected, parseSearchString(source))
-        
-        

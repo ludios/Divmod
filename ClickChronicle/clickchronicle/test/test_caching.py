@@ -16,7 +16,7 @@ class CacheFileAwareIndexingTestCase(IndexAwareTestBase, TestCase):
                 cachedFilename = self.recorder.cachedFileNameFor(visit)
                 self.failUnless(os.path.exists(cachedFilename.path), 'bad cache filename')
                 cachedText = file(cachedFilename.path).read()
-                # resourceData = the text served by the resource at the 
+                # resourceData = the text served by the resource at the
                 # visit's url (we control this)
                 resourceData = self.resourceMap[visit.title].data
                 self.assertEqual(resourceData, cachedText)

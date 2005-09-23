@@ -5,8 +5,8 @@ from twisted.web.error import Error
 from nevow.url import URL
 from clickchronicle.clickapp import ClickRecorder
 from clickchronicle.visit import Visit, Domain, BookmarkVisit
-from clickchronicle.test.base import (IndexAwareTestBase, 
-                                      MeanResourceTestBase, 
+from clickchronicle.test.base import (IndexAwareTestBase,
+                                      MeanResourceTestBase,
                                       CCTestBase)
 
 allTitles = lambda visits: (v.title for v in visits)
@@ -17,10 +17,10 @@ class ClickRecorderTestCase(CCTestBase, TestCase):
 
     def testRecordNoIndex(self):
         ss = self.substore
-        
+
         self.assertNItems(ss, Visit, 0)
         self.assertNItems(ss, Domain, 0)
-      
+
         url = self.randURL()
         wait(self.makeVisit(url=url, title=mktemp(), index=False))
         nextUrl = str(URL.fromString(url).child('a').child('b'))
@@ -55,9 +55,9 @@ class ClickRecorderTestCase(CCTestBase, TestCase):
             storeAndCheck(urls[i], i+1)
 
         def orderedTitles():
-            return list(allTitles(self.substore.query(Visit, 
+            return list(allTitles(self.substore.query(Visit,
                             sort=Visit.timestamp.ascending)))
-            
+
         allTitlesOrdered = orderedTitles()
         urls = sorted(urls)
         self.assertEqual(sorted(allTitlesOrdered), urls[:maxCount])
@@ -65,7 +65,7 @@ class ClickRecorderTestCase(CCTestBase, TestCase):
         oldestTitle = allTitlesOrdered[0]
         urls.remove(oldestTitle)
         self.assertEqual(sorted(orderedTitles()), urls)
-        
+
 class IgnoreDomainTestCase(CCTestBase, TestCase):
 
     def setUp(self):
@@ -73,7 +73,7 @@ class IgnoreDomainTestCase(CCTestBase, TestCase):
 
     def testIgnoreVisitIgnoresDomain(self):
         url = self.randURL()
-        visit = self.record(title=url, url=url) 
+        visit = self.record(title=url, url=url)
         domain = visit.domain
         self.ignore(visit)
         self.assertEqual(domain.ignore, 1)
@@ -92,7 +92,7 @@ class IgnoreDomainTestCase(CCTestBase, TestCase):
     def testIgnoreVisitIgnoresOldVisits(self):
         # visitURLs wants a title -> url dictionary
         urls = dict((u, u) for u in self.urlsWithSameDomain())
-        
+
         def afterVisits():
             self.assertEqual(self.recorder.visitCount, len(urls))
             self.assertNItems(self.substore, Visit, len(urls))
@@ -115,13 +115,13 @@ class IndexingClickRecorderTestCase(IndexAwareTestBase, TestCase):
         data = dict((k, v.data) for (k, v) in self.resourceMap.iteritems())
 
         (first, second) = (data['first'], data['second'])
-        
+
         self.assertUniform(('first', 'both'),
                            *(allTitles(self.itemsForTerm(t)) for t in first.split()))
-        
+
         self.assertUniform(('second', 'both'),
                            *(allTitles(self.itemsForTerm(t)) for t in second.split()))
-        
+
     def testNonUniversalTermsDontMatchAll(self):
         both = self.resourceMap['both'].data
         self.assertUniform(allTitles(self.itemsForTerm('a i')), ('both',))
@@ -149,7 +149,7 @@ class MeanResourceTestCase(MeanResourceTestBase, TestCase):
 
     def tearDown(self):
         self.tearDownWebIndexer()
-        
+
     def testNoRecord(self):
         def onRecordingError():
             # assert nothing was indexed
@@ -167,7 +167,7 @@ class MeanResourceTestCase(MeanResourceTestBase, TestCase):
         self.assertEqual(preIndexCount, 0)
         preVisitCount = self.recorder.visitCount
         self.assertEqual(preVisitCount, 0)
-        futureSuccess = self.recorder.recordClick(dict(url=self.urls['mean'], 
+        futureSuccess = self.recorder.recordClick(dict(url=self.urls['mean'],
                                                        title='mean'), index=True)
-        
+
         return futureSuccess.addCallback(lambda ign: onRecordingError())

@@ -1,17 +1,18 @@
 from datetime import datetime, timedelta
 from zope.interface import implements
 
+from twisted.python import util
 from twisted.internet import reactor, defer
 from twisted.python.components import registerAdapter
 from twisted.web import client, static
 
 from nevow.url import URL
-from nevow import rend, inevow, tags
+from nevow import rend, inevow, tags, loaders
 
 from epsilon.extime import Time
 
 from axiom.item import Item
-from axiom import attributes
+from axiom import userbase, attributes
 
 from xmantissa import ixmantissa, webnav, website, webapp
 from xmantissa.webgestalt import AuthenticationApplication
@@ -128,13 +129,78 @@ class ClickChronicleBenefactor(Item):
 
     def endow(self, ticket, avatar):
         self.endowed += 1
+
+        avatar.findOrCreate(website.WebSite).installOn(avatar)
         avatar.findOrCreate(webapp.PrivateApplication,
                             preferredTheme=u'cc-skin').installOn(avatar)
+        avatar.findOrCreate(ClickChronicleInitializer).installOn(avatar)
 
-        for item in (website.WebSite, ClickList, DomainList, Preferences,
+class ClickChronicleInitializer(Item):
+    """
+    Installed by the Click Chronicle benefactor, this Item presents
+    itself as a page for initializing your password.  Once done, the
+    actual ClickChronicle powerups are installed.
+    """
+    implements(ixmantissa.INavigableElement)
+
+    typeName = 'clickchronicle_password_initializer'
+    schemaVersion = 1
+
+    installedOn = attributes.reference()
+
+    def installOn(self, other):
+        assert self.installedOn is None, "Cannot install ClickChronicleInitializer on more than one thing"
+        other.powerUp(self, ixmantissa.INavigableElement)
+        self.installedOn = other
+
+    def getTabs(self):
+        # This won't ever actually show up
+        return [webnav.Tab('Preferences', self.storeID, 1.0)]
+
+    def topPanelContent(self):
+        return None
+
+    def setPassword(self, password):
+        """
+        Set the password for this user, install the ClickChronicle
+        powerups and delete this Item from the database.
+        """
+        substore = self.store.parent.getItemByID(self.store.idInParent)
+        for acc in self.store.parent.query(userbase.LoginAccount,
+                                           userbase.LoginAccount.avatars == substore):
+            acc.password = password
+            self._reallyEndow()
+            return
+
+    def _reallyEndow(self):
+        avatar = self.installedOn
+
+        for item in (ClickList, DomainList, Preferences,
                      ClickRecorder, indexinghelp.SyncIndexer,
                      SearchBox, AuthenticationApplication):
             avatar.findOrCreate(item).installOn(avatar)
+
+        avatar.powerDown(self, ixmantissa.INavigableElement)
+        self.deleteFromStore()
+
+
+class ClickChronicleInitializerPage(rend.Page):
+    docFactory = loaders.xmlfile(util.sibpath(__file__, 'static/html/initialize.html'))
+
+    def renderHTTP(self, ctx):
+        req = inevow.IRequest(ctx)
+        password = req.args.get('password', [None])[0]
+
+        if password is None:
+            return rend.Page.renderHTTP(self, ctx)
+
+        self.original.store.transact(self.original.setPassword, password)
+        return URL.fromString('/')
+
+registerAdapter(ClickChronicleInitializerPage,
+                ClickChronicleInitializer,
+                inevow.IResource)
+
 
 class ClickList(Item):
     """similar to Preferences, i am an implementor of INavigableElement,

@@ -17,11 +17,11 @@
     // Post the URL to the divmod server
     if(intercept_on){
       GM_xmlhttpRequest({ method:"POST",
-			    url:'http://shannon:8080/private/record' +
+			    url:'http://clickchronicle:8080/private/record' +
 		            '?url=' + encodeURIComponent(document.location.href) +
 			    '&title=' + encodeURIComponent(document.title) +
 			    '&referrer=' + encodeURIComponent(document.referrer),
-			    
+
 			    onload:function(result) {
 			    GM_log('logging: ' + result.status + ' ' + result.statusText + ' ' +
 				   document.location.href + ' ' +

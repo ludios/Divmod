@@ -1,8 +1,8 @@
 import re
 
-phrase = re.compile(r'("[^"]+?")')
-minusWord = re.compile(r'\-(\S+)')
-minusPhrase = re.compile(r'\-%s' % phrase.pattern)
+phrase = re.compile(r'("[^"]+?")', re.U)
+minusWord = re.compile(r'\-(\S+)', re.U)
+minusPhrase = re.compile(r'\-%s' % phrase.pattern, re.U)
 
 def parseSearchString(s):
     result = []

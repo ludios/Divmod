@@ -79,9 +79,11 @@ extension and move title stuff to server
 Allow uname, pword to be set so user does not need to log in
 Add record/pause UI
 Implement "exits from this page" option in extention.
+Use https to post urls to the server
 
 - Environment for going live
 Set XAPIAN_PREFER_FLINT=1 in the environment to ensure flint format xapian db
+Install additional encoding a la erinq
 
 
 Features/Fixed done:

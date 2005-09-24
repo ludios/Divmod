@@ -370,7 +370,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
     visitCount = attributes.integer(default = 0)
     prefixURL = 'private/record'
     # Caching needs to be provisioned/bestowed
-    caching = True
+    caching = attributes.boolean(default=True)
     # Number of MRU visits to keep
     maxCount = attributes.integer(default=500)
     bookmarkVisit = attributes.inmemory()
@@ -572,7 +572,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
     def ignoreVisit(self, visit):
         def txn():
             # ignore the Domain
-            visit.domain.ignore = 1
+            visit.domain.ignore = True
             for (i, similarVisit) in enumerate(self.store.query(Visit, Visit.domain == visit.domain)):
                 self.forgetVisit(similarVisit)
 

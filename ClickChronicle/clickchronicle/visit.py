@@ -10,7 +10,7 @@ class Domain(Item):
     url = attributes.bytes()
     title = attributes.bytes()
     visitCount = attributes.integer(default=0)
-    ignore = attributes.integer(default=0) # Boolean
+    ignore = attributes.boolean(default=False)
     favIcon = attributes.reference()
     timestamp = attributes.timestamp()
 

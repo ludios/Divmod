@@ -4,6 +4,10 @@ base64 each domain's favicon and embed in exported bookmarks, because ffox suppo
 
 Look for rel="icon" link elements in HTML (some sites, like ours, don't put the icon at /favicon.ico)
 
+Force favicon to display at 16x16
+
+Make sure browser caches favicons
+
 Figure out how to deal unicode indexing and search
 
 Display referrer information
@@ -101,6 +105,7 @@ Tests to do:
 Search fragment test
 Performance tests
 Automated code coverage reporting
+Functional tests e.g. login, click around the table, change password, search
 
 Tests done:
 -----------

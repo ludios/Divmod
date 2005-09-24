@@ -1,24 +1,19 @@
-from zope.interface import Interface, Attribute
+from zope.interface import Interface
 
-class IVisited(Interface):
+class IDisplayableVisit(Interface):
     """
-    I represent a web-accessible resource visited by a clickchronicle user
+    I represent a displayable view of an Item
     """
-
-    title = Attribute("string - title/display name of resource")
-    visitCount = Attribute("integer - number of times user visited resource")
-    timestamp = Attribute("extime.Time - timestamp of last recorded visit")
 
     def asDict(self):
         """
-        Return a dictionary summarizing my attributes
+        Return a dictionary summarizing my more useful attributes
         """
 
     def asIcon(self):
         """
-        Return FavIcon Item associated with visited resource
+        Return FavIcon item associated with this visit
         """
-
 
 class IIndexer(Interface):
     """
@@ -39,7 +34,7 @@ class IIndexer(Interface):
         """
         Return a 2-tuple of (estimated-matches, total-docs-indexed)
         """
-        
+
 
 class IIndexable(Interface):
     """

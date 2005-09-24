@@ -1,3 +1,5 @@
+var activeSortCol = null;
+
 function selectOptionWithValue( elem, value ) {
     for( var i = 0; i < elem.childNodes.length; i++ )
         if( elem.childNodes[i].value == value ) {
@@ -6,54 +8,80 @@ function selectOptionWithValue( elem, value ) {
         }
 }
 
-function ignore(url) {
-    server.handle('ignore', url);
+ignore = partial(server.handle, "ignore");
+
+function visible(e) {
+    return e.style.display != "none";
 }
 
-function changedItemsPerPage() {
-    server.handle("changeItemsPerPage", getSelected("pages"), getSelected("itemsPerPage"));
+var UP_ARROW = "\u2191";
+var DN_ARROW = "\u2193";
+
+function toggleSort(column) {
+    var col = $("sortcol_" + column);
+    if(col == activeSortCol) {
+        var newDirection = ($("sortArrow").firstChild.nodeValue == UP_ARROW) ? "descending" : "ascending";
+        server.handle("updateTable", getSelected("pages"), column, newDirection);
+    } else
+        server.handle("updateTable", getSelected("pages"), column);
 }
+    
+function setSortState(column, direction) {
+    try{ activeSortCol.removeChild($("sortArrow")) } catch(e) {}
+    var col = $("sortcol_" + column);
+    activeSortCol = col;
+    var arrow = (direction == "ascending") ? UP_ARROW : DN_ARROW;
+    col.appendChild(SPAN({"id":"sortArrow"}, arrow));
+}
+
+function doDisable(eid1, eid2) {
+    var e1 = $(eid1), e2 = $(eid2);
+    if(visible(e1) && visible(e2)) {
+        hideElement(e1);
+        hideElement(e2);
+        setDisplayForElement(eid1 + "_disabled", "inline");
+        setDisplayForElement(eid2 + "_disabled", "inline");
+    }
+}
+
+function doEnable(eid1, eid2) {
+    var e1 = $(eid1), e2 = $(eid2);
+    if(!visible(e1) && !visible(e2)) {
+        hideElement(eid1 + "_disabled");
+        hideElement(eid2 + "_disabled");
+        setDisplayForElement(e1, "inline");
+        setDisplayForElement(e2, "inline");
+    }
+}
+ 
+function firstPrevDisable() { doDisable("first", "prev") }
+function firstPrevEnable() { doEnable("first", "prev") }
+function lastNextDisable() { doDisable("last", "next") }
+function lastNextEnable() { doEnable("last", "next") }
 
 function setPageState() {
-    /* this image disabling code is a mess */
-    var pageElem = document.getElementById("pages");
-    var onFirstPage = (pageElem.selectedIndex < 1);
-
-    var first_e = document.getElementById("first_enabled");
-    var prev_e  = document.getElementById("prev_enabled");
-
-    first_e.style.display = prev_e.style.display = onFirstPage ? "none" : "inline";
-
-    var first_d = document.getElementById("first_disabled");
-    var prev_d  = document.getElementById("prev_disabled");
-
-    first_d.style.display = prev_d.style.display = onFirstPage ? "inline" : "none";
-
-    var onLastPage = (pageElem.selectedIndex == pageElem.childNodes.length - 1);
+    var pages = $("pages");
+    var onFirstPage = (pages.selectedIndex < 1);
+    var onLastPage = (pages.selectedIndex == pages.childNodes.length - 1);
+    (onFirstPage ? firstPrevDisable : firstPrevEnable)();
+    (onLastPage  ? lastNextDisable  : lastNextEnable)()
     
-    var last_e = document.getElementById("last_enabled");
-    var next_e = document.getElementById("next_enabled");
+    pages.disabled = (onFirstPage && onLastPage) ? true : false;
+    var noItems = ($("totalItems").firstChild.nodeValue == 0);
 
-    last_e.style.display = next_e.style.display = onLastPage ? "none" : "inline";
-
-    var last_d = document.getElementById("last_disabled");
-    var next_d = document.getElementById("next_disabled");
-
-    last_d.style.display = next_d.style.display = onLastPage ? "inline" : "none";
-
-    pageElem.disabled = (onFirstPage && onLastPage) ? true : false;
-    var noItems = (document.getElementById("totalItems").firstChild.nodeValue == 0);
-    document.getElementById("itemsPerPage").enabled = noItems ? 'false' : 'true';
-    var linkTable = document.getElementById("tableContainer");
-    linkTable.style.display = noItems ? "none" : "block";
-    var noClicksDialog = document.getElementById("noClicksDialog");
-    noClicksDialog.style.display = noItems ? "block" : "none";
-    var posDesc = document.getElementById("positionDescription");
-    posDesc.style.display = noItems ? "none" : "table-cell";
+    if(noItems) {
+        hideElement("tableContainer");
+        showElement("noClicksDialog");
+        hideElement("positionDescription");
+    } else {
+        hideElement("noClicksDialog");
+        showElement("tableContainer");
+        setDisplayForElement("positionDescription", "table-cell");
+    }
 }
 
 function setCurrentPage( page ) {
-    selectOptionWithValue(document.getElementById("pages"), page);
+    selectOptionWithValue($("pages"), page);
     setPageState();
 }
 
@@ -62,18 +90,13 @@ function setTotalItems( items ) {
     setPageState();
 }
 
-function setItemsPerPage( items ) { 
-    selectOptionWithValue(document.getElementById("itemsPerPage"), items);
-}
-
 function getSelected( selectId ) {
-    /* because i dont think selectedItem is standard */
-    var elem = document.getElementById( selectId );
+    var elem = $(selectId);
     return elem.childNodes[elem.selectedIndex].firstChild.nodeValue;
 }
 
 function updateTable() {
-    server.handle("updateTable", getSelected("pages"), getSelected("itemsPerPage"));
+    server.handle("updateTable", getSelected("pages"));
 }
 
 function first() {

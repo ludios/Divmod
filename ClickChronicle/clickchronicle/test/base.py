@@ -41,7 +41,7 @@ class CCTestBase:
     def makeVisit(self, url='http://some.where', title='Some Where', index=True):
 
         host = URL.fromString(url).netloc
-        for domain in self.substore.query(Domain, Domain.host==host):
+        for domain in self.substore.query(Domain, Domain.url==host):
             domainCount = domain.visitCount
             break
         else:
@@ -67,7 +67,7 @@ class CCTestBase:
                 self.assertEqual(visit.title, title)
 
             self.assertEqual(visit.domain.visitCount, domainCount+1)
-            self.assertEqual(visit.domain.host, host)
+            self.assertEqual(visit.domain.url, host)
 
             return visit
 

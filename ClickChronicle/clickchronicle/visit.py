@@ -1,39 +1,45 @@
-from datetime import datetime
-
 from zope.interface import implements
+from twisted.python.components import registerAdapter
 
 from axiom.item import Item
 from axiom import attributes
 
-from epsilon.extime import Time
-
 from clickchronicle import iclickchronicle, indexinghelp
 
 class Domain(Item):
-    implements(iclickchronicle.IVisited)
-    
-    host = attributes.bytes()
+    url = attributes.bytes()
     title = attributes.bytes()
     visitCount = attributes.integer(default=0)
     ignore = attributes.integer(default=0) # Boolean
     favIcon = attributes.reference()
     timestamp = attributes.timestamp()
-    
+
     schemaVersion = 1
     typeName = 'domain'
 
-    def asDict(self):
-        return dict(url = self.host, title = self.title,
-                    timestamp = (Time.fromDatetime(datetime.now())).asHumanly(), 
-                    visits=self.visitCount)
+class DefaultDisplayableVisit:
+    implements(iclickchronicle.IDisplayableVisit)
 
+    def __init__(self, original):
+        self.original = original
+
+    def asDict(self):
+        return dict(url=self.original.url, title=self.original.title, 
+                    visitCount=self.original.visitCount, 
+                    timestamp=self.original.timestamp)
+
+class DisplayableDomain(DefaultDisplayableVisit):
     def asIcon(self):
-        return self.favIcon
-    
+        return self.original.favIcon
+
+registerAdapter(DisplayableDomain,
+                Domain,
+                iclickchronicle.IDisplayableVisit)
+
 class Visit(Item):
     """I correspond to a webpage-visit logged by a clickchronicle user"""
-    implements(iclickchronicle.IIndexable, iclickchronicle.IVisited)
-    
+    implements(iclickchronicle.IIndexable)
+
     timestamp = attributes.timestamp()
     url = attributes.bytes()
     title = attributes.bytes()
@@ -55,14 +61,14 @@ class Visit(Item):
         d.addCallback(cbGotSource)
         return d
 
-    def asDict(self):
-        return dict(url = self.url, title = self.title,
-                    timestamp = self.timestamp.asHumanly(), 
-                    visits=self.visitCount)
-
+class DisplayableVisit(DefaultDisplayableVisit):
     def asIcon(self):
-        return self.domain.favIcon
-        
+        return self.original.domain.favIcon
+
+registerAdapter(DisplayableVisit,
+                Visit,
+                iclickchronicle.IDisplayableVisit)
+
 class BookmarkVisit(Item):
     """A special visit that is used as visit.referrer if the visit was referred
     by being selected from a bookmark or shortcut. Should be a singleton and
@@ -71,7 +77,7 @@ class BookmarkVisit(Item):
     # XXX Not sure which attributes we need. Particularly referrer?
     url = attributes.bytes(default='bookmark')
     title = attributes.bytes(default='bookmark')
-    
+
     referrer = attributes.reference(allowNone=True)
 
     schemaVersion = 1

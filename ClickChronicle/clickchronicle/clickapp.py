@@ -7,7 +7,7 @@ from twisted.python.components import registerAdapter
 from twisted.web import client, static
 
 from nevow.url import URL
-from nevow import rend, inevow, tags, loaders
+from nevow import rend, inevow, tags, loaders, flat
 
 from epsilon.extime import Time
 
@@ -19,23 +19,27 @@ from xmantissa.webgestalt import AuthenticationApplication
 
 from clickchronicle import iclickchronicle
 from clickchronicle import indexinghelp
-from clickchronicle.util import PagedTableMixin, maybeDeferredWrapper
+from clickchronicle.util import (PagedTableMixin,
+                                 SortablePagedTableMixin, 
+                                 maybeDeferredWrapper)
 from clickchronicle.visit import Visit, Domain, BookmarkVisit
 from clickchronicle.searchparser import parseSearchString
 
+flat.registerFlattener(lambda t, ign: t.asHumanly(), Time)
+
 class FavIcon(Item, website.PrefixURLMixin):
     implements(ixmantissa.ISiteRootPlugin)
-    
+
     data = attributes.bytes(allowNone=False)
     prefixURL = attributes.bytes(allowNone=False)
     contentType = attributes.bytes(allowNone=False)
-    
+
     schemaVersion = 1
     typeName = 'favicon'
 
     def createResource(self):
         return static.Data(self.data, self.contentType)
-    
+
 class SearchBox(Item):
     implements(ixmantissa.INavigableElement)
     typeName = 'clickchronicle_searchbox'
@@ -65,30 +69,30 @@ class SearchBox(Item):
     def getTabs(self):
         return []
 
-class CCPrivatePagedTable(website.AxiomFragment, PagedTableMixin):
-    """adds some CC-specific display logic"""
-    maxTitleLength = 70
-    defaultFavIconPath = '/static/images/favicon.png'
-    
+class CCPrivatePagedTableMixin(website.AxiomFragment):
+    maxTitleLength = 60
+    defaultFavIconPath = "/static/images/favicon.png"
+
     def __init__(self, original, docFactory=None):
         self.store = original.store
         website.AxiomFragment.__init__(self, original, docFactory)
+        
         self.translator = ixmantissa.IWebTranslator(original.installedOn)
         self.clickList = original.store.query(ClickList).next()
-        pagingPatterns = inevow.IQ(self.translator.getDocFactory('paging-patterns'))
+        pagingPatterns = inevow.IQ(self.translator.getDocFactory("paging-patterns"))
 
         pgen = pagingPatterns.patternGenerator
 
-        self.tablePattern = pgen('clickTable')
-        self.pageNumbersPattern = pgen('pagingWidget')
-        self.itemsPerPagePattern = pgen('itemsPerPage')
-        self.navBarPattern = pgen('navBar')
+        self.tablePattern = pgen("clickTable")
+        self.pageNumbersPattern = pgen("pagingWidget")
+        self.navBarPattern = pgen("navBar")
 
     def makeScriptTag(self, src):
-        return tags.script(type='application/x-javascript',
+        return tags.script(type="application/x-javascript",
                            src=src)
     def head(self):
-        return self.makeScriptTag('/static/js/paged-table.js')
+        yield self.makeScriptTag("/static/js/MochiKit/MochiKit.js")
+        yield self.makeScriptTag("/static/js/paged-table.js")
 
     def handle_ignore(self, ctx, url):
         store = self.original.store
@@ -100,22 +104,43 @@ class CCPrivatePagedTable(website.AxiomFragment, PagedTableMixin):
                                 self.defaultItemsPerPage)
 
     def trimTitle(self, visitDict):
-        title = visitDict['title']
+        title = visitDict["title"]
         if self.maxTitleLength < len(title):
-            visitDict['title'] = '%s...' % title[:self.maxTitleLength - 3]
+            visitDict["title"] = "%s..." % title[:self.maxTitleLength - 3]
         return visitDict
 
     def prepareVisited(self, visited):
-        visited = iclickchronicle.IVisited(visited)
-        desc = visited.asDict()
-        favIcon = visited.asIcon()
-        if favIcon is None:
+        visited = iclickchronicle.IDisplayableVisit(visited)
+        (desc, icon) = (visited.asDict(), visited.asIcon())
+
+        if icon is None:
             iconPath = self.defaultFavIconPath
         else:
-            iconPath = '/%s' % favIcon.prefixURL
+            iconPath = '/%s' % icon.prefixURL
+
         desc['icon'] = iconPath
         return self.trimTitle(desc)
-        
+    
+class CCPrivatePagedTable(CCPrivatePagedTableMixin, PagedTableMixin):
+    pass
+
+class CCPrivateSortablePagedTable(CCPrivatePagedTableMixin, SortablePagedTableMixin):
+    pagingItem = None
+
+    def __init__(self, original, docFactory=None):
+        CCPrivatePagedTableMixin.__init__(self, original, docFactory)
+        pagingPatterns = inevow.IQ(self.translator.getDocFactory("paging-patterns"))
+        self.tablePattern = pagingPatterns.patternGenerator("sortableClickTable")
+
+    def generateRowDicts(self, ctx, pageNumber, sortCol, sortDirection):
+        sort = getattr(getattr(self.pagingItem, sortCol), sortDirection)
+        store = self.original.store
+        offset = (pageNumber - 1) * self.itemsPerPage
+
+        for v in store.query(self.pagingItem, sort = sort,
+                             limit = self.itemsPerPage, offset = offset):
+
+            yield self.prepareVisited(v)
 
 class ClickChronicleBenefactor(Item):
     '''i am responsible for granting priveleges to avatars,
@@ -134,6 +159,7 @@ class ClickChronicleBenefactor(Item):
         avatar.findOrCreate(webapp.PrivateApplication,
                             preferredTheme=u'cc-skin').installOn(avatar)
         avatar.findOrCreate(ClickChronicleInitializer).installOn(avatar)
+
 
 class ClickChronicleInitializer(Item):
     """
@@ -201,7 +227,6 @@ registerAdapter(ClickChronicleInitializerPage,
                 ClickChronicleInitializer,
                 inevow.IResource)
 
-
 class ClickList(Item):
     """similar to Preferences, i am an implementor of INavigableElement,
        and PrivateApplication will find me when when it looks in the user's
@@ -221,7 +246,7 @@ class ClickList(Item):
         self.installedOn = other
 
     def getTabs(self):
-        '''show a link to myself in the navbar'''
+        """show a link to myself in the navbar"""
         return [webnav.Tab('My Clicks', self.storeID, 0.2)]
 
     def topPanelContent(self):
@@ -251,7 +276,7 @@ class DomainList(Item):
     def topPanelContent(self):
         return None
 
-class ClickListFragment(CCPrivatePagedTable):
+class ClickListFragment(CCPrivateSortablePagedTable):
     '''i adapt ClickList to INavigableFragment'''
     implements(ixmantissa.INavigableFragment)
 
@@ -259,13 +284,9 @@ class ClickListFragment(CCPrivatePagedTable):
     title = ''
     live = True
 
-    def generateRowDicts(self, ctx, pageNumber, itemsPerPage):
-        store = self.original.store
-        offset = (pageNumber - 1) * itemsPerPage
-
-        for v in store.query(Visit, sort = Visit.timestamp.descending,
-                             limit = itemsPerPage, offset = offset):
-            yield self.prepareVisited(v)
+    pagingItem = Visit
+    sortDirection = 'ascending'
+    sortColumn = 'timestamp'
 
     def countTotalItems(self, ctx):
         return iclickchronicle.IClickRecorder(self.original.store).visitCount
@@ -274,7 +295,7 @@ registerAdapter(ClickListFragment,
                 ClickList,
                 ixmantissa.INavigableFragment)
 
-class DomainListFragment(CCPrivatePagedTable):
+class DomainListFragment(CCPrivateSortablePagedTable):
     '''i adapt DomainList to INavigableFragment'''
     implements(ixmantissa.INavigableFragment)
 
@@ -282,15 +303,10 @@ class DomainListFragment(CCPrivatePagedTable):
     title = ''
     live = True
 
-    def generateRowDicts(self, ctx, pageNumber, itemsPerPage):
-        store = self.original.store
-        offset = (pageNumber - 1) * itemsPerPage
-
-        for v in store.query(Domain, sort = Domain.visitCount.descending,
-                             limit = itemsPerPage, offset = offset):
-
-            yield self.prepareVisited(v)
-
+    pagingItem = Domain
+    sortDirection = 'ascending'
+    sortColumn = 'timestamp'
+    
     def countTotalItems(self, ctx):
         return self.original.clicks
 
@@ -402,7 +418,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             # off chance that we didn't record the click when the user
             # was viewing the referrer page, we don't have much else
             # meaningful to use
-            deferred = self.findOrCreateVisit(ref, ref, index=index, 
+            deferred = self.findOrCreateVisit(ref, ref, index=index,
                                               storeFavicon=storeFavicon)
             deferred.addCallback(storeReferee)
         else:
@@ -419,20 +435,20 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                     break
                 else:
                     ctype = 'image/x-icon'
-            
-                fi = FavIcon(prefixURL='private/icons/%s.ico' % domain.host, 
+
+                fi = FavIcon(prefixURL='private/icons/%s.ico' % domain.url,
                              data=data, contentType=ctype, store=s)
                 fi.installOn(s)
                 domain.favIcon = fi
             s.transact(txn)
 
-        url = str(URL(netloc=domain.host, pathsegs=('favicon.ico',)))
+        url = str(URL(netloc=domain.url, pathsegs=('favicon.ico',)))
         (host, port) = client._parse(url)[1:-1]
         factory = client.HTTPClientFactory(url)
         reactor.connectTCP(host, port, factory)
-        
+
         return factory.deferred.addCallbacks(gotFavicon, lambda ign: None)
-        
+
     def findOrCreateVisit(self, url, title, referrer=None, index=True, storeFavicon=True):
         """
         Try to find a visit to the same url TODAY.
@@ -440,14 +456,14 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         Otherwise create a new Visit.
         """
         host = URL.fromString(url).netloc
-        domain = self.store.findOrCreate(Domain, host=host, title=host)
+        domain = self.store.findOrCreate(Domain, url=host, title=host)
         if domain.ignore:
             return
         if domain.favIcon is None and storeFavicon:
             futureFavicon = self.fetchFavicon(domain)
         else:
             futureFavicon = defer.succeed(None)
-            
+
         existingVisit = self.findVisitForToday(url)
         timeNow = Time.fromDatetime(datetime.now())
 
@@ -479,12 +495,12 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             return visit
 
         visit = self.store.transact(_)
-        
+
         if index:
             futureSuccess = self.rememberVisit(visit)
         else:
             futureSuccess = defer.succeed(None)
-            
+
         futureVisit = defer.gatherResults((futureFavicon, futureSuccess))
         return futureVisit.addBoth(lambda ign: visit)
 
@@ -611,17 +627,17 @@ class SearchClicks(CCPrivatePagedTable):
             self.setSearchState(ctx)
         return self.matchingClicks
 
-    def generateRowDicts(self, ctx, pageNumber, itemsPerPage):
+    def generateRowDicts(self, ctx, pageNumber):
         if self.discriminator is None:
             self.setSearchState(ctx)
-        offset = (pageNumber - 1) * itemsPerPage
+        offset = (pageNumber - 1) * self.itemsPerPage
         specs = self.indexer.search(self.discriminator,
                                     startingIndex = offset,
-                                    batchSize = itemsPerPage)
+                                    batchSize = self.itemsPerPage)
         store = self.original.store
         for spec in specs:
             visit = store.getItemByID(spec['uid'])
-            yield self.prepareVisited(iclickchronicle.IVisited(visit))
+            yield self.prepareVisited(visit)
 
     def incrementSearches(self):
         def txn():

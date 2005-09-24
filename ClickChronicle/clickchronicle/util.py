@@ -11,65 +11,43 @@ def maybeDeferredWrapper(f):
     return mergeFunctionMetadata(f, wrapped)
 
 class PagedTableMixin:
-    itemsPerPage = (10, 20, 50, 100)
-    defaultItemsPerPage = 10
+    itemsPerPage = 10
     startPage = 1
 
     tablePattern = None
     pageNumbersPattern = None
-    itemsPerPagePattern = None
     navBarPattern = None
     
     def data_totalItems(self, ctx, data):
         return self.countTotalItems(ctx)
 
-    def handle_updateTable(self, ctx, pageNumber, itemsPerPage):
-        yield (self.updateTable(ctx, pageNumber, itemsPerPage), livepage.eol)
-        yield (self.changeItemsPerPage(ctx, pageNumber, itemsPerPage), livepage.eol)
-
     def render_navBar(self, ctx, data):
-        pageNumData = self.calculatePages(ctx, self.defaultItemsPerPage)
-        content = self.navBarPattern.fillSlots(
-                      'itemsPerPage', self.itemsPerPagePattern(data=self.itemsPerPage)
-                  ).fillSlots(
-                      'pagingWidget', self.pageNumbersPattern(data=pageNumData))
+        pageNumData = self.calculatePages(ctx)
+        content = self.navBarPattern.fillSlots('pagingWidget', 
+                        self.pageNumbersPattern(data=pageNumData))
                   
         return ctx.tag[content]
     
-    def updateTable(self, ctx, pageNumber, itemsPerPage):
-        (pageNumber, itemsPerPage) = (int(pageNumber), int(itemsPerPage))
-        
-        rowDicts = list(self.generateRowDicts(ctx, pageNumber, itemsPerPage))
-        
+    def handle_updateTable(self, ctx, pageNumber, *args):
+        pageNumber = int(pageNumber)
+        rowDicts = list(self.generateRowDicts(ctx, pageNumber, *args))
         table = self.tablePattern(data=rowDicts)
-        offset = (pageNumber - 1) * itemsPerPage
+        offset = (pageNumber - 1) * self.itemsPerPage
         
         yield (livepage.set('tableContainer', table), livepage.eol)
         yield (livepage.set('startItem', offset + 1), livepage.eol)
         yield (livepage.set('endItem', offset + len(rowDicts)), livepage.eol)
         yield (livepage.js.setTotalItems(self.countTotalItems(ctx)), livepage.eol)
 
-    def handle_changeItemsPerPage(self, ctx, pageNumber, perPage):
-        yield (self.updateTable(ctx, 1, perPage), livepage.eol)
-        yield (self.changeItemsPerPage(ctx, 1, perPage), livepage.eol)
-
-    def calculatePages(self, ctx, perPage):
-        perPage = int(perPage)
+    def calculatePages(self, ctx):
         totalItems = self.countTotalItems(ctx)
-        return xrange(1, int(ceil(totalItems / perPage))+1)
+        return xrange(1, int(ceil(totalItems / self.itemsPerPage))+1)
             
-    def changeItemsPerPage(self, ctx, pageNumber, perPage):
-        pagingWidget = self.pageNumbersPattern(data=self.calculatePages(ctx, perPage))
-        yield (livepage.set('pagingWidgetContainer', pagingWidget), livepage.eol)
-        yield (livepage.js.setCurrentPage(pageNumber), livepage.eol)
-    
-    def goingLive(self, ctx, client):
-        client.call('setItemsPerPage', self.defaultItemsPerPage)
-        client.send(self.updateTable(ctx, self.startPage, self.defaultItemsPerPage))
-        client.send(self.changeItemsPerPage(ctx, self.startPage, self.defaultItemsPerPage))
+    def goingLive(self, ctx, client, *args):
+        client.send(self.handle_updateTable(ctx, self.startPage, *args))
 
     # override these methods
-    def generateRowDicts(self, ctx, pageNumber, itemsPerPage):
+    def generateRowDicts(self, ctx, pageNumber):
         """I return a sequence of dictionaries that will be used as data for
            the corresponding template's 'table' pattern.
 
@@ -79,3 +57,30 @@ class PagedTableMixin:
 
     def countTotalItems(self, ctx):
         raise NotImplementedError
+
+class SortablePagedTableMixin(PagedTableMixin):
+    sortColumn = None
+    sortDirection = None
+
+    def goingLive(self, ctx, client):
+        PagedTableMixin.goingLive(self, ctx, client, self.sortColumn,
+                                  self.sortDirection)
+        client.call('setSortState', self.sortColumn,
+                    self.sortDirection)
+
+    def handle_updateTable(self, ctx, pageNumber, 
+                           sortColumn=None, sortDirection=None):
+        if sortColumn is None:
+            sortColumn = self.sortColumn
+        else:
+            self.sortColumn = sortColumn
+
+        if sortDirection is None:
+            sortDirection = self.sortDirection
+        else:
+            self.sortDirection = sortDirection
+        
+        yield PagedTableMixin.handle_updateTable(self, ctx, pageNumber,
+                                                 sortColumn, sortDirection)
+
+        yield livepage.js.setSortState(self.sortColumn, self.sortDirection), livepage.eol

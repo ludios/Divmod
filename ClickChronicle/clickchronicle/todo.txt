@@ -29,6 +29,8 @@ race conditions and batch index changes for effieciency
 
 Visually distinguish each day in history
 
+RSS clickstream output
+
 Calendar view
 
 Make SearchClicks a LivePage, not a live fragment
@@ -106,6 +108,8 @@ Search fragment test
 Performance tests
 Automated code coverage reporting
 Functional tests e.g. login, click around the table, change password, search
+Unicode indexing
+Unicode search
 
 Tests done:
 -----------

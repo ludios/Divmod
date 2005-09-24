@@ -285,7 +285,7 @@ class ClickListFragment(CCPrivateSortablePagedTable):
     live = True
 
     pagingItem = Visit
-    sortDirection = 'ascending'
+    sortDirection = 'descending'
     sortColumn = 'timestamp'
 
     def countTotalItems(self, ctx):

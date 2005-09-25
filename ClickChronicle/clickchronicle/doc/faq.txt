@@ -34,6 +34,9 @@ however there is no way for someone to find out who contributed which
 click. You can also opt out of the anonymous click aggregation by
 logging in and going to the Preferences section of clickchronicle.com.
 
+ClickChronicle is open-source and, if you are REALLY paranoid, you can
+download and run it yourself.
+
 5. Is ClickChronicle secure?
 
 Yes. ClickChronicle uses encrypted connections to send your click data

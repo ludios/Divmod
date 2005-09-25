@@ -57,7 +57,7 @@ class Visit(Item):
         def cbGotSource(pageSource):
             doc = indexinghelp.makeDocument(self, pageSource)
             return doc
-        d = indexinghelp.getPageSource(self.url)
+        d = iclickchronicle.ICache(self.store).getPageSource(self.url)
         d.addCallback(cbGotSource)
         return d
 

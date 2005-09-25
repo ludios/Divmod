@@ -35,6 +35,11 @@ class IIndexer(Interface):
         Return a 2-tuple of (estimated-matches, total-docs-indexed)
         """
 
+class ICache(Interface):
+    """
+    Interface for fetching and caching data from external sources.
+    """
+    
 
 class IIndexable(Interface):
     """

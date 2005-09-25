@@ -2,7 +2,7 @@ from twisted.trial.util import wait
 from twisted.internet import reactor, defer
 from clickchronicle import clickapp
 from clickchronicle.visit import Visit, Domain
-from clickchronicle.indexinghelp import IIndexer
+from clickchronicle.indexinghelp import IIndexer, ICache
 from xmantissa import signup
 from axiom.store import Store
 from axiom.userbase import LoginSystem
@@ -36,9 +36,10 @@ class CCTestBase:
         init.setPassword('123pass456')
 
         self.recorder = self.firstItem(self.substore, clickapp.ClickRecorder)
+        self.recorder.caching = False
         self.clicklist = self.firstItem(self.substore, clickapp.ClickList)
 
-    def makeVisit(self, url='http://some.where', title='Some Where', index=True):
+    def makeVisit(self, url='http://some.where', title='Some Where', indexIt=True):
 
         host = URL.fromString(url).netloc
         for domain in self.substore.query(Domain, Domain.url==host):
@@ -71,7 +72,7 @@ class CCTestBase:
 
             return visit
 
-        futureSuccess = self.recorder.recordClick(dict(url=url, title=title), index=index,
+        futureSuccess = self.recorder.recordClick(dict(url=url, title=title), indexIt=indexIt,
                                                   storeFavicon=False)
         return futureSuccess.addCallback(lambda v: postRecord())
 
@@ -92,7 +93,7 @@ class CCTestBase:
 
     def record(self, title, url, **k):
         wait(self.recorder.recordClick(dict(url=url, title=title, **k),
-                                        index=False, storeFavicon=False))
+                                        indexIt=False, storeFavicon=False))
         try:
             return self.substore.query(Visit, Visit.url==url).next()
         except StopIteration:
@@ -104,10 +105,10 @@ class CCTestBase:
         for i in xrange(count-1):
             yield str(base.child(str(i)))
 
-    def visitURLs(self, urls, index=True):
+    def visitURLs(self, urls, indexIt=True):
         deferreds = []
         for (resname, url) in urls.iteritems():
-            futureVisit = self.recorder.recordClick(dict(url=url, title=resname), index=index,
+            futureVisit = self.recorder.recordClick(dict(url=url, title=resname), indexIt=indexIt,
                                                     storeFavicon=False)
             deferreds.append(futureVisit)
         return defer.gatherResults(deferreds)
@@ -167,6 +168,10 @@ class IndexAwareTestBase(DataServingTestBase):
         self.setUpWebServer()
         self.setUpStore()
         self.indexer = self.firstPowerup(self.substore, IIndexer)
+        
+    def setUpCaching(self):
+        self.cacheMan = self.firstPowerup(self.substore, ICache)
+        self.recorder.caching = True
 
     def tearDownWebIndexer(self):
         self.tearDownWebServer()

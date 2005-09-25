@@ -22,12 +22,12 @@ class ClickRecorderTestCase(CCTestBase, TestCase):
         self.assertNItems(ss, Domain, 0)
 
         url = self.randURL()
-        wait(self.makeVisit(url=url, title=mktemp(), index=False))
+        wait(self.makeVisit(url=url, title=mktemp(), indexIt=False))
         nextUrl = str(URL.fromString(url).child('a').child('b'))
         # different URL, same hostname, different title
-        wait(self.makeVisit(url=nextUrl, title=mktemp(), index=False))
+        wait(self.makeVisit(url=nextUrl, title=mktemp(), indexIt=False))
         # same URL, different title
-        wait(self.makeVisit(url=nextUrl, title=mktemp(), index=False))
+        wait(self.makeVisit(url=nextUrl, title=mktemp(), indexIt=False))
 
     def testReferrer(self):
         iterurls = self.urlsWithSameDomain()
@@ -76,7 +76,7 @@ class IgnoreDomainTestCase(CCTestBase, TestCase):
         visit = self.record(title=url, url=url)
         domain = visit.domain
         self.ignore(visit)
-        self.assertEqual(domain.ignore, 1)
+        self.assertEqual(domain.ignore, True)
 
     def testVisitsToIgnoredDomains(self):
         iterurls = self.urlsWithSameDomain()
@@ -101,7 +101,7 @@ class IgnoreDomainTestCase(CCTestBase, TestCase):
             self.assertEqual(self.recorder.visitCount, 0)
             self.assertNItems(self.substore, Visit, 0)
 
-        return self.visitURLs(urls, index=False).addCallback(lambda ign: afterVisits())
+        return self.visitURLs(urls, indexIt=False).addCallback(lambda ign: afterVisits())
 
 class IndexingClickRecorderTestCase(IndexAwareTestBase, TestCase):
     def setUpClass(self):
@@ -168,6 +168,6 @@ class MeanResourceTestCase(MeanResourceTestBase, TestCase):
         preVisitCount = self.recorder.visitCount
         self.assertEqual(preVisitCount, 0)
         futureSuccess = self.recorder.recordClick(dict(url=self.urls['mean'],
-                                                       title='mean'), index=True)
+                                                       title='mean'), indexIt=True)
 
         return futureSuccess.addCallback(lambda ign: onRecordingError())

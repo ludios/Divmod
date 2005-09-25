@@ -2,9 +2,8 @@ from datetime import datetime, timedelta
 from zope.interface import implements
 
 from twisted.python import util
-from twisted.internet import reactor, defer
+from twisted.internet import defer
 from twisted.python.components import registerAdapter
-from twisted.web import client, static
 
 from nevow.url import URL
 from nevow import rend, inevow, tags, loaders, flat
@@ -27,18 +26,6 @@ from clickchronicle.searchparser import parseSearchString
 
 flat.registerFlattener(lambda t, ign: t.asHumanly(), Time)
 
-class FavIcon(Item, website.PrefixURLMixin):
-    implements(ixmantissa.ISiteRootPlugin)
-
-    data = attributes.bytes(allowNone=False)
-    prefixURL = attributes.bytes(allowNone=False)
-    contentType = attributes.bytes(allowNone=False)
-
-    schemaVersion = 1
-    typeName = 'favicon'
-
-    def createResource(self):
-        return static.Data(self.data, self.contentType)
 
 class SearchBox(Item):
     implements(ixmantissa.INavigableElement)
@@ -203,7 +190,7 @@ class ClickChronicleInitializer(Item):
 
         for item in (ClickList, DomainList, Preferences,
                      ClickRecorder, indexinghelp.SyncIndexer,
-                     SearchBox, AuthenticationApplication):
+                     SearchBox, AuthenticationApplication, indexinghelp.CacheManager):
             avatar.findOrCreate(item).installOn(avatar)
 
         avatar.powerDown(self, ixmantissa.INavigableElement)
@@ -388,7 +375,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
     def createResource(self):
         return URLGrabber(self)
 
-    def recordClick(self, qargs, index=True, storeFavicon=True):
+    def recordClick(self, qargs, indexIt=True, storeFavicon=True):
         """
         Extract POST arguments and create a Visit object before indexing and caching.
         """
@@ -406,7 +393,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                     self.forgetOldestVisit()
 
             futureSuccess = self.findOrCreateVisit(url, title,
-                                                   referrer, index=index,
+                                                   referrer, indexIt=indexIt,
                                                    storeFavicon=storeFavicon)
             return futureSuccess.addCallback(lambda ign: forget())
 
@@ -418,8 +405,9 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             # off chance that we didn't record the click when the user
             # was viewing the referrer page, we don't have much else
             # meaningful to use
-            deferred = self.findOrCreateVisit(ref, ref, index=index,
+            deferred = self.findOrCreateVisit(ref, ref, indexIt=indexIt,
                                               storeFavicon=storeFavicon)
+            
             deferred.addCallback(storeReferee)
         else:
             # Most likely selected a bookmark/shortcut
@@ -427,29 +415,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
 
         return deferred
 
-    def fetchFavicon(self, domain):
-        def gotFavicon(data):
-            s = self.installedOn
-            def txn():
-                for ctype in factory.response_headers.get('content-type', ()):
-                    break
-                else:
-                    ctype = 'image/x-icon'
-
-                fi = FavIcon(prefixURL='private/icons/%s.ico' % domain.url,
-                             data=data, contentType=ctype, store=s)
-                fi.installOn(s)
-                domain.favIcon = fi
-            s.transact(txn)
-
-        url = str(URL(netloc=domain.url, pathsegs=('favicon.ico',)))
-        (host, port) = client._parse(url)[1:-1]
-        factory = client.HTTPClientFactory(url)
-        reactor.connectTCP(host, port, factory)
-
-        return factory.deferred.addCallbacks(gotFavicon, lambda ign: None)
-
-    def findOrCreateVisit(self, url, title, referrer=None, index=True, storeFavicon=True):
+    def findOrCreateVisit(self, url, title, referrer=None, indexIt=True, storeFavicon=True):
         """
         Try to find a visit to the same url TODAY.
         If found update the timestamp and return it.
@@ -459,14 +425,8 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         domain = self.store.findOrCreate(Domain, url=host, title=host)
         if domain.ignore:
             return
-        if domain.favIcon is None and storeFavicon:
-            futureFavicon = self.fetchFavicon(domain)
-        else:
-            futureFavicon = defer.succeed(None)
-
         existingVisit = self.findVisitForToday(url)
         timeNow = Time.fromDatetime(datetime.now())
-
         if existingVisit:
             # Already visited today
             # XXX What should we do about referrer for existing visit
@@ -476,7 +436,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                 existingVisit.visitCount += 1
                 existingVisit.domain.visitCount += 1
                 return existingVisit
-            return futureFavicon.addCallback(lambda ign: self.store.transact(_))
+            return self.store.transact(_)
 
         # New visit today
         def _():
@@ -496,13 +456,12 @@ class ClickRecorder(Item, website.PrefixURLMixin):
 
         visit = self.store.transact(_)
 
-        if index:
-            futureSuccess = self.rememberVisit(visit)
-        else:
-            futureSuccess = defer.succeed(None)
+        cacheMan = iclickchronicle.ICache(self.store)
+        d = cacheMan.rememberVisit(visit, domain, cacheIt=self.caching, indexIt=indexIt, storeFavicon=storeFavicon)
+        return d
 
-        futureVisit = defer.gatherResults((futureFavicon, futureSuccess))
-        return futureVisit.addBoth(lambda ign: visit)
+    #futureVisit = defer.gatherResults((futureFavicon, futureSuccess))
+    #    return futureVisit.addBoth(lambda ign: visit)
 
     findOrCreateVisit = maybeDeferredWrapper(findOrCreateVisit)
 
@@ -521,27 +480,11 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             break
         return existingVisit
 
-    def rememberVisit(self, visit):
-        def cbCachePage(doc):
-            """
-            Cache the source for this visit.
-            """
-            newFile = self.store.newFile(self.cachedFileNameFor(visit).path)
-            newFile.write(doc.source)
-            newFile.close()
-        indexer = iclickchronicle.IIndexer(self.store)
-        d=indexer.index(visit)
-        if self.caching:
-            d.addCallback(cbCachePage)
-        return d
-
     def forgetVisit(self, visit):
         indexer = iclickchronicle.IIndexer(self.store)
         indexer.delete(visit)
-        try:
-            self.cachedFileNameFor(visit).remove()
-        except OSError:
-            pass
+        cacheMan = iclickchronicle.ICache(self.store)
+        cacheMan.forget(visit)
         def _():
             visit.deleteFromStore()
             self.visitCount -= 1
@@ -556,18 +499,6 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         # been fetched and indexed/cahced
         visit = self.store.query(Visit, sort=Visit.timestamp.ascending).next()
         self.forgetVisit(visit)
-
-    def cachedFileNameFor(self, visit):
-        """
-        Return the path to the cached source for this visit.
-        The path consists of the iso date for the visit as directory and the
-        storeID as the filename.
-        e.g. cchronicle.axiom/files/account/test.com/user/files/cache/2005-09-10/55.html
-        """
-        dirName = visit.timestamp.asDatetime().date().isoformat()
-        cacheDir = self.store.newDirectory('cache/%s' % dirName)
-        fileName = cacheDir.child('%s.html' % visit.storeID)
-        return fileName
 
     def ignoreVisit(self, visit):
         def txn():

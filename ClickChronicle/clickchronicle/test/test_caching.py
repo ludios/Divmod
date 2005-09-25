@@ -6,6 +6,7 @@ import os
 class CacheFileAwareIndexingTestCase(IndexAwareTestBase, TestCase):
     def setUp(self):
         self.setUpWebIndexer()
+        self.setUpCaching()
 
     def tearDown(self):
         self.tearDownWebIndexer()
@@ -13,7 +14,7 @@ class CacheFileAwareIndexingTestCase(IndexAwareTestBase, TestCase):
     def testCacheFileCreation(self):
         def afterVisitAll():
             for (i, visit) in enumerate(self.substore.query(Visit)):
-                cachedFilename = self.recorder.cachedFileNameFor(visit)
+                cachedFilename = self.cacheMan.cachedFileNameFor(visit)
                 self.failUnless(os.path.exists(cachedFilename.path), 'bad cache filename')
                 cachedText = file(cachedFilename.path).read()
                 # resourceData = the text served by the resource at the

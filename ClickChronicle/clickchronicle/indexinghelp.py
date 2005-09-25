@@ -62,14 +62,14 @@ class SyncIndexer(Item):
 
     def search(self, aString, **kwargs):
         xapDir = self.store.newDirectory(XAPIAN_INDEX_DIR)
-        xapIndex = SmartIndex(str(xapDir.path), True)
+        xapIndex = SmartIndex(str(xapDir.path), False)
         result = xapIndex.search(aString, **kwargs)
         xapIndex.close()
         return result
 
     def count(self, aString):
         xapDir = self.store.newDirectory(XAPIAN_INDEX_DIR)
-        xapIndex = SmartIndex(str(xapDir.path), True)
+        xapIndex = SmartIndex(str(xapDir.path), False)
         query = ParsedQuery(aString).prepare(xapIndex.qp)
         count = xapIndex.count(query)
         xapIndex.close()
@@ -113,7 +113,7 @@ class CacheManager(Item):
         """
         XXX This is a bit of a mess right now. This is partially due to
         XXX the demands of testing and needs to be re-thought.
-        
+
         This is how it should work:
         1. Fetch the page source.
         2. Somehow get the encoding, from the connection or the document
@@ -128,7 +128,7 @@ class CacheManager(Item):
         This method should be split into a few other methods all of
         which return deferreds and take a visit as an argument.
         """
-        
+
         def cbCachePage(doc):
             """
             Cache the source for this visit.
@@ -157,7 +157,7 @@ class CacheManager(Item):
             faviconSuccess = self.fetchFavicon(domain)
         else:
             faviconSuccess = defer.succeed(None)
-        
+
         futureVisit = defer.gatherResults((faviconSuccess, d))
         return futureVisit.addBoth(lambda ign: visit)
 
@@ -262,7 +262,7 @@ if __name__ == '__main__':
         source = open(fname, 'rb').read()
         source =source.decode('utf-8')
         (text, meta) = tagstrip.cook(source)
-        
+
         print meta
         print '***********'
         print type(text)

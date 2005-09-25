@@ -110,6 +110,25 @@ class CacheManager(Item):
         other.powerUp(self, ICache)
 
     def rememberVisit(self, visit, domain, cacheIt=False, indexIt=True, storeFavicon=True):
+        """
+        XXX This is a bit of a mess right now. This is partially due to
+        XXX the demands of testing and needs to be re-thought.
+        
+        This is how it should work:
+        1. Fetch the page source.
+        2. Somehow get the encoding, from the connection or the document
+        3. Decode the whole page using the encoding
+        4. Extract the title as unicode and set it on the visit (assuming we don't have it)
+        5. Extract the meta tags as unicode
+        6. Extract the text as unicode
+        7. Index the unicode for text, title and tags
+        7. Optionally cache the page source, encoded as it came off the wire.
+        9. Fetch the favicon if needed.
+
+        This method should be split into a few other methods all of
+        which return deferreds and take a visit as an argument.
+        """
+        
         def cbCachePage(doc):
             """
             Cache the source for this visit.
@@ -202,10 +221,11 @@ def getContentType(meta):
     return None
 
 def makeDocument(visit, pageSource):
+    # XXX should decode first, then strip?
+    # XXX should we get the encoding from the http transfer encooding?
     (text, meta) = tagstrip.cook(pageSource)
     title = visit.title
     encoding = getContentType(meta)
-    print '*** ->', encoding, title
     if encoding is not None:
         text = text.decode(encoding)
         title = title.decode(encoding)
@@ -240,7 +260,10 @@ if __name__ == '__main__':
     for fname in fnames:
         print fname
         source = open(fname, 'rb').read()
+        source =source.decode('utf-8')
         (text, meta) = tagstrip.cook(source)
+        
         print meta
         print '***********'
-        print text
+        print type(text)
+        #print text.decode('utf-8')

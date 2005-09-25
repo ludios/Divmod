@@ -2,43 +2,43 @@ ClickChronicle FAQ
 
 1. What is ClickChronicle?
 
-ClickChronicle is allows you to search all the web
-pages that you have recently visited.
+ClickChronicle keeps a record of your web browsing and allows you to
+search all the web pages that you have visited.
 
 2. How does ClickChronicle work?
 
-ClickChronicle has 2 parts: the click-recording extension for FireFox
+ClickChronicle has 2 parts: the click-recording extension for Firefox
 and the clickchronicle.com web application. Once installed the
 extension securely sends the web address of each page that you visit
 to clickchronicle.com. Once clickchronicle.com receives a click from
-the extension, it fetches the content of the visted page and indexes
-it so that you can search (and find) it later.
+the extension, it indexes the page so you can search (and
+find) it later.
 
 3. How do I use ClickChronicle?
 
 To use ClickChronicle you have to create an account at
-clickchronicle.com (signup here: www.clickchronicle.com/signup) and
-install the firefox extension (www.clickchroniclle.com/extension)
+clickchronicle.com (sign up here: www.clickchronicle.com/signup) and
+install the Firefox extension (www.clickchronicle.com/extension)
 
 4. What about my privacy?
 
 At ClickChronicle, you own your data. Your clicks belong to you and we
 don't share them with others. Your data is not trapped at
-ClickChronicle and at any point you can download all the clicks you
-have store with us. We are a member of attentiontrust.org and
-organization founded to protect privacy and rights to data.
+ClickChronicle and at any point you can download or erase all the
+clicks you have stored with us. We are a member of attentiontrust.org
+an organization founded to protect privacy and rights to data.
 
-We do display anonymous click data for features like our "What's
-popular?"  section, however there is no way for someone to find out
-who contributed which click. You can also opt out of the anonymous
-click aggregation by going to the Preferences section of
-clickchronicle.com once you are logged in.
+ClickChronicle does aggreagate anonymous click data to help us tune
+the system and for features like our "What's popular?"  section,
+however there is no way for someone to find out who contributed which
+click. You can also opt out of the anonymous click aggregation by
+logging in and going to the Preferences section of clickchronicle.com.
 
 5. Is ClickChronicle secure?
 
 Yes. ClickChronicle uses encrypted connections to send your click data
 to our server. We also use encrypted connections when you log in to
-search and browse your data. For encyption we use 128-bit https, the
+search and browse your data. For encryption we use 128-bit https, the
 same security that is used by sites like Amazon and Ebay for credit
 card transactions.
 
@@ -50,8 +50,8 @@ can do that).
 
 7. Can I exclude certain sites from being recorded?
 
-Yes. Once logged into clickchronicle.com it is easy to tell use to
-ignore specific sites.
+Yes. Once logged into clickchronicle.com it is easy to configure
+specific sites to be ignored.
 
 8. Is there a limit to number of clicks recorded?
 
@@ -73,7 +73,7 @@ information you were looking for.
 
 11. What technology is used by ClickChronicle?
 
-ClickChronilce is brought to you by Divmod. It uses the Python
+ClickChronicle is brought to you by Divmod. It uses the Python
 programming language, the Twisted networking framework, Divmod Axiom,
 Divmod Nevow, Divmod Mantissa, Xapian, SQLite, MochiKit,
-ZopeInterfaces and Ubuntu.
+Zope Interfaces and Ubuntu.

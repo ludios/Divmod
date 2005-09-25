@@ -10,6 +10,11 @@ Make sure browser caches favicons
 
 Figure out how to deal unicode indexing and search
 
+Allow user to define a tag that all their clicks get given for a
+particular length of time. e.g. If someone is researching a vacation
+they can tell us that they want all their clicks to be tagged vacation
+until they switch it off.
+
 Display referrer information
 
 Allow blocked domains to be browsed and edited

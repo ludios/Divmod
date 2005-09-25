@@ -21,7 +21,7 @@ from clickchronicle import indexinghelp
 from clickchronicle.util import (PagedTableMixin,
                                  SortablePagedTableMixin, 
                                  maybeDeferredWrapper)
-from clickchronicle.visit import Visit, Domain, BookmarkVisit
+from clickchronicle.visit import Visit, Domain, BookmarkVisit, Bookmark
 from clickchronicle.searchparser import parseSearchString
 
 flat.registerFlattener(lambda t, ign: t.asHumanly(), Time)
@@ -90,6 +90,14 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
         return self.updateTable(ctx, self.startPage,
                                 self.defaultItemsPerPage)
 
+    def handle_bookmark(self, ctx, url):
+        store = self.original.store
+        visit = store.query(Visit, Visit.url == url).next()
+        def _():
+            bookmark=visit.asBookmark()
+            return bookmark
+        bm = self.store.transact(_)
+                
     def trimTitle(self, visitDict):
         title = visitDict["title"]
         if self.maxTitleLength < len(title):
@@ -189,7 +197,7 @@ class ClickChronicleInitializer(Item):
         avatar = self.installedOn
 
         for item in (ClickList, DomainList, Preferences,
-                     ClickRecorder, indexinghelp.SyncIndexer,
+                     ClickRecorder, indexinghelp.SyncIndexer, BookmarkList,
                      SearchBox, AuthenticationApplication, indexinghelp.CacheManager):
             avatar.findOrCreate(item).installOn(avatar)
 
@@ -280,6 +288,49 @@ class ClickListFragment(CCPrivateSortablePagedTable):
 
 registerAdapter(ClickListFragment,
                 ClickList,
+                ixmantissa.INavigableFragment)
+
+class BookmarkList(Item):
+    """similar to Preferences, i am an implementor of INavigableElement,
+       and PrivateApplication will find me when when it looks in the user's
+       store"""
+
+    implements(ixmantissa.INavigableElement)
+    typeName = 'clickchronicle_bookmarklist'
+    schemaVersion = 1
+
+    installedOn = attributes.reference()
+    clicks = attributes.integer(default = 0)
+
+    def installOn(self, other):
+        assert self.installedOn is None, "Cannot install BookmarkList on more than one thing"
+        other.powerUp(self, ixmantissa.INavigableElement)
+        self.installedOn = other
+
+    def getTabs(self):
+        '''show a link to myself in the navbar'''
+        return [webnav.Tab('My Bookmarks', self.storeID, 0.1)]
+
+    def topPanelContent(self):
+        return None
+
+class BookmarkListFragment(CCPrivateSortablePagedTable):
+    '''i adapt BookmarkList to INavigableFragment'''
+    implements(ixmantissa.INavigableFragment)
+
+    fragmentName = 'bookmark-list-fragment'
+    title = ''
+    live = True
+
+    pagingItem = Bookmark
+    sortDirection = 'descending'
+    sortColumn = 'timestamp'
+
+    def countTotalItems(self, ctx):
+        return iclickchronicle.IClickRecorder(self.original.store).visitCount
+
+registerAdapter(BookmarkListFragment,
+                BookmarkList,
                 ixmantissa.INavigableFragment)
 
 class DomainListFragment(CCPrivateSortablePagedTable):

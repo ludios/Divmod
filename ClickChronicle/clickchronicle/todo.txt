@@ -6,9 +6,11 @@ Look for rel="icon" link elements in HTML (some sites, like ours, don't put the 
 
 Force favicon to display at 16x16
 
-Make sure browser caches favicons
+Even though favicons are cached we seem to request them every time the page loads :-/
 
-Figure out how to deal unicode indexing and search
+Visually distinguish visits that are already bookmarks
+
+Figure out how to deal unicode search
 
 Allow user to define a tag that all their clicks get given for a
 particular length of time. e.g. If someone is researching a vacation
@@ -105,6 +107,7 @@ The visible text for anchors does not get indexed (it's gobbled up by the html t
 Investigate beautiful soup for html parsing (DONE)
 Add "ignore" attribute to domains (DONE)
 Track and record referrer information. (DONE)
+Figure out how to do unicode indexing (DONE)
 
 
 Tests to do:

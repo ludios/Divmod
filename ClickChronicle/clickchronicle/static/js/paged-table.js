@@ -9,6 +9,7 @@ function selectOptionWithValue( elem, value ) {
 }
 
 ignore = partial(server.handle, "ignore");
+bookmark = partial(server.handle, "bookmark");
 
 function visible(e) {
     return e.style.display != "none";

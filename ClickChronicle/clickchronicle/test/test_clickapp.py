@@ -4,7 +4,7 @@ from twisted.trial.util import wait
 from twisted.web.error import Error
 from nevow.url import URL
 from clickchronicle.clickapp import ClickRecorder
-from clickchronicle.visit import Visit, Domain, BookmarkVisit
+from clickchronicle.visit import Visit, Domain, BookmarkVisit, Bookmark
 from clickchronicle.test.base import (IndexAwareTestBase,
                                       MeanResourceTestBase,
                                       CCTestBase)
@@ -29,6 +29,22 @@ class ClickRecorderTestCase(CCTestBase, TestCase):
         # same URL, different title
         wait(self.makeVisit(url=nextUrl, title=mktemp(), indexIt=False))
 
+    def testBookmark(self):
+        ss = self.substore
+
+        self.assertNItems(ss, Visit, 0)
+        self.assertNItems(ss, Domain, 0)
+        self.assertNItems(ss, Bookmark, 0)
+
+        url = self.randURL()
+        visit = wait(self.makeVisit(url=url, title=mktemp(), indexIt=False))
+        def _():
+            return visit.asBookmark()
+        bm = ss.transact(_)
+        self.assertNItems(ss, Bookmark, 1)
+        self.assertEqual(visit.url, bm.url)
+        self.assertEqual(visit.domain, bm.domain)
+        
     def testReferrer(self):
         iterurls = self.urlsWithSameDomain()
         url = iterurls.next()

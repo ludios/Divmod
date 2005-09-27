@@ -104,25 +104,18 @@
   <table id="navTable" style="width: 100%" cellspacing="0" nevow:pattern="navBar">
     <tr class="navRow">
       <td style="padding: 4px">
-        <span id="first"><img src="/static/images/first.png" onclick="first()"/></span>
-        <span id="first_disabled">
-          <img src="/static/images/first_disabled.png"/>
-        </span>
+        <img id="first" src="/static/images/first.png" onclick="goFirst()"/>
+        <img id="first_disabled" src="/static/images/first_disabled.png"/>
 
-        <span id="prev"><img src="/static/images/left.png" onclick="prev()"/></span>
-        <span id="prev_disabled">
-          <img src="/static/images/left_disabled.png"/>
-        </span>
+        <img id="prev" src="/static/images/prev.png" onclick="goPrev()"/>
+        <img id="prev_disabled" src="/static/images/prev_disabled.png"/>
 
-        <span id="next"><img src="/static/images/right.png" onclick="next()"/></span>
-        <span id="next_disabled">
-          <img src="/static/images/right_disabled.png"/>
-        </span>
+        <img id="next" src="/static/images/next.png" onclick="goNext()"/>
+        <img id="next_disabled" src="/static/images/next_disabled.png"/>
 
-        <span id="last"><img src="/static/images/last.png" onclick="last()"/></span>
-        <span id="last_disabled">
-          <img src="/static/images/last_disabled.png"/>
-        </span>
+        <img id="last" src="/static/images/last.png" onclick="goLast()"/>
+        <img id="last_disabled" src="/static/images/last_disabled.png"/>
+      
       </td>
       <td style="text-align: right; padding: 4px;">
         page: <span id="pagingWidgetContainer"><nevow:slot name="pagingWidget"/></span>

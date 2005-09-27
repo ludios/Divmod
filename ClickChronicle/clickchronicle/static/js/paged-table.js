@@ -11,10 +11,6 @@ function selectOptionWithValue( elem, value ) {
 ignore = partial(server.handle, "ignore");
 bookmark = partial(server.handle, "bookmark");
 
-function visible(e) {
-    return e.style.display != "none";
-}
-
 var UP_ARROW = "\u2191";
 var DN_ARROW = "\u2193";
 
@@ -37,35 +33,32 @@ function setSortState(column, direction) {
 
 function doDisable(eid1, eid2) {
     var e1 = $(eid1), e2 = $(eid2);
-    if(visible(e1) && visible(e2)) {
-        hideElement(e1);
-        hideElement(e2);
-        setDisplayForElement(eid1 + "_disabled", "inline");
-        setDisplayForElement(eid2 + "_disabled", "inline");
-    }
+    hideElement(e1);
+    hideElement(e2);
+    setDisplayForElement("inline", eid1 + "_disabled");
+    setDisplayForElement("inline", eid2 + "_disabled");
 }
 
 function doEnable(eid1, eid2) {
     var e1 = $(eid1), e2 = $(eid2);
-    if(!visible(e1) && !visible(e2)) {
-        hideElement(eid1 + "_disabled");
-        hideElement(eid2 + "_disabled");
-        setDisplayForElement(e1, "inline");
-        setDisplayForElement(e2, "inline");
-    }
+    setDisplayForElement("inline", e1);
+    setDisplayForElement("inline", e2);
+    hideElement(eid1 + "_disabled");
+    hideElement(eid2 + "_disabled");
 }
  
 function firstPrevDisable() { doDisable("first", "prev") }
-function firstPrevEnable() { doEnable("first", "prev") }
-function lastNextDisable() { doDisable("last", "next") }
-function lastNextEnable() { doEnable("last", "next") }
+function lastNextDisable()  { doDisable("last", "next")  }
+function firstPrevEnable()  { doEnable("first", "prev")  }
+function lastNextEnable()   { doEnable("last", "next")   }
 
 function setPageState() {
     var pages = $("pages");
     var onFirstPage = (pages.selectedIndex < 1);
     var onLastPage = (pages.selectedIndex == pages.childNodes.length - 1);
+
     (onFirstPage ? firstPrevDisable : firstPrevEnable)();
-    (onLastPage  ? lastNextDisable  : lastNextEnable)()
+    (onLastPage  ? lastNextDisable  : lastNextEnable)();
     
     pages.disabled = (onFirstPage && onLastPage) ? true : false;
     var noItems = ($("totalItems").firstChild.nodeValue == 0);
@@ -83,7 +76,6 @@ function setPageState() {
 
 function setCurrentPage( page ) {
     selectOptionWithValue($("pages"), page);
-    setPageState();
 }
 
 function setTotalItems( items ) {
@@ -100,14 +92,14 @@ function updateTable() {
     server.handle("updateTable", getSelected("pages"));
 }
 
-function first() {
+function goFirst() {
     var firstPageElem = document.getElementById("pages").firstChild;
     var firstPage = firstPageElem.firstChild.nodeValue;
     setCurrentPage( firstPage );
     updateTable();
 }
 
-function last() {
+function goLast() {
     var pagesElem = document.getElementById("pages");
     var lastPageElem = pagesElem.childNodes[pagesElem.childNodes.length - 1];
     var lastPage = lastPageElem.firstChild.nodeValue;
@@ -115,7 +107,7 @@ function last() {
     updateTable();
 }
            
-function next() {
+function goNext() {
     var pagesElem = document.getElementById("pages");
     var nextPageElem = pagesElem.childNodes[pagesElem.selectedIndex + 1];
     var nextPage = nextPageElem.firstChild.nodeValue;
@@ -123,7 +115,7 @@ function next() {
     updateTable();
 }
 
-function prev() {
+function goPrev() {
     var pagesElem = document.getElementById("pages");
     var prevPageElem = pagesElem.childNodes[pagesElem.selectedIndex - 1];
     var prevPage = prevPageElem.firstChild.nodeValue;

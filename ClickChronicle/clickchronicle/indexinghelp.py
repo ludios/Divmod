@@ -208,7 +208,8 @@ class CacheManager(Item):
         """
         return client.getPage(url)
 
-def getContentType(meta):
+def _getEncoding(meta):
+    # TODO This should really be coming from the http encoding
     if 'http-equiv' in meta:
         equivs=meta['http-equiv']
         if 'content-type' in equivs:
@@ -220,15 +221,18 @@ def getContentType(meta):
             return enc
     return None
 
+CHARSET_SEARCH_LIMIT = 2048 # The charset must appear within this number of characters
 def makeDocument(visit, pageSource):
-    # XXX should decode first, then strip?
-    # XXX should we get the encoding from the http transfer encooding?
-    (text, meta) = tagstrip.cook(pageSource)
-    title = visit.title
-    encoding = getContentType(meta)
+    title = visit.title # TODO - Should get the title from BeautifulSoup
+    (ignore, meta)=tagstrip.cook(pageSource[:CHARSET_SEARCH_LIMIT])
+    encoding = _getEncoding(meta)
     if encoding is not None:
-        text = text.decode(encoding)
         title = title.decode(encoding)
+        decodedSource = pageSource.decode(encoding)
+    else:
+        decodedSource = pageSource
+    (text, meta) = tagstrip.cook(decodedSource)
+        
     values = [
         Value('type', 'url'),
         Value('url', visit.url),

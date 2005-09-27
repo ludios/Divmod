@@ -205,7 +205,30 @@ class CacheManager(Item):
     def getPageSource(self, url):
         """Asynchronously get the page source for a URL.
         """
-        return client.getPage(url)
+        def gotPage(result):
+            source, headers = result
+            print 'Discovered headers for', repr(url), 'tobe', repr(headers)
+            contentType = headers[0]
+            if contentType:
+                encoding = _parseContentType(contentType[0])
+                print 'Discovered', repr(encoding), 'as encoding for', repr(url)
+                return source, encoding
+            return source, None
+
+        return webclient.getPageAndHeaders(
+            ['content-type'], url).addCallback(gotPage)
+
+def _parseContentType(ctype):
+    # ctype should be something like this 'text/html; charset=iso-8859-1'
+    parts = ctype.lower().split(';', 1)
+    if len(parts) == 1:
+        return None
+    type, args = parts
+    for arg in args.split(';'):
+        parts = arg.split('=')
+        if len(parts) == 2 and parts[0].strip() == 'charset':
+            return parts[1].strip()
+    return None
 
 def _getEncoding(meta):
     # TODO This should really be coming from the http encoding
@@ -213,23 +236,22 @@ def _getEncoding(meta):
         equivs=meta['http-equiv']
         if 'content-type' in equivs:
             ctype = equivs['content-type']
-            # ctype should be something like this 'text/html; charset=iso-8859-1'
-            type, enc = ctype.split(';',1)
-            enc = enc.strip()
-            _, enc = enc.split('=',1)
-            return enc
+            return _parseContentType(ctype)
     return None
 
 CHARSET_SEARCH_LIMIT = 2048 # The charset must appear within this number of characters
-def makeDocument(visit, pageSource):
+def makeDocument(visit, pageSource, encoding=None):
     title = visit.title # TODO - Should get the title from BeautifulSoup
-    (ignore, meta)=tagstrip.cook(pageSource[:CHARSET_SEARCH_LIMIT])
-    encoding = _getEncoding(meta)
-    if encoding is not None:
-        title = title.decode(encoding)
-        decodedSource = pageSource.decode(encoding)
-    else:
-        decodedSource = pageSource
+
+    if encoding is None:
+        (ignore, meta)=tagstrip.cook(pageSource[:CHARSET_SEARCH_LIMIT])
+        encoding = _getEncoding(meta)
+    if encoding is None:
+        encoding = 'ascii'
+
+    title = title.decode(encoding, 'replace')
+    decodedSource = pageSource.decode(encoding, 'replace')
+
     (text, meta) = tagstrip.cook(decodedSource)
         
     values = [

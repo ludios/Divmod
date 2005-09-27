@@ -25,7 +25,8 @@ class DefaultDisplayableVisit:
         self.original = original
 
     def asDict(self):
-        return dict(url=self.original.url, title=self.original.title, 
+        return dict(url=self.original.url.decode('utf-8'),
+                    title=self.original.title.decode('utf-8'), 
                     visitCount=self.original.visitCount, 
                     timestamp=self.original.timestamp)
 
@@ -42,8 +43,8 @@ class VisitMixin(object):
         """
         Return a Document in a Deferred.
         """
-        def cbGotSource(pageSource):
-            doc = indexinghelp.makeDocument(self, pageSource)
+        def cbGotSource((pageSource, encoding)):
+            doc = indexinghelp.makeDocument(self, pageSource, encoding)
             return doc
         d = iclickchronicle.ICache(self.store).getPageSource(self.url)
         d.addCallback(cbGotSource)

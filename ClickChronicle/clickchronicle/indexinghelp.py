@@ -4,7 +4,7 @@ from axiom import attributes
 from nevow.url import URL
 from xapwrap.index import SmartIndex, ParsedQuery, DocNotFoundError
 from xapwrap.document import Document, TextField, StandardAnalyzer, Term, Value
-from clickchronicle import tagstrip
+from clickchronicle import tagstrip, webclient
 from clickchronicle.iclickchronicle import IIndexer, IIndexable, ICache
 from clickchronicle.util import maybeDeferredWrapper
 
@@ -182,26 +182,25 @@ class CacheManager(Item):
             pass
 
     def fetchFavicon(self, domain):
-        def gotFavicon(data):
+        def gotFavicon((data, (contentType,))):
+            if contentType:
+                contentType = contentType[0]
+            else:
+                contentType = 'image/x-icon'
+
             s = self.store
             def txn():
-                for ctype in factory.response_headers.get('content-type', ()):
-                    break
-                else:
-                    ctype = 'image/x-icon'
-
                 fi = FavIcon(prefixURL='private/icons/%s.ico' % domain.url,
-                             data=data, contentType=ctype, store=s)
+                             data=data, contentType=contentType, store=s)
                 fi.installOn(s)
                 domain.favIcon = fi
             s.transact(txn)
 
         url = str(URL(netloc=domain.url, pathsegs=('favicon.ico',)))
-        (host, port) = client._parse(url)[1:-1]
-        factory = client.HTTPClientFactory(url)
-        reactor.connectTCP(host, port, factory)
+        d = webclient.getPageAndHeaders(['content-type'], url)
+        d.addCallback(gotFavicon)
+        return d
 
-        return factory.deferred.addCallbacks(gotFavicon, lambda ign: None)
 
     def getPageSource(self, url):
         """Asynchronously get the page source for a URL.

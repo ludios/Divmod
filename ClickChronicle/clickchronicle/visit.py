@@ -9,7 +9,7 @@ from clickchronicle import iclickchronicle, indexinghelp
 
 class Domain(Item):
     url = attributes.bytes()
-    title = attributes.bytes()
+    title = attributes.text()
     visitCount = attributes.integer(default=0)
     ignore = attributes.boolean(default=False)
     favIcon = attributes.reference()
@@ -26,8 +26,8 @@ class DefaultDisplayableVisit:
 
     def asDict(self):
         return dict(url=self.original.url.decode('utf-8'),
-                    title=self.original.title.decode('utf-8'), 
-                    visitCount=self.original.visitCount, 
+                    title=self.original.title,
+                    visitCount=self.original.visitCount,
                     timestamp=self.original.timestamp)
 
 class DisplayableDomain(DefaultDisplayableVisit):
@@ -56,7 +56,7 @@ class Bookmark(Item, VisitMixin):
 
     timestamp = attributes.timestamp()
     url = attributes.bytes()
-    title = attributes.bytes()
+    title = attributes.text()
     visitCount = attributes.integer(default=0)
     domain = attributes.reference(allowNone=False)
     referrer = attributes.reference()
@@ -70,7 +70,7 @@ class Visit(Item, VisitMixin):
 
     timestamp = attributes.timestamp()
     url = attributes.bytes()
-    title = attributes.bytes()
+    title = attributes.text()
     visitCount = attributes.integer(default=0)
     domain = attributes.reference(allowNone=False)
     referrer = attributes.reference()
@@ -105,7 +105,7 @@ class BookmarkVisit(Item):
 
     # XXX Not sure which attributes we need. Particularly referrer?
     url = attributes.bytes(default='bookmark')
-    title = attributes.bytes(default='bookmark')
+    title = attributes.text(default=u'bookmark')
 
     referrer = attributes.reference(allowNone=True)
 

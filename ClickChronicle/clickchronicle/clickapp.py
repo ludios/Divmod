@@ -438,6 +438,8 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         if not title or title.isspace():
             title = url
 
+        title = title.decode('utf-8')
+
         def storeReferee(referrer):
             def forget():
                 if self.visitCount > self.maxCount:
@@ -473,7 +475,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         Otherwise create a new Visit.
         """
         host = URL.fromString(url).netloc
-        domain = self.store.findOrCreate(Domain, url=host, title=host)
+        domain = self.store.findOrCreate(Domain, url=host, title=unicode(host))
         if domain.ignore:
             return
         existingVisit = self.findVisitForToday(url)

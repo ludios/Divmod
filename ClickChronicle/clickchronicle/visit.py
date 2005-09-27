@@ -18,6 +18,9 @@ class Domain(Item):
     schemaVersion = 1
     typeName = 'domain'
 
+    def __repr__(self):
+        return '<Domain %r>' % (self.url,)
+
 class DefaultDisplayableVisit:
     implements(iclickchronicle.IDisplayableVisit)
 

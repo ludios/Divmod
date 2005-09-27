@@ -1,8 +1,10 @@
 from tempfile import mktemp
+from twisted.application.service import IService
 from twisted.trial.unittest import TestCase
 from twisted.trial.util import wait
 from twisted.web.error import Error
 from nevow.url import URL
+from clickchronicle import iclickchronicle
 from clickchronicle.clickapp import ClickRecorder
 from clickchronicle.visit import Visit, Domain, BookmarkVisit, Bookmark
 from clickchronicle.test.base import (IndexAwareTestBase,
@@ -162,11 +164,17 @@ class IndexingClickRecorderTestCase(IndexAwareTestBase, TestCase):
 class MeanResourceTestCase(MeanResourceTestBase, TestCase):
     def setUp(self):
         self.setUpWebIndexer()
+        IService(self.superstore).startService()
 
     def tearDown(self):
+        MeanResourceTestBase.tearDown(self)
         self.tearDownWebIndexer()
+        IService(self.superstore).stopService()
 
     def testNoRecord(self):
+        cacheMan = iclickchronicle.ICache(self.substore)
+        cacheMan.tasks.interval = 1
+
         def onRecordingError():
             # assert nothing was indexed
             self.assertEqual(preIndexCount, self.indexer.indexCount)
@@ -183,7 +191,9 @@ class MeanResourceTestCase(MeanResourceTestBase, TestCase):
         self.assertEqual(preIndexCount, 0)
         preVisitCount = self.recorder.visitCount
         self.assertEqual(preVisitCount, 0)
-        futureSuccess = self.recorder.recordClick(dict(url=self.urls['mean'],
-                                                       title='mean'), indexIt=True)
+        self.recorder.recordClick(dict(url=self.urls['mean'],
+                                       title='mean'), indexIt=True)
+
+        futureSuccess = cacheMan.tasks.notifyOnQuiecence()
 
         return futureSuccess.addCallback(lambda ign: onRecordingError())

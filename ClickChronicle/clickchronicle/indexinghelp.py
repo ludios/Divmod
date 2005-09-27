@@ -1,6 +1,10 @@
+import datetime
 from zope.interface import implements
+from twisted.python import log, failure
+from twisted.web import error as weberror
+from epsilon import extime
 from axiom.item import Item
-from axiom import attributes
+from axiom import attributes, iaxiom
 from nevow.url import URL
 from xapwrap.index import SmartIndex, ParsedQuery, DocNotFoundError
 from xapwrap.document import Document, TextField, StandardAnalyzer, Term, Value
@@ -11,6 +15,99 @@ from clickchronicle.util import maybeDeferredWrapper
 from twisted.internet import reactor, defer
 
 XAPIAN_INDEX_DIR = 'xap.index'
+
+class TaskError(Exception):
+    """
+    An error occurred while processing a particular task.  The task
+    should be retried.  The error will not be logged.
+    """
+
+class _Task(Item):
+    schemaVersion = 1
+    typeName = 'clickchronicle_queued_task'
+
+    task = attributes.reference()
+    added = attributes.timestamp()
+    retries = attributes.integer(default=0)
+    lastAttempt = attributes.timestamp()
+    queue = attributes.reference()
+
+    def do(self):
+        return self.task.do()
+
+
+class IndexQueue(Item):
+    schemaVersion = 1
+    typeName = 'clickchronicle_indexing_queue'
+
+    rate = attributes.integer(default=3)
+    interval = attributes.integer(default=5000)
+    maxRetries = attributes.integer(default=3)
+
+    _waitingForQuiet = attributes.inmemory()
+
+    def activate(self):
+        self._waitingForQuiet = []
+
+    def _keepMeInMemory(self, passthrough):
+        return passthrough
+
+    def notifyOnQuiecence(self):
+        if not self.store.count(_Task, _Task.queue == self):
+            return defer.succeed(None)
+        d = defer.Deferred()
+        self._waitingForQuiet.append(d)
+        d.addCallback(self._keepMeInMemory)
+        return d
+
+    def addTask(self, task):
+        if self.store.count(_Task, _Task.queue == self):
+            self._reschedule()
+        _Task(store=self.store,
+              task=task,
+              added=extime.Time(),
+              lastAttempt=extime.Time(),
+              queue=self)
+
+    def _cbTask(self, ignored, task):
+        task.deleteFromStore()
+
+    def _ebTask(self, err, task):
+        if not err.check(TaskError):
+            log.msg("Error processing task: %r" % (task,))
+            log.err(err)
+
+        if task.retries > self.maxRetries:
+            log.msg("Giving up on %r" % (task.task,))
+            task.deleteFromStore()
+        else:
+            task.retries += 1
+            task.lastAttempt = extime.Time()
+
+    def _cbRun(self, ignored):
+        if self.store.count(_Task, _Task.queue == self):
+            self._reschedule()
+        else:
+            dl = self._waitingForQuiet
+            self._waitingForQuiet = []
+            for d in dl:
+                d.callback(None)
+
+    def _reschedule(self):
+        sch = iaxiom.IScheduler(self.store)
+        sch.schedule(
+            self,
+            extime.Time() + datetime.timedelta(milliseconds=self.interval))
+
+    def run(self):
+        dl = []
+        for task in self.store.query(_Task,
+                                     _Task.queue == self,
+                                     sort=_Task.lastAttempt.ascending,
+                                     limit=self.rate):
+            dl.append(task.do().addCallbacks(self._cbTask, self._ebTask, callbackArgs=(task,), errbackArgs=(task,)))
+        defer.DeferredList(dl).addCallback(self._cbRun)
+
 
 class SyncIndexer(Item):
     """
@@ -37,17 +134,12 @@ class SyncIndexer(Item):
     def decrementIndexCount(self):
         self._setIndexCount(self.indexCount - 1)
 
-    def index(self, item):
-        def cbIndex(doc):
-            self.incrementIndexCount()
-            xapDir = self.store.newDirectory(XAPIAN_INDEX_DIR)
-            xapIndex = SmartIndex(str(xapDir.path), True)
-            xapIndex.index(doc)
-            xapIndex.close()
-            return doc
-        d = IIndexable(item).asDocument()
-        d.addCallback(cbIndex)
-        return d
+    def index(self, doc):
+        self.incrementIndexCount()
+        xapDir = self.store.newDirectory(XAPIAN_INDEX_DIR)
+        xapIndex = SmartIndex(str(xapDir.path), True)
+        xapIndex.index(doc)
+        xapIndex.close()
 
     def delete(self, item):
         xapDir = self.store.newDirectory(XAPIAN_INDEX_DIR)
@@ -92,6 +184,59 @@ class FavIcon(Item, website.PrefixURLMixin):
         return static.Data(self.data, self.contentType)
 
 
+class FetchFavIconTask(Item):
+    schemaVersion = 1
+    typeName = 'clickchronicle_fetch_favicon_task'
+
+    domain = attributes.reference()
+    cacheMan = attributes.reference()
+
+    def __repr__(self):
+        return '<Fetching FavIcon for %r>' % (self.domain,)
+
+    def do(self):
+        return self.cacheMan.fetchFavicon(self.domain)
+
+class FetchSourceTask(Item):
+    schemaVersion = 1
+    typeName = 'clickchronicle_fetch_source_task'
+
+    visit = attributes.reference()
+    indexer = attributes.reference()
+    cacheMan = attributes.reference()
+
+    indexIt = attributes.boolean()
+    cacheIt = attributes.boolean()
+
+    def __repr__(self):
+        return '<Fetching %r>' % (self.visit.url,)
+
+    def do(self):
+        d = self.cacheMan.getPageSource(self.visit.url)
+        d.addCallbacks(self._cbGotSource, self._ebGotSource)
+        return d
+
+    def _cbGotSource(self, (source, encoding)):
+        if self.indexIt:
+            self._index(source, encoding)
+        if self.cacheIt:
+            self._cache(source, encoding)
+
+    def _ebGotSource(self, err):
+        err.trap(weberror.Error)
+        return failure.Failure(TaskError("HTTP error while downloading page (%r)" % (err.getErrorMessage(),)))
+
+    def _index(self, source, encoding):
+        self.indexer.index(makeDocument(self.visit, source, encoding))
+
+    def _cache(self, source, encoding):
+        """
+        Cache the source for this visit.
+        """
+        newFile = self.store.newFile(self.cacheMan.cachedFileNameFor(self.visit).path)
+        newFile.write(source)
+        newFile.close()
+
 from twisted.web import client
 class CacheManager(Item):
     """
@@ -104,12 +249,18 @@ class CacheManager(Item):
     cacheCount = attributes.integer(default=0)
     cacheSize = attributes.integer(default=0)
 
+    tasks = attributes.reference()
+
     implements(ICache)
+
+    def __init__(self, **kw):
+        super(CacheManager, self).__init__(**kw)
+        self.tasks = IndexQueue(store=self.store)
 
     def installOn(self, other):
         other.powerUp(self, ICache)
 
-    def rememberVisit(self, visit, domain, cacheIt=False, indexIt=True, storeFavicon=True):
+    def rememberVisit(self, visit, cacheIt=False, indexIt=True, storeFavicon=True):
         """
         XXX This is a bit of a mess right now. This is partially due to
         XXX the demands of testing and needs to be re-thought.
@@ -129,39 +280,28 @@ class CacheManager(Item):
         which return deferreds and take a visit as an argument.
         """
 
-        def cbCachePage(doc):
-            """
-            Cache the source for this visit.
-            """
-            newFile = self.store.newFile(self.cachedFileNameFor(visit).path)
-            try:
-                src = doc.source
-            except AttributeError:
-                # XXX - This is for the tests
-                # fix this with some smarter tests
-                src = ''
-            newFile.write(src)
-            newFile.close()
-            return visit.domain
-        d = None
-        if indexIt:
-            indexer = IIndexer(self.store)
-            d=indexer.index(visit)
-        else:
-            d=defer.succeed(None)
-        if cacheIt:
-            if d is None:
-                d = visit.asDocument()
-            d.addCallback(cbCachePage)
+        if indexIt or cacheIt:
+            self.tasks.addTask(
+                FetchSourceTask(store=self.store,
+                                visit=visit,
+                                indexer=IIndexer(self.store),
+                                cacheMan=self,
+                                indexIt=indexIt,
+                                cacheIt=cacheIt))
+
+        domain = visit.domain
         if domain.favIcon is None and storeFavicon:
-            faviconSuccess = self.fetchFavicon(domain)
-        else:
-            faviconSuccess = defer.succeed(None)
+            for tsk in self.store.query(
+                FetchFavIconTask,
+                attributes.AND(FetchFavIconTask.domain == domain,
+                               FetchFavIconTask.cacheMan == self)):
+                break
+            else:
+                self.tasks.addTask(
+                    FetchFavIconTask(store=self.store,
+                                     domain=domain,
+                                     cacheMan=self))
 
-        futureVisit = defer.gatherResults((faviconSuccess, d))
-        return futureVisit.addBoth(lambda ign: visit)
-
-    #rememberVisit = maybeDeferredWrapper(rememberVisit)
 
     def cachedFileNameFor(self, visit):
         """

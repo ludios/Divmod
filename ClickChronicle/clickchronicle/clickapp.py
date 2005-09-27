@@ -11,7 +11,7 @@ from nevow import rend, inevow, tags, loaders, flat
 from epsilon.extime import Time
 
 from axiom.item import Item
-from axiom import userbase, attributes
+from axiom import userbase, scheduler, attributes
 
 from xmantissa import ixmantissa, webnav, website, webapp
 from xmantissa.webgestalt import AuthenticationApplication
@@ -153,6 +153,7 @@ class ClickChronicleBenefactor(Item):
         avatar.findOrCreate(website.WebSite).installOn(avatar)
         avatar.findOrCreate(webapp.PrivateApplication,
                             preferredTheme=u'cc-skin').installOn(avatar)
+        avatar.findOrCreate(scheduler.SubScheduler).installOn(avatar)
         avatar.findOrCreate(ClickChronicleInitializer).installOn(avatar)
 
 
@@ -430,6 +431,9 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         """
         Extract POST arguments and create a Visit object before indexing and caching.
         """
+        if self.visitCount > self.maxCount:
+            self.forgetOldestVisit()
+
         url = qargs.get('url')
         if url is None:
             # No url, no deal.
@@ -440,16 +444,6 @@ class ClickRecorder(Item, website.PrefixURLMixin):
 
         title = title.decode('utf-8')
 
-        def storeReferee(referrer):
-            def forget():
-                if self.visitCount > self.maxCount:
-                    self.forgetOldestVisit()
-
-            futureSuccess = self.findOrCreateVisit(url, title,
-                                                   referrer, indexIt=indexIt,
-                                                   storeFavicon=storeFavicon)
-            return futureSuccess.addCallback(lambda ign: forget())
-
         ref = qargs.get('ref')
 
         if ref:
@@ -458,15 +452,19 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             # off chance that we didn't record the click when the user
             # was viewing the referrer page, we don't have much else
             # meaningful to use
-            deferred = self.findOrCreateVisit(ref, ref, indexIt=indexIt,
+            referrer = self.findOrCreateVisit(ref,
+                                              unicode(ref),
+                                              indexIt=indexIt,
                                               storeFavicon=storeFavicon)
-            
-            deferred.addCallback(storeReferee)
         else:
             # Most likely selected a bookmark/shortcut
-            deferred = storeReferee(self.bookmarkVisit)
+            referrer = self.bookmarkVisit
 
-        return deferred
+        self.findOrCreateVisit(
+            url, title,
+            referrer, indexIt=indexIt,
+            storeFavicon=storeFavicon)
+
 
     def findOrCreateVisit(self, url, title, referrer=None, indexIt=True, storeFavicon=True):
         """
@@ -510,13 +508,12 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         visit = self.store.transact(_)
 
         cacheMan = iclickchronicle.ICache(self.store)
-        d = cacheMan.rememberVisit(visit, domain, cacheIt=self.caching, indexIt=indexIt, storeFavicon=storeFavicon)
-        return d
+        cacheMan.rememberVisit(visit,
+                               cacheIt=self.caching,
+                               indexIt=indexIt,
+                               storeFavicon=storeFavicon)
+        return visit
 
-    #futureVisit = defer.gatherResults((futureFavicon, futureSuccess))
-    #    return futureVisit.addBoth(lambda ign: visit)
-
-    findOrCreateVisit = maybeDeferredWrapper(findOrCreateVisit)
 
     def findVisitForToday(self, url):
         dtNow = datetime.now()

@@ -1,6 +1,6 @@
 from twisted.trial.util import wait
 from twisted.internet import reactor, defer
-from clickchronicle import clickapp
+from clickchronicle import iclickchronicle, clickapp, ccapp
 from clickchronicle.visit import Visit, Domain
 from clickchronicle.indexinghelp import IIndexer, ICache
 from xmantissa import signup
@@ -21,10 +21,17 @@ class CCTestBase:
            i won't need to be recreated before each one)"""
 
         store = Store(self.mktemp())
-        LoginSystem(store = store).installOn(store)
-        benefactor = clickapp.ClickChronicleBenefactor(store = store)
-        booth = signup.TicketBooth(store = store)
-        booth.installOn(store)
+        store.transact(ccapp.installSite, store)
+
+        for booth in store.query(signup.TicketBooth):
+            break
+        else:
+            raise RuntimeError("Failed to find TicketBooth, cannot set up tests")
+
+        for benefactor in store.query(clickapp.ClickChronicleBenefactor):
+            break
+        else:
+            raise RuntimeError("Failed to find ClickChronicleBenefactor, cannot set up tests")
 
         ticket = booth.createTicket(booth, u'x@y.z', benefactor)
         ticket.claim()
@@ -106,12 +113,13 @@ class CCTestBase:
             yield str(base.child(str(i)))
 
     def visitURLs(self, urls, indexIt=True):
-        deferreds = []
         for (resname, url) in urls.iteritems():
-            futureVisit = self.recorder.recordClick(dict(url=url, title=resname), indexIt=indexIt,
+            self.recorder.recordClick(dict(url=url, title=resname), indexIt=indexIt,
                                                     storeFavicon=False)
-            deferreds.append(futureVisit)
-        return defer.gatherResults(deferreds)
+
+        cacheMan = iclickchronicle.ICache(self.substore)
+        return cacheMan.tasks.notifyOnQuiecence()
+
 
 class DataServingTestBase(CCTestBase):
     """

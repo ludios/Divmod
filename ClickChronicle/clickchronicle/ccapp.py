@@ -1,14 +1,13 @@
 from twisted.python.util import sibpath
 from axiom.store import Store
 from axiom.userbase import LoginSystem
+from axiom.scheduler import Scheduler
 from xmantissa.website import WebSite, StaticSite
 from xmantissa.signup import TicketBooth
 from clickchronicle.clickapp import ClickChronicleBenefactor
 from clickchronicle.signup_hack import EmaillessTicketSignup
 
-siteStore = Store('cchronicle.axiom', debug = True)
-
-def installSite():
+def installSite(siteStore):
     LoginSystem(store = siteStore).installOn(siteStore)
 
     WebSite(store = siteStore, portno = 8080).installOn(siteStore)
@@ -25,4 +24,12 @@ def installSite():
                           prefixURL = u'signup',
                           booth = booth).installOn(siteStore)
 
-siteStore.transact(installSite)
+    Scheduler(store = siteStore).installOn(siteStore)
+
+def main():
+    siteStore = Store('cchronicle.axiom', debug = False)
+    siteStore.transact(installSite, siteStore)
+
+if __name__ == '__main__':
+    main()
+

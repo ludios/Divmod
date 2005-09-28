@@ -65,8 +65,8 @@ var gCCBrowserObserver = {
     },
     
     chromeLoaded : function(event) {
-        window.removeEventListener("load", this.chromeLoaded, true);
-        //showToolbarButtons();
+        window.removeEventListener("load", this.chromeLoaded, false);
+        showToolbarButtons();
         
         var urgh = gCCBrowserObserver;
         urgh.recordButton = document.getElementById("clickchronicle-record-button");
@@ -91,14 +91,14 @@ var gCCBrowserObserver = {
         this.recordButton.hidden = true;
         this.pauseButton.hidden = false;
         login(gIOSvc.newURI(gCCPrefs.getCharPref("clickRecorderURL"), null, null), function(s){});
-        this.appContent.addEventListener("DOMContentLoaded", this.domContentLoaded, true);
+        this.appContent.addEventListener("DOMContentLoaded", this.domContentLoaded, false);
     },
 
     stopRecording : function() {
         this.recordButton.hidden = false;
         this.pauseButton.hidden  = true;
-        this.appContent.removeEventListener("DOMContentLoaded", this.domContentLoaded, true);
+        this.appContent.removeEventListener("DOMContentLoaded", this.domContentLoaded, false);
     }
 }
          
-window.addEventListener("load", gCCBrowserObserver.chromeLoaded, true);
+window.addEventListener("load", gCCBrowserObserver.chromeLoaded, false);

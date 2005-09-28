@@ -15,53 +15,9 @@ function substitute() {
         str = str.replace( /%s/, args[i] );
     return str;
 }
-        
-function recordableURI( URI ) {
-    /* optimize preference getting */
-    var gRecorderURI = gIOSvc.newURI(gCCPrefs.getCharPref("clickRecorderURL"), null, null);
-    return URI.schemeIs("http") && (URI.userPass == "") && (URI.host != gRecorderURI.host)
-}
 
-function logToServer(document) {
-    gConsoleSvc.logStringMessage("recording: " + document.location.href + " " + document.title);
-    var req = new XMLHttpRequest();
-    var targetURL = gCCPrefs.getCharPref("clickRecorderURL");
-    targetURL += substitute("?url=%s&title=%s&ref=%s",
-                            encodeURIComponent(document.location.href),
-                            encodeURIComponent(document.title),
-                            encodeURIComponent(document.referrer));
-                            
-    req.open("POST", targetURL, true);
-    req.send(null);
-}
-
-function domContentLoaded(tabBrowser, appContent, event) {
-    var win = event.target.defaultView;
-    if(win == win.top) {
-        var URI = gIOSvc.newURI(win.location.href, null, null);
-        if(recordableURI(URI)) 
-            logToServer(win.document);
-    }
-}
-
-function toggleRecording() {
-    var recordButton = document.getElementById("clickchronicle-record-button");
-    var pauseButton  = document.getElementById("clickchronicle-pause-button");
-    var recording = pauseButton.getAttribute("hidden");
-  
-    recordButton.hidden = recording ? true : false;
-    pauseButton.hidden = !recordButton.hidden
-
-    var appContent = document.getElementById("appcontent");
-    var tabBrowser = document.getElementById("content");
-    function part(e) { domContentLoaded(tabBrowser, appContent, e) }
-    
-    if(recording) {
-        /* XXX actually do something in the login callback */
-        login(gIOSvc.newURI(gCCPrefs.getCharPref("clickRecorderURL"), null, null), function(s){});
-        appContent.addEventListener("DOMContentLoaded", part, false);
-    } else
-        appContent.removeEventListener("DOMContentLoaded", part, false);
+function log(str) {
+    gConsoleSvc.logStringMessage("clickchronicle : " + str);
 }
 
 function showToolbarButtons() {
@@ -74,11 +30,75 @@ function showToolbarButtons() {
                 navToolbar.insertItem(buttons[i] , afterButton, null, false);
 }
 
-function chromeLoaded(event) {
-    showToolbarButtons();
-    if(gCCPrefs.getBoolPref("enableOnStartup"))
-        toggleRecording();
-    window.removeEventListener("load", chromeLoaded, false);
-}
+var gCCBrowserObserver = {
+    recordButton : null,
+    pauseButton  : null,
+    appContent   : null,
+    tabBrowser   : null,
 
-window.addEventListener("load", chromeLoaded, false);
+    QueryInterface : function(iid) {
+        if(iid.equals(Components.interfaces.nsIObserver)
+            || iid.equals(Components.interfaces.nsISupports))
+            return this;
+        log("QueryInterface to unsupported iid: " + iid);
+        throw Components.results.NS_NOINTERFACE;
+    },
+
+    recordableURI : function(URI) {
+        /* optimize preference getting */
+        var recorderURI = gIOSvc.newURI(gCCPrefs.getCharPref("clickRecorderURL"), null, null);
+        return URI.schemeIs("http") && (URI.userPass == "") && (URI.host != recorderURI.host)
+    },
+
+    logToServer : function(document) {
+        log("recording: " + document.location.href + " " + document.title);
+        var req = new XMLHttpRequest();
+        var targetURL = gCCPrefs.getCharPref("clickRecorderURL");
+        
+        targetURL += substitute("?url=%s&title=%s&ref=%s",
+                                encodeURIComponent(document.location.href),
+                                encodeURIComponent(document.title),
+                                encodeURIComponent(document.referrer));
+                            
+        req.open("POST", targetURL, true);
+        req.send(null);
+    },
+    
+    chromeLoaded : function(event) {
+        window.removeEventListener("load", this.chromeLoaded, false);
+        showToolbarButtons();
+        
+        var urgh = gCCBrowserObserver;
+        urgh.recordButton = document.getElementById("clickchronicle-record-button");
+        urgh.pauseButton  = document.getElementById("clickchronicle-pause-button");
+        urgh.appContent   = document.getElementById("appcontent");
+        urgh.tabBrowser   = document.getElementById("content");
+
+        if(gCCPrefs.getBoolPref("enableOnStartup"))
+            urgh.startRecording();
+    },
+        
+    domContentLoaded : function(event) {
+        var win = event.target.defaultView;
+        if(win == win.top) {
+            var URI = gIOSvc.newURI(win.location.href, null, null);
+            if(gCCBrowserObserver.recordableURI(URI)) 
+                gCCBrowserObserver.logToServer(win.document);
+        }
+    },
+
+    startRecording : function() {
+        this.recordButton.hidden = true;
+        this.pauseButton.hidden = false;
+        login(gIOSvc.newURI(gCCPrefs.getCharPref("clickRecorderURL"), null, null), function(s){});
+        this.appContent.addEventListener("DOMContentLoaded", this.domContentLoaded, false);
+    },
+
+    stopRecording : function() {
+        this.recordButton.hidden = false;
+        this.pauseButton.hidden  = true;
+        this.appContent.removeEventListener("DOMContentLoaded", this.domContentLoaded, false);
+    }
+}
+         
+window.addEventListener("load", gCCBrowserObserver.chromeLoaded, false);

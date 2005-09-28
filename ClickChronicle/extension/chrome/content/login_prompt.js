@@ -40,7 +40,7 @@ function onClickLogin() {
     var mantissaURI = window.arguments[0];
     var cbfunc = window.arguments[1];
     var port = 80;
-    if(mantissaURI.port)
+    if(mantissaURI.port != -1)
         port = mantissaURI.port;
     var toURL = "http://" + mantissaURI.host + ":" + port + "/__login__";
     

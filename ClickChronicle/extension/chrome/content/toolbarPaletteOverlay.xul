@@ -11,13 +11,13 @@
   <toolbarbutton id="clickchronicle-record-button" 
     image="chrome://clickchronicle/content/record.png" class="toolbarbutton-1"
     label="Record"
-    chromedir="ltr" oncommand="toggleRecording()"
+    chromedir="ltr" oncommand="gCCBrowserObserver.startRecording();"
     tooltiptext="Start recording clicks"/>
 
   <toolbarbutton id="clickchronicle-pause-button" 
     image="chrome://clickchronicle/content/pause.png" class="toolbarbutton-1" 
     label="Pause"
-    chromedir="ltr" oncommand="toggleRecording()"
+    chromedir="ltr" oncommand="gCCBrowserObserver.stopRecording();"
     tooltiptext="Stop recording clicks" hidden="true"/>
 </toolbarpalette>
 

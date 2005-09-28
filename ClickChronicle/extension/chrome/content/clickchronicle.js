@@ -65,17 +65,20 @@ var gCCBrowserObserver = {
     },
     
     chromeLoaded : function(event) {
-        window.removeEventListener("load", this.chromeLoaded, false);
-        showToolbarButtons();
-        
-        var urgh = gCCBrowserObserver;
-        urgh.recordButton = document.getElementById("clickchronicle-record-button");
-        urgh.pauseButton  = document.getElementById("clickchronicle-pause-button");
-        urgh.appContent   = document.getElementById("appcontent");
-        urgh.tabBrowser   = document.getElementById("content");
+        function delayedLoad() {
+            window.removeEventListener("load", this.chromeLoaded, false);
+            showToolbarButtons();
+            
+            var urgh = gCCBrowserObserver;
+            urgh.recordButton = document.getElementById("clickchronicle-record-button");
+            urgh.pauseButton  = document.getElementById("clickchronicle-pause-button");
+            urgh.appContent   = document.getElementById("appcontent");
+            urgh.tabBrowser   = document.getElementById("content");
 
-        if(gCCPrefs.getBoolPref("enableOnStartup"))
-            urgh.startRecording();
+            if(gCCPrefs.getBoolPref("enableOnStartup"))
+                urgh.startRecording();
+        }
+        setTimeout(delayedLoad, 2);
     },
         
     domContentLoaded : function(event) {

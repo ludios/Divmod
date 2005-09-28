@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+
+<overlay id="clickchronicle_toolbarPaletteOverlay" 
+  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+  <script src="mantissa_login.js" type="application/x-javascript"/>
+  <script src="clickchronicle.js" type="application/x-javascript"/>
+
+<toolbarpalette id="BrowserToolbarPalette">
+  <toolbarbutton id="clickchronicle-record-button" 
+    image="chrome://clickchronicle/content/record.png" class="toolbarbutton-1"
+    label="Record"
+    chromedir="ltr" oncommand="toggleRecording()"
+    tooltiptext="Start recording clicks"/>
+
+  <toolbarbutton id="clickchronicle-pause-button" 
+    image="chrome://clickchronicle/content/pause.png" class="toolbarbutton-1" 
+    label="Pause"
+    chromedir="ltr" oncommand="toggleRecording()"
+    tooltiptext="Stop recording clicks" hidden="true"/>
+</toolbarpalette>
+
+</overlay>

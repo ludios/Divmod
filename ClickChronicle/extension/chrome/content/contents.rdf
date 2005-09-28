@@ -7,18 +7,18 @@
     <li resource="urn:mozilla:package:clickchronicle"/>
   </Seq>
 
+  <Seq about="urn:mozilla:overlays">
+    <li resource="chrome://browser/content/browser.xul"/>
+  </Seq>
+
+  <Seq about="chrome://browser/content/browser.xul">
+    <li>chrome://clickchronicle/content/toolbarPaletteOverlay.xul</li>
+  </Seq>
+
   <Description about="urn:mozilla:package:clickchronicle"
     chrome:displayName="ClickChronicle"
     chrome:author="Divmod, Inc"
     chrome:name="clickchronicle"
     chrome:extension="true"/>
-
-  <Seq about="urn:mozilla:overlays">
-    <li>
-      <Seq about="chrome://browser/content/browser.xul">
-        <li>chrome://clickchronicle/content/statusbarOverlay.xul</li>
-      </Seq>
-    </li>
-  </Seq>
-
+  
 </RDF>

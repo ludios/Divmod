@@ -44,11 +44,40 @@ function domContentLoaded(tabBrowser, appContent, event) {
     }
 }
 
-function chromeLoaded(event) {
-    var tabBrowser = document.getElementById("content");
+function toggleRecording() {
+    var recordButton = document.getElementById("clickchronicle-record-button");
+    var pauseButton  = document.getElementById("clickchronicle-pause-button");
+    var recording = pauseButton.getAttribute("hidden");
+  
+    recordButton.hidden = recording ? true : false;
+    pauseButton.hidden = !recordButton.hidden
+
     var appContent = document.getElementById("appcontent");
+    var tabBrowser = document.getElementById("content");
     function part(e) { domContentLoaded(tabBrowser, appContent, e) }
-    appContent.addEventListener("DOMContentLoaded", part, false);
+    
+    if(recording) {
+        /* XXX actually do something in the login callback */
+        login(gIOSvc.newURI(gCCPrefs.getCharPref("clickRecorderURL"), null, null), function(s){});
+        appContent.addEventListener("DOMContentLoaded", part, false);
+    } else
+        appContent.removeEventListener("DOMContentLoaded", part, false);
+}
+
+function showToolbarButtons() {
+    var buttons = ["clickchronicle-record-button", "clickchronicle-pause-button"];
+    var navToolbar  = document.getElementById("nav-bar");
+    var afterButton = document.getElementById("urlbar-container");
+
+    for(var i = 0; i < buttons.length; i++ )
+        if (navToolbar.currentSet.indexOf(buttons[i]) == -1)
+                navToolbar.insertItem(buttons[i] , afterButton, null, false);
+}
+
+function chromeLoaded(event) {
+    showToolbarButtons();
+    if(gCCPrefs.getBoolPref("enableOnStartup"))
+        toggleRecording();
     window.removeEventListener("load", chromeLoaded, false);
 }
 

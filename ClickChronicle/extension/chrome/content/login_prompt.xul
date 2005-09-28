@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<window id="clickchronicle-login" title="Login" orient="horizontal" 
+  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+  xmlns:html="http://www.w3.org/1999/xhtml" onload="document.getElementById('username').focus()"
+  style="padding: 5px;">
+
+  <script src="chrome://clickchronicle/content/login_prompt.js"/>
+
+  <vbox flex="1">
+    <grid>
+      <columns>
+        <column/>
+        <column/>
+      </columns>
+     
+      <rows>
+        <row>
+          <vbox>
+            <label style="font-size: 1.2em; font-weight: bold" value="Login"/>
+            <label value="Please enter your ClickChronicle login details"/>
+          </vbox>
+          <html:img src="logo_small.png" width="43" height="39"/>
+        </row>
+      </rows>
+    </grid>
+
+    <html:hr/>
+    <spacer style="height: 1em"/>
+      <grid>
+        <columns>
+          <column/>
+          <column/>
+        </columns>
+
+        <rows>
+          <row align="center">
+            <label style="font-weight: bold;" value="Username"/>
+            <textbox id="username" name="username" formelement="true"/>
+          </row>
+
+          <row align="center">
+            <label style="font-weight: bold;" value="Password"/>
+            <textbox type="password" name="password" formelement="true"/>
+          </row>
+
+          <row align="center">
+            <label style="font-weight: bold;" value="Remember Me"/>
+            <checkbox align="start" name="rememberMe" formelement="true"/>
+          </row>
+          
+        </rows>
+      </grid>
+      <hbox align="right"><button label="Login" onclick="onClickLogin()" accesskey="L"/></hbox>
+  </vbox>
+</window>
+

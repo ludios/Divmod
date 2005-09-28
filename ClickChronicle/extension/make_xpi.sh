@@ -21,11 +21,12 @@ then
 	echo "no directory $extension_dir, exiting"
 	exit
 fi
-
 cd $extension_dir/chrome/
 zip content.jar -r content -x '*svn*' 
 cd $extension_dir
+rm -rf clickchronicle.xpi
 zip -r clickchronicle.xpi chrome/content.jar
 zip clickchronicle.xpi -j install.rdf
 zip clickchronicle.xpi -r defaults -x '*svn*'
+rm $extension_dir/chrome/content.jar
 echo "wrote $extension_dir/clickchronicle.xpi.  open it in firefox to install"

@@ -1,10 +1,10 @@
 Features/Fixed to do:
 ---------------------
+Replace asDict() with IContainer adaptation
+
 base64 each domain's favicon and embed in exported bookmarks, because ffox supports it
 
 Look for rel="icon" link elements in HTML (some sites, like ours, don't put the icon at /favicon.ico)
-
-Force favicon to display at 16x16
 
 Even though favicons are cached we seem to request them every time the page loads :-/
 
@@ -27,8 +27,6 @@ Ignore pages with a Content-Length header over a threshold
 
 Some kind of disk space usage statistics
 
-Allow clicky sorting of table by visits, etc.
-
 Charts of activity over time (clicks per hour/day. different sites)
 
 Create queue for indexing and removing from index to defend against
@@ -44,10 +42,6 @@ Make SearchClicks a LivePage, not a live fragment
 
 Allow export of clicks and bookmarks in .zip or email. Use mozilla
 bookmark format.
-
-Allow "bookmark this" function from browser and/or clicks list.
-
-Bookmarks view
 
 Build some tagging UI.
 
@@ -105,6 +99,10 @@ Install additional encoding a la erinq
 
 Features/Fixed done:
 --------------------
+Allow "bookmark this" function from browser and/or clicks list. (DONE)
+Bookmarks view (DONE)
+Force favicon to display at 16x16 (DONE)
+Allow clicky sorting of table by visits, etc. (DONE)
 Display favicon (DONE)
 Strip css out of html (DONE)
 The visible text for anchors does not get indexed (it's gobbled up by the html tag stripper) (DONE)

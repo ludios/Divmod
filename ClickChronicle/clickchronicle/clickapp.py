@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 from zope.interface import implements
 
 from twisted.python import util
-from twisted.internet import defer
 from twisted.python.components import registerAdapter
 
 from nevow.url import URL
@@ -19,13 +18,15 @@ from xmantissa.webgestalt import AuthenticationApplication
 from clickchronicle import iclickchronicle
 from clickchronicle import indexinghelp
 from clickchronicle.util import (PagedTableMixin,
-                                 SortablePagedTableMixin, 
-                                 maybeDeferredWrapper)
+                                 SortablePagedTableMixin)
 from clickchronicle.visit import Visit, Domain, BookmarkVisit, Bookmark
 from clickchronicle.searchparser import parseSearchString
 
 flat.registerFlattener(lambda t, ign: t.asHumanly(), Time)
 
+def makeScriptTag(src):
+    return tags.script(type="application/x-javascript",
+                       src=src)
 
 class SearchBox(Item):
     implements(ixmantissa.INavigableElement)
@@ -74,12 +75,9 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
         self.pageNumbersPattern = pgen("pagingWidget")
         self.navBarPattern = pgen("navBar")
 
-    def makeScriptTag(self, src):
-        return tags.script(type="application/x-javascript",
-                           src=src)
     def head(self):
-        yield self.makeScriptTag("/static/js/MochiKit/MochiKit.js")
-        yield self.makeScriptTag("/static/js/paged-table.js")
+        yield makeScriptTag("/static/js/MochiKit/MochiKit.js")
+        yield makeScriptTag("/static/js/paged-table.js")
 
     def handle_ignore(self, ctx, url):
         store = self.original.store
@@ -361,11 +359,15 @@ class Preferences(Item):
     typeName = 'clickchronicle_preferences'
     schemaVersion = 1
 
+    installedOn = attributes.reference()
     displayName = attributes.bytes(default='none set')
     homepage = attributes.bytes(default='http://www.clickchronicle.com')
+    itemsPerPage = attributes.integer(default=10)
 
     def installOn(self, other):
+        assert self.installedOn is None, "cannot install Preferences on more than one thing!"
         other.powerUp(self, ixmantissa.INavigableElement)
+        self.installedOn = other
 
     def getTabs(self):
         return [webnav.Tab('Preferences', self.storeID, 0.0)]
@@ -381,14 +383,34 @@ class PreferencesFragment(rend.Fragment):
     fragmentName = 'preferences-fragment'
     title = ''
     live = True
+    changePasswordLink = None
+    itemsPerPageChoices = (10, 20, 50)
 
     def head(self):
-        return None
-
+        yield makeScriptTag("/static/js/MochiKit/MochiKit.js")
+        yield makeScriptTag("/static/js/editable-form.js")
+    
+    def data_changePasswordLink(self, ctx, data):
+        # XXX this is crap, i can't think of an nice way to modify
+        # AuthenticationApplication's getTabs(), so we hide subtabs
+        # in the navigation template (b/c we use horizontal navigation)
+        # and then link to AuthenticationApplication from the prefs template
+        if self.changePasswordLink is None:
+            avatar = self.original.installedOn
+            authApp = avatar.query(AuthenticationApplication).next()
+            translator = ixmantissa.IWebTranslator(avatar)
+            self.changePasswordLink = translator.linkTo(authApp.storeID)
+        return self.changePasswordLink
+        
     def data_preferences(self, ctx, data):
-        """return a dict of self.original's (Preferences instance) columns"""
+        """
+        return a dict of my Preferences instance's columns,
+        as well as information about acceptable alternate values
+        """
         return dict(displayName = self.original.displayName,
-                    homepage = self.original.homepage)
+                    homepage = self.original.homepage,
+                    itemsPerPage = self.original.itemsPerPage,
+                    itemsPerPageChoices = self.itemsPerPageChoices)
 
 registerAdapter(PreferencesFragment,
                 Preferences,
@@ -576,7 +598,7 @@ class SearchClicks(CCPrivatePagedTable):
         CCPrivatePagedTable.__init__(self, orig, docFactory)
 
     def head(self):
-        yield self.makeScriptTag('/static/js/search.js')
+        yield makeScriptTag('/static/js/search.js')
         yield CCPrivatePagedTable.head(self)
 
     def setSearchState(self, ctx):

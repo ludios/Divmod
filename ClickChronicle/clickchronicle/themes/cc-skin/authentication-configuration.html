@@ -1,0 +1,50 @@
+<div xmlns:nevow="http://nevow.com/ns/nevow/0.1">
+  <script language="javascript">
+    function submitNewPassword(form) {
+        if (form.newPassword.value != form.confirmPassword.value) {
+            alert('Passwords do not match.  Try again.');
+        } else {
+            if (form.currentPassword) {
+                var curPass = form.currentPassword.value;
+                form.currentPassword.value = '';
+            } else {
+                var curPass = null;
+            }
+
+            var newPass = form.newPassword.value;
+            form.newPassword.value = form.confirmPassword.value = '';
+
+            server.handle('changePassword', curPass, newPass);
+        }
+    }
+  </script>
+  <form onsubmit="submitNewPassword(this); return false;">
+    <center>
+      <table class="fancyTable" cellspacing="0" style="width: 50%">
+
+        <tr nevow:pattern="current-password">
+          <td class="fancyRowHeader">Current Password</td>
+          <td class="fancyCell"><input class="text" type="password" name="currentPassword" /></td>
+        </tr>
+
+        <tr nevow:pattern="no-current-password">
+          <td class="fancyRowHeader">Current Password</td>
+          <td class="fancyCell"><input disabled="disabled" type="password" name="currentPassword" /></td>
+        </tr>
+
+        <nevow:invisible nevow:render="currentPasswordField" />
+        <tr>
+          <td class="fancyRowHeader">New Password</td>
+          <td class="fancyCell"><input class="text" type="password" name="newPassword" /></td>
+        </tr>
+        
+        <tr>
+          <td class="fancyRowHeader">Confirm New Password</td>
+          <td class="fancyCell"><input class="text" type="password" name="confirmPassword" /></td>
+        </tr>
+      </table> 
+      <input class="submit" type="submit" value="Change Password" />
+    </center>
+  </form>
+
+</div>

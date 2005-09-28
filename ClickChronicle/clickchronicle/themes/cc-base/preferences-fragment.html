@@ -1,6 +1,46 @@
 <div xmlns="http://www.w3.org/1999/xhtml" xmlns:nevow="http://nevow.com/ns/nevow/0.1">
-  <div nevow:render="mapping" nevow:data="preferences">
-    <strong>Display Name:</strong> <nevow:slot name="displayName"/><br/>
-    <strong>Homepage URL:</strong> <nevow:slot name="homepage"/><br/>
-  </div>
+  <center>
+    <table cellspacing="0" style="width: 50%" class="fancyTable" nevow:render="mapping" nevow:data="preferences">
+      <tr>
+        <td class="fancyCellHeader" colspan="3">Appearance</td>
+      </tr>
+      <tr>
+        <td class="fancyRowHeader">Display Name:</td>
+        <td class="fancyCell"><nevow:slot name="displayName"/></td>
+        <td class="editCell">edit</td>
+      </tr>
+      <tr>
+        <td class="fancyRowHeader">Homepage URL:</td>
+        <td class="fancyCell"><nevow:slot name="homepage"/></td>
+        <td class="editCell">edit</td>
+      </tr>
+      <tr>
+        <td class="fancyRowHeader">Clicks Per Page:</td>
+        <td class="fancyCell">
+          <span id="itemsPerPageLabel"><nevow:slot name="itemsPerPage"/></span>
+          <select nevow:render="sequence" nevow:data="itemsPerPageChoices" 
+            style="display: none;" id="itemsPerPageController">
+            <option nevow:pattern="item" nevow:render="data"/>
+          </select>
+        </td>
+        <td class="editCell">
+          <a id="itemsPerPageEdit" href="javascript:edit('itemsPerPage')">edit</a>
+          <a id="itemsPerPageSave" style="display: none" href="javascript:save('itemsPerPage')">save</a>
+        </td>
+      </tr>
+    </table>
+    note: save does not work yet.
+
+    <table cellspacing="0" style="width: 50%" class="fancyTable">
+      <tr>
+        <td class="fancyCellHeader" colspan="2">Authentication</td>
+      </tr>
+      <tr>
+        <td class="fancyRowHeader" style="width: 10%">Password:</td>
+        <td class="fancyCell">
+          <a><nevow:attr name="href" nevow:render="data" nevow:data="changePasswordLink"/>Change</a>
+        </td>
+      </tr>
+    </table>
+  </center>
 </div>

@@ -67,7 +67,7 @@ ul {
 
 #tableContainer { width: 100%; }
 
-.clickTable { 
+.fancyTable { 
 	width: 100%;
 	margin-top: 10px; 
 	margin-left: 15px; 
@@ -76,43 +76,74 @@ ul {
 	border-bottom: none;
 }
 
-tr.clickRowFirst { 
+tr.fancyRowFirst { 
 	background-color: #FFFFFF;
 	background-image: url(/static/images/header_bg.png);
 	background-repeat: repeat-x;
 	background-position: bottom left 
 }
 
-tr.clickRowAlt { background: #DADADA }
+.fancyRowAlt { background: #DADADA }
 
-tr.clickRowFirst > td { 
+.fancyRowFirst > td { 
 	border-bottom: solid 1px #B0B0B0;
 	padding: 4px 4px 4px 4px;
 	font-weight: bold;
 	color: #9B9B9B;
-	letter-spacing: 1.5px ;
+	letter-spacing: 1.5px;
 }
 
-td.clickCol { 
+.fancyRowHeader { 
+	border-bottom: solid 1px #B0B0B0;
+	border-right: solid 1px #B0B0B0;
+	padding: 4px 4px 4px 4px;
+	font-weight: bold;
+	color: #9B9B9B;
+	letter-spacing: 1.5px;
+}
+
+.fancyCellHeader {
+	text-align: center;
+	border-bottom: solid 1px #000000;
+	padding: 4px 4px 4px 4px;
+	font-weight: bold;
+	color: #9B9B9B;
+	letter-spacing: 1.5px;
+}
+
+.fancyCell {
+	background: #DADADA;
+	border-bottom: solid 1px #B0B0B0;
+	padding: 4px 4px 4px 4px;
+}
+
+.editCell { 
+	border-bottom: solid 1px #B0B0B0;
+	border-left: solid 1px #B0B0B0;
+	padding: 4px 4px 4px 4px;
+}
+	
+
+.fancyCol { 
 	padding: 4px 4px 4px 4px; 
 	border-right: solid 1px #B0B0B0;
       	border-bottom: solid 1px #B0B0B0 
 }
 
-td.sClickCol { 
+.sFancyCol { 
 	padding: 4px 4px 4px 4px; 
 	border-right:  solid 1px #B0B0B0;
       	border-bottom: solid 1px #B0B0B0;
 }
 
-td.sClickCol:hover { 
+td.sFancyCol:hover { 
 	background-image: url(/static/images/header_bg_hover.png);
 }
 
-td.lastClickCol  { padding: 4px 4px 4px 4px; border-bottom: solid 1px #B0B0B0 }
-td.sLastClickCol { padding: 4px 4px 4px 4px; border-bottom: solid 1px #B0B0B0 }
+.lastFancyCol  { padding: 4px 4px 4px 4px; border-bottom: solid 1px #B0B0B0 }
+.sLastFancyCol { padding: 4px 4px 4px 4px; border-bottom: solid 1px #B0B0B0 }
 
-td.sLastClickCol:hover {
+.sLastFancyCol:hover {
 	background-image: url(/static/images/header_bg_hover.png);
 }
 

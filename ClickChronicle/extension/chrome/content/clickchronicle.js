@@ -66,7 +66,7 @@ var gCCBrowserObserver = {
     
     chromeLoaded : function(event) {
         window.removeEventListener("load", this.chromeLoaded, false);
-        showToolbarButtons();
+        //showToolbarButtons();
         
         var urgh = gCCBrowserObserver;
         urgh.recordButton = document.getElementById("clickchronicle-record-button");

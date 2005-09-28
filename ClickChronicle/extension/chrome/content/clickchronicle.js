@@ -65,7 +65,7 @@ var gCCBrowserObserver = {
     },
     
     chromeLoaded : function(event) {
-        window.removeEventListener("load", this.chromeLoaded, false);
+        window.removeEventListener("load", this.chromeLoaded, true);
         //showToolbarButtons();
         
         var urgh = gCCBrowserObserver;
@@ -91,14 +91,14 @@ var gCCBrowserObserver = {
         this.recordButton.hidden = true;
         this.pauseButton.hidden = false;
         login(gIOSvc.newURI(gCCPrefs.getCharPref("clickRecorderURL"), null, null), function(s){});
-        this.appContent.addEventListener("DOMContentLoaded", this.domContentLoaded, false);
+        this.appContent.addEventListener("DOMContentLoaded", this.domContentLoaded, true);
     },
 
     stopRecording : function() {
         this.recordButton.hidden = false;
         this.pauseButton.hidden  = true;
-        this.appContent.removeEventListener("DOMContentLoaded", this.domContentLoaded, false);
+        this.appContent.removeEventListener("DOMContentLoaded", this.domContentLoaded, true);
     }
 }
          
-window.addEventListener("load", gCCBrowserObserver.chromeLoaded, false);
+window.addEventListener("load", gCCBrowserObserver.chromeLoaded, true);

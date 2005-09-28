@@ -243,7 +243,7 @@ class ClickList(Item):
 
     def getTabs(self):
         """show a link to myself in the navbar"""
-        return [webnav.Tab('My Clicks', self.storeID, 0.2)]
+        return [webnav.Tab('Clicks', self.storeID, 0.2)]
 
     def topPanelContent(self):
         return None
@@ -267,7 +267,7 @@ class DomainList(Item):
 
     def getTabs(self):
         '''show a link to myself in the navbar'''
-        return [webnav.Tab('My Domains', self.storeID, 0.1)]
+        return [webnav.Tab('Domains', self.storeID, 0.1)]
 
     def topPanelContent(self):
         return None
@@ -310,7 +310,7 @@ class BookmarkList(Item):
 
     def getTabs(self):
         '''show a link to myself in the navbar'''
-        return [webnav.Tab('My Bookmarks', self.storeID, 0.1)]
+        return [webnav.Tab('Bookmarks', self.storeID, 0.1)]
 
     def topPanelContent(self):
         return None

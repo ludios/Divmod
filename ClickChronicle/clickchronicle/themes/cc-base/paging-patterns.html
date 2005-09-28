@@ -2,28 +2,28 @@
 
   <table cellspacing="0" class="clickTable" nevow:pattern="clickTable" nevow:render="sequence">
     <tr class="clickRowFirst" nevow:pattern="header">
-      <td style="text-align: center;" class="clickCol">
+      <td style="text-align: center; width: 20%" class="clickCol">
         Timestamp
       </td>
-      <td class="clickCol">
+      <td class="clickCol" style="width: 100%">
         Link
       </td>
-      <td class="clickCol" style="text-align: center;">Action</td>
-      <td class="lastClickCol">
+      <td class="clickCol" style="text-align: center; width: 10%">Action</td>
+      <td class="lastClickCol" style="width: 10%">
         Visits
       </td>
     </tr>
     <tr class="clickRowAlt" nevow:pattern="item" nevow:render="mapping">
       <td class="clickCol" style="text-align: center;"><nevow:slot name="timestamp"/></td>
       <td class="clickCol">
-        <img class="linkIcon"><nevow:attr name="src"><nevow:slot name="icon"/></nevow:attr></img>
+        <img class="linkIcon" width="16" height="16"><nevow:attr name="src"><nevow:slot name="icon"/></nevow:attr></img>
         <a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a>
       </td>
       <td class="clickCol" style="text-align: center">
         <a onclick="ignore(this.href); return false">
           <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
           <img src="/static/images/ignore_link.png" class="linkIcon"/></a>
-	<a onclick="bookmark(this.href); return false">
+        <a onclick="bookmark(this.href); return false">
           <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
           <img src="/static/images/bookmark.png" class="linkIcon"/></a>
       </td>
@@ -32,14 +32,14 @@
     <tr class="clickRow" nevow:pattern="item" nevow:render="mapping">
       <td class="clickCol" style="text-align: center"><nevow:slot name="timestamp"/></td>
       <td class="clickCol">
-        <img class="linkIcon"><nevow:attr name="src"><nevow:slot name="icon"/></nevow:attr></img>
+        <img class="linkIcon" width="16" height="16"><nevow:attr name="src"><nevow:slot name="icon"/></nevow:attr></img>
         <a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a>
       </td>
       <td class="clickCol" style="text-align: center">
         <a onclick="ignore(this.href); return false">
           <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
           <img src="/static/images/ignore_link.png" class="linkIcon"/></a>
-	<a onclick="bookmark(this.href); return false">
+        <a onclick="bookmark(this.href); return false">
           <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
           <img src="/static/images/bookmark.png" class="linkIcon"/></a>
       </td>
@@ -49,14 +49,14 @@
 
   <table cellspacing="0" class="clickTable" nevow:pattern="sortableClickTable" nevow:render="sequence">
     <tr class="clickRowFirst" nevow:pattern="header">
-      <td style="text-align: center;" class="sClickCol" id="sortcol_timestamp" onclick="toggleSort('timestamp')">
+      <td style="text-align: center; width: 20%;" class="sClickCol" id="sortcol_timestamp" onclick="toggleSort('timestamp')">
         Timestamp
       </td>
       <td class="sClickCol" id="sortcol_url" onclick="toggleSort('url')">
         Link
       </td>
-      <td class="clickCol" style="text-align: center;">Action</td>
-      <td class="sLastClickCol" id="sortcol_visitCount" style="text-align: center;"
+      <td class="clickCol" style="text-align: center; width: 10%">Action</td>
+      <td class="sLastClickCol" id="sortcol_visitCount" style="text-align: center; width: 10%"
         onclick="toggleSort('visitCount')">
         Visits
       </td>
@@ -64,14 +64,14 @@
     <tr class="clickRowAlt" nevow:pattern="item" nevow:render="mapping">
       <td class="clickCol" style="text-align: center;" id="sortcol_timestamp"><nevow:slot name="timestamp"/></td>
       <td class="clickCol">
-        <img class="linkIcon"><nevow:attr name="src"><nevow:slot name="icon"/></nevow:attr></img>
+        <img class="linkIcon" width="16" height="16"><nevow:attr name="src"><nevow:slot name="icon"/></nevow:attr></img>
         <a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a>
       </td>
       <td class="clickCol" style="text-align: center">
         <a onclick="ignore(this.href); return false">
           <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
           <img src="/static/images/ignore_link.png" class="linkIcon"/></a>
-	<a onclick="bookmark(this.href); return false">
+        <a onclick="bookmark(this.href); return false">
           <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
           <img src="/static/images/bookmark.png" class="linkIcon"/></a>
       </td>
@@ -80,7 +80,7 @@
     <tr class="clickRow" nevow:pattern="item" nevow:render="mapping">
       <td class="clickCol" style="text-align: center"><nevow:slot name="timestamp"/></td>
       <td class="clickCol">
-        <img class="linkIcon"><nevow:attr name="src"><nevow:slot name="icon"/></nevow:attr></img>
+        <img class="linkIcon" width="16" height="16"><nevow:attr name="src"><nevow:slot name="icon"/></nevow:attr></img>
         <a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a>
       </td>
       <td class="clickCol" style="text-align: center">
@@ -88,7 +88,7 @@
           <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
           <img src="/static/images/ignore_link.png" class="linkIcon"/>
         </a>
-	<a onclick="bookmark(this.href); return false">
+        <a onclick="bookmark(this.href); return false">
           <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
           <img src="/static/images/bookmark.png" class="linkIcon"/></a>
       </td>
@@ -104,18 +104,18 @@
   <table id="navTable" style="width: 100%" cellspacing="0" nevow:pattern="navBar">
     <tr class="navRow">
       <td style="padding: 4px">
-        <img id="first" src="/static/images/first.png" onclick="goFirst()"/>
+        <img id="first" style="display: none;" src="/static/images/first.png" onclick="goFirst()"/>
         <img id="first_disabled" src="/static/images/first_disabled.png"/>
 
-        <img id="prev" src="/static/images/prev.png" onclick="goPrev()"/>
+        <img id="prev" style="display: none;" src="/static/images/prev.png" onclick="goPrev()"/>
         <img id="prev_disabled" src="/static/images/prev_disabled.png"/>
 
-        <img id="next" src="/static/images/next.png" onclick="goNext()"/>
+        <img id="next" style="display: none;" src="/static/images/next.png" onclick="goNext()"/>
         <img id="next_disabled" src="/static/images/next_disabled.png"/>
 
-        <img id="last" src="/static/images/last.png" onclick="goLast()"/>
+        <img id="last" style="display: none;" src="/static/images/last.png" onclick="goLast()"/>
         <img id="last_disabled" src="/static/images/last_disabled.png"/>
-      
+
       </td>
       <td style="text-align: right; padding: 4px;">
         page: <span id="pagingWidgetContainer"><nevow:slot name="pagingWidget"/></span>

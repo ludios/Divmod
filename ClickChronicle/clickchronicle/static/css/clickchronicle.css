@@ -56,21 +56,15 @@ img.navIcon {
 	  width: 100%;
 }
 
-ul { list-style: none }
-/*
-.tab { 
-	border: solid 1px #B0B0B0;
-	padding: 6px 6px 6px 6px;
-	background-color: #FFFFFF;
-	background-image: url(/static/images/header_bg.png);
-	background-repeat: repeat-x;
-	background-position: bottom left;
-	font-weight: bold;
-	color: #9B9B9B;
-	letter-spacing: 1.5px;
-	margin-right: 6px;
+ul {
+	padding:0;
+	margin:0;
+	white-space:nowrap;
+	list-style-type:none;
 }
-*/
+
+.tab { display: inline }
+
 #tableContainer { width: 100%; }
 
 .clickTable { 

@@ -2,14 +2,28 @@
   <head nevow:render="head"/>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
   <body>
-    <table cellspacing="10" width="100%">
-      <tr valign="top">
-        <td><span nevow:render="navigation"/></td>
-        <td align="right"><span nevow:render="topPanel"/></td>
-        <td align="right"><img src="/static/images/logo.png"/></td>
+    <table width="100%">
+      <tr>
+        <td align="center">
+          <!-- in my universe, tables are the solution to all layout problems.
+               if you can get this to look the same without them, please do so -->
+          <table>
+            <tr valign="top">
+              <td>
+                <img src="/static/images/logo.png"/>
+              </td>
+              <td>
+                <span nevow:render="topPanel"/>
+              </td>
+            </tr>
+          </table>
+        </td>
       </tr>
       <tr>
-        <td colspan="3">
+        <td><br/><span nevow:render="navigation"/></td>
+      </tr>
+      <tr>
+        <td>
           <div nevow:render="content" />
         </td>
       </tr>

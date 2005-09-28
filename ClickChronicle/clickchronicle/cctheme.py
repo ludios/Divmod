@@ -7,4 +7,3 @@ class ClickChronicleTheme(webtheme.XHTMLDirectoryTheme):
                         href="/static/css/clickchronicle.css")
         yield tags.link(rel="icon", type="image/png",
                         href="/static/images/favicon.png")
-

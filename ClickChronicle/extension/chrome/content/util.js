@@ -8,12 +8,26 @@ var gCCPrefs = Components.classes["@mozilla.org/preferences-service;1"]
                 .getService(Components.interfaces.nsIPrefService)
                     .getBranch("extensions.ClickChronicle.");
 
+var gCookieManager = Components.classes["@mozilla.org/cookiemanager;1"]
+                        .getService(Components.interfaces.nsICookieManager2);
+
+function log(str) {
+    gConsoleSvc.logStringMessage("clickchronicle : " + str);
+}
+
 function mutableURI(URI) {
     this.URI = URI.clone();
     this.child = function(cname) {
-        this.URI.spec += "/" + cname;
+        if(this.URI.spec[this.URI.spec.length-1] != "/")
+            cname = "/" + cname;
+        this.URI.spec += cname;
         return this;
     };
+    this.prePath = function() {
+        this.URI.spec = this.URI.prePath;
+        return this;
+    };
+    this.toString = function() { return this.URI.spec };
 }
 
 function responseCode(toURL, cbfunc) {
@@ -35,13 +49,13 @@ function asyncFormPOST(toURL, formvars, cbfunc) {
     qargs = qargs.join("&");
 
     var req = new XMLHttpRequest();
-    req.onload = req.onerror = function(event) { 
+    req.onload = req.onerror = function(event) {
         var status = null;
         try { status = event.target.status } catch(e) {cbfunc(false); return};
         cbfunc(status.toString()[0] <= 3);
     }
 
-    req.open("POST", toURL, true);
+    req.open("POST", toURL, false);
     req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
     req.send(qargs);
 }
@@ -53,4 +67,3 @@ function getElementValue(e) {
     if(e.tagName == "checkbox")
         return e.checked;
 }
-

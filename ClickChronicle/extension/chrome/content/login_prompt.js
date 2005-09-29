@@ -19,8 +19,7 @@ function onClickLogin() {
     var port = 80;
     if(mantissaURI.port != -1)
         port = mantissaURI.port;
-    var toURL = "http://" + mantissaURI.host + ":" + port + "/__login__";
-    
+    var toURL = new mutableURI(mantissaURI).prePath().child("__login__").toString();
     asyncFormPOST(toURL, formvars, cbfunc);
     window.close();
 }

@@ -6,10 +6,6 @@ function substitute() {
     return str;
 }
 
-function log(str) {
-    gConsoleSvc.logStringMessage("clickchronicle : " + str);
-}
-
 function showToolbarButtons() {
     var buttons = ["clickchronicle-record-button", "clickchronicle-pause-button",
                    "clickchronicle-busy-button"];
@@ -33,7 +29,6 @@ var gCCBrowserObserver = {
         if(iid.equals(Components.interfaces.nsIObserver)
             || iid.equals(Components.interfaces.nsISupports))
             return this;
-        log("QueryInterface to unsupported iid: " + iid);
         throw Components.results.NS_NOINTERFACE;
     },
 
@@ -44,7 +39,6 @@ var gCCBrowserObserver = {
     },
 
     logToServer : function(document) {
-        log("recording: " + document.location.href + " " + document.title);
         var req = new XMLHttpRequest();
         var targetURL = gCCPrefs.getCharPref("clickRecorderURL");
         
@@ -89,15 +83,16 @@ var gCCBrowserObserver = {
         this.busyButton.hidden = false;
 
         function cbLoggedIn(result) {
-            gCCBrowserObserver.busyButton.hidden = true;
-            if(result)
-                gCCBrowserObserver.pauseButton.hidden = false;
-            else
-                gCCBrowserObserver.recordButton.hidden = false;
+            var self = gCCBrowserObserver;
+            self.busyButton.hidden = true;
+            if(result) {
+                self.pauseButton.hidden = false;
+                self.appContent.addEventListener("DOMContentLoaded", self.domContentLoaded, false);
+            } else
+                self.recordButton.hidden = false;
         }
 
         login(gIOSvc.newURI(gCCPrefs.getCharPref("clickRecorderURL"), null, null), cbLoggedIn);
-        this.appContent.addEventListener("DOMContentLoaded", this.domContentLoaded, false);
     },
 
     stopRecording : function() {

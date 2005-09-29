@@ -1,6 +1,3 @@
-var gCookieManager = Components.classes["@mozilla.org/cookiemanager;1"]
-                        .getService(Components.interfaces.nsICookieManager2);
-
 function loginPrompt(mantissaURI, cbfunc) {
     window.openDialog("chrome://clickchronicle/content/login_prompt.xul", -1,
                       "chrome,centerscreen,resizable=no", mantissaURI, cbfunc);
@@ -14,15 +11,12 @@ function loggedIn(mantissaURI, cbfunc) {
         try {
             cookie = cookie.QueryInterface(Components.interfaces.nsICookie2);
         } catch(e) { continue }
-
         if(cookie.rawHost == mantissaURI.host)
             if(cookie.isSession) {
                 var URI = new mutableURI(mantissaURI).child("private").URI;
-                responseCode(URI, function(status) { cbfunc(status != 404) });
+                responseCode(URI, function(status) {cbfunc(status != 404) });
                 return;
-            } else {
-                cbfunc(true); return;
-            }
+            } else { cbfunc(true); return }
     }
     cbfunc(false);
 }
@@ -34,6 +28,5 @@ function login(mantissaURI, cbfunc) {
         else
             loginPrompt(mantissaURI, cbfunc);
     }
-
     loggedIn(mantissaURI, cbLoggedIn);
 }

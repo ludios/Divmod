@@ -1,64 +1,44 @@
-Features/Fixed to do:
+Features/Fixes to do:
 ---------------------
-Replace asDict() with IContainer adaptation
 
-base64 each domain's favicon and embed in exported bookmarks, because ffox supports it
-
-Look for rel="icon" link elements in HTML (some sites, like ours, don't put the icon at /favicon.ico)
-
-Even though favicons are cached we seem to request them every time the page loads :-/
-
-Visually distinguish visits that are already bookmarks
-
-Figure out how to deal unicode search
-
-Allow user to define a tag that all their clicks get given for a
-particular length of time. e.g. If someone is researching a vacation
-they can tell us that they want all their clicks to be tagged vacation
-until they switch it off.
-
-Display referrer information
-
-Allow blocked domains to be browsed and edited
-
-Implement domain browser that allows visits to domains to be viewed.
-
-Ignore pages with a Content-Length header over a threshold
-
-Some kind of disk space usage statistics
-
-Charts of activity over time (clicks per hour/day. different sites)
-
+-Page processing
+Discover page enconding more effectively using BeautfiulSoup
 Create queue for indexing and removing from index to defend against
-race conditions and batch index changes for effieciency
-
-Visually distinguish each day in history
-
-RSS clickstream output
-
-Calendar view
-
-Make SearchClicks a LivePage, not a live fragment
-
-Allow export of clicks and bookmarks in .zip or email. Use mozilla
-bookmark format.
-
-Build some tagging UI.
-
-Incorporate Alexa info:
-http://www.amazon.com/gp/browse.html/104-7021508-1251135?node=12782661
-
-Look at other APIs that may be relevant/useful:
-http://www.programmableweb.com/apis
-
-Bookmarklet
-
-Quick search thingy
+race conditions and batch index changes for efficiency
+Ignore pages with a Content-Length header or number of bytes 
+over a threshold
+Look for rel="icon" link elements in HTML (some sites, like ours,
+don't put the icon at /favicon.ico)
 
 -UI
 Visual tweaks (bring back old nav style or better)
-Logout link to __logout__
 Display username at the top of the page
+Display current view somewhere including search term
+Provide feedback on actions
+Rejig Nav some more
+Visually distinguish visits that are already bookmarks
+Visually distinguish each day in history
+Calendar view
+Build some tagging UI.
+Some kind of disk space usage statistics
+Charts of activity over time (clicks per hour/day. different sites)
+Define 2 additional actions: delete visit (as opposed to block domain) and "get info"
+Info page for visits and domains
+Display referrer information on visit info
+Allow blocked domains to be browsed and edited
+Implement domain browser that allows visits to domains to be viewed.
+Bookmarklet
+Quick search thingy
+Incorporate Alexa info:
+http://www.amazon.com/gp/browse.html/104-7021508-1251135?node=12782661
+Look at other APIs that may be relevant/useful:
+http://www.programmableweb.com/apis
+
+- Import/Export
+base64 each domain's favicon and embed in exported bookmarks, because ffox supports it
+RSS clickstream output
+Allow export of clicks and bookmarks in .zip or email. Use mozilla
+bookmark format.
 
 - Signup
 Enter email address
@@ -91,11 +71,38 @@ Allow uname, pword to be set so user does not need to log in
 Add record/pause UI
 Implement "exits from this page" option in extention.
 Use https to post urls to the server
+Allow user to define a tag that all their clicks get given for a
+particular length of time. e.g. If someone is researching a vacation
+they can tell us that they want all their clicks to be tagged vacation
+until they switch it off.
 
 - Environment for going live
 Set XAPIAN_PREFER_FLINT=1 in the environment to ensure flint format xapian db
-Install additional encoding a la erinq
+Install additional encoding a la erin
 
+-Misc.
+Replace asDict() with IContainer adaptation
+Even though favicons are cached we seem to request them every time the
+page loads :-/
+Figure out how to deal unicode search (depends on Xapian changes)
+Make SearchClicks a LivePage, not a live fragment
+
+
+Tests to do:
+------------
+Search fragment test
+Performance tests
+Automated code coverage reporting
+Functional tests e.g. login, click around the table, change password, search
+Unicode indexing
+Unicode search
+Queuing
+SubScheduler
+
+
+-----------------------------------------------------------------------------
+DONE!
+-----------------------------------------------------------------------------
 
 Features/Fixed done:
 --------------------
@@ -110,16 +117,7 @@ Investigate beautiful soup for html parsing (DONE)
 Add "ignore" attribute to domains (DONE)
 Track and record referrer information. (DONE)
 Figure out how to do unicode indexing (DONE)
-
-
-Tests to do:
-------------
-Search fragment test
-Performance tests
-Automated code coverage reporting
-Functional tests e.g. login, click around the table, change password, search
-Unicode indexing
-Unicode search
+Logout link to __logout__ (DONE)
 
 Tests done:
 -----------

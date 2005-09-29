@@ -1,32 +1,9 @@
-function asyncFormPOST(toURL, formvars, cbfunc) {
-    /* POST formvars ({"key" : "value", ...}) to toURL, calling back
-     * cbfunc with the response's status code */
-    var qargs = new Array();
-    for(var i in formvars)
-        qargs.push(i + "=" + encodeURIComponent(formvars[i].toString()));
-    qargs = qargs.join("&");
-
-    var req = new XMLHttpRequest();
-    req.onload = req.onerror = function(event) { 
-        var status = null;
-        try { status = event.target.status } catch(e) {};
-        cbfunc(status);
-    }
-
-    req.open("POST", toURL, true);
-    req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
-    req.send(qargs);
-}
-
-function getElementValue(e) {
-    /* i find myself needing this function everywhere */
-    if(e.tagName == "textbox")
-        return e.value;
-    if(e.tagName == "checkbox")
-        return e.checked;
+function windowClosed() {
+    window.arguments[1](false);
 }
 
 function onClickLogin() {
+    window.onclose = null;
     /* collate values of elements with a "formelement" attribute, and POST
      * them to the URL our window was passed */
     var formelems = document.getElementsByAttribute("formelement", "true");

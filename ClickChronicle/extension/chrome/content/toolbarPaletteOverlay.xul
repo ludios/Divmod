@@ -4,6 +4,7 @@
 <overlay id="clickchronicle_toolbarPaletteOverlay" 
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 
+  <script src="util.js" type="application/x-javascript"/>
   <script src="mantissa_login.js" type="application/x-javascript"/>
   <script src="clickchronicle.js" type="application/x-javascript"/>
 
@@ -14,6 +15,11 @@
     chromedir="ltr" oncommand="gCCBrowserObserver.startRecording();"
     tooltiptext="Start recording clicks"/>
 
+  <toolbarbutton id="clickchronicle-busy-button" 
+    image="chrome://clickchronicle/content/busy.png" class="toolbarbutton-1" 
+    label="Busy" chromedir="ltr"
+    tooltiptext="Busy..." disabled="true" hidden="true"/>
+  
   <toolbarbutton id="clickchronicle-pause-button" 
     image="chrome://clickchronicle/content/pause.png" class="toolbarbutton-1" 
     label="Pause"

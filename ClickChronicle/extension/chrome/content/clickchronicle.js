@@ -1,13 +1,3 @@
-var gIOSvc = Components.classes["@mozilla.org/network/io-service;1"]
-                .getService(Components.interfaces.nsIIOService);
-
-var gConsoleSvc = Components.classes['@mozilla.org/consoleservice;1']
-                    .getService(Components.interfaces.nsIConsoleService);
-                    
-var gCCPrefs = Components.classes["@mozilla.org/preferences-service;1"]
-                .getService(Components.interfaces.nsIPrefService)
-                    .getBranch("extensions.ClickChronicle.");
-
 function substitute() {
     var args = substitute.arguments;
     var str  = args[0];
@@ -21,7 +11,9 @@ function log(str) {
 }
 
 function showToolbarButtons() {
-    var buttons = ["clickchronicle-record-button", "clickchronicle-pause-button"];
+    var buttons = ["clickchronicle-record-button", "clickchronicle-pause-button",
+                   "clickchronicle-busy-button"];
+
     var navToolbar  = document.getElementById("nav-bar");
     var afterButton = document.getElementById("urlbar-container");
 
@@ -32,6 +24,7 @@ function showToolbarButtons() {
 
 var gCCBrowserObserver = {
     recordButton : null,
+    busyButton   : null,
     pauseButton  : null,
     appContent   : null,
     tabBrowser   : null,
@@ -71,6 +64,7 @@ var gCCBrowserObserver = {
             
             var urgh = gCCBrowserObserver;
             urgh.recordButton = document.getElementById("clickchronicle-record-button");
+            urgh.busyButton   = document.getElementById("clickchronicle-busy-button");
             urgh.pauseButton  = document.getElementById("clickchronicle-pause-button");
             urgh.appContent   = document.getElementById("appcontent");
             urgh.tabBrowser   = document.getElementById("content");
@@ -92,8 +86,17 @@ var gCCBrowserObserver = {
 
     startRecording : function() {
         this.recordButton.hidden = true;
-        this.pauseButton.hidden = false;
-        login(gIOSvc.newURI(gCCPrefs.getCharPref("clickRecorderURL"), null, null), function(s){});
+        this.busyButton.hidden = false;
+
+        function cbLoggedIn(result) {
+            gCCBrowserObserver.busyButton.hidden = true;
+            if(result)
+                gCCBrowserObserver.pauseButton.hidden = false;
+            else
+                gCCBrowserObserver.recordButton.hidden = false;
+        }
+
+        login(gIOSvc.newURI(gCCPrefs.getCharPref("clickRecorderURL"), null, null), cbLoggedIn);
         this.appContent.addEventListener("DOMContentLoaded", this.domContentLoaded, false);
     },
 

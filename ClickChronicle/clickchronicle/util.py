@@ -70,9 +70,11 @@ class SortablePagedTableMixin(PagedTableMixin):
 
     def handle_updateTable(self, ctx, pageNumber, 
                            sortColumn=None, sortDirection=None):
+        
         if sortColumn is None:
             sortColumn = self.sortColumn
-        else:
+        elif self.sortColumn != sortColumn:
+            pageNumber = self.startPage
             self.sortColumn = sortColumn
 
         if sortDirection is None:

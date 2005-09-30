@@ -266,12 +266,12 @@ class FetchSourceTask(Item):
                 else:
                     absURL = None
                 # is there a better way to go about this?
-                mytask = self.store.query(_Task, _Task.task == self).next()
-                mytask.queue.addTask(
-                    FetchFavIconTask(store=self.store,
-                                     domain=domain,
-                                     faviconURL=absURL,
-                                     cacheMan=self.cacheMan))
+                for partask in self.store.query(_Task, _Task.task == self):
+                    partask.queue.addTask(FetchFavIconTask(store=self.store,
+                                                           domain=domain,
+                                                           faviconURL=absURL,
+                                                           cacheMan=self.cacheMan))
+                    break
 
 class CacheManager(Item):
     """

@@ -494,7 +494,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         If found update the timestamp and return it.
         Otherwise create a new Visit.
         """
-        host = str(URL(netloc=url))
+        host = str(URL.fromString(url).click("/"))
         domain = self.store.findOrCreate(Domain, url=host, title=unicode(host))
         if domain.ignore:
             return

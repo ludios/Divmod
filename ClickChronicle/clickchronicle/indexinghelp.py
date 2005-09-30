@@ -361,7 +361,7 @@ class CacheManager(Item):
         if faviconURL is not None:
             url = URL.fromString(faviconURL)
         else:
-            url = URL(netloc=domain.url, pathsegs=("favicon.ico",))
+            url = URL.fromString(domain.url).child("favicon.ico")
             
         d = webclient.getPageAndHeaders(['content-type'], str(url))
         d.addCallback(gotFavicon)

@@ -17,23 +17,23 @@ class PagedTableMixin:
     tablePattern = None
     pageNumbersPattern = None
     navBarPattern = None
-    
+
     def data_totalItems(self, ctx, data):
         return self.countTotalItems(ctx)
 
     def render_navBar(self, ctx, data):
         pageNumData = self.calculatePages(ctx)
-        content = self.navBarPattern.fillSlots('pagingWidget', 
+        content = self.navBarPattern.fillSlots('pagingWidget',
                         self.pageNumbersPattern(data=pageNumData))
-                  
+
         return ctx.tag[content]
-    
+
     def handle_updateTable(self, ctx, pageNumber, *args):
         pageNumber = int(pageNumber)
         rowDicts = list(self.generateRowDicts(ctx, pageNumber, *args))
         table = self.tablePattern(data=rowDicts)
         offset = (pageNumber - 1) * self.itemsPerPage
-        
+
         yield (livepage.set('tableContainer', table), livepage.eol)
         yield (livepage.set('startItem', offset + 1), livepage.eol)
         yield (livepage.set('endItem', offset + len(rowDicts)), livepage.eol)
@@ -42,7 +42,7 @@ class PagedTableMixin:
     def calculatePages(self, ctx):
         totalItems = self.countTotalItems(ctx)
         return xrange(1, int(ceil(totalItems / self.itemsPerPage))+1)
-            
+
     def goingLive(self, ctx, client, *args):
         client.send(self.handle_updateTable(ctx, self.startPage, *args))
 
@@ -52,7 +52,7 @@ class PagedTableMixin:
            the corresponding template's 'table' pattern.
 
            pageNumber: number of page currently being viewed, starting from 1, not 0"""
-                       
+
         raise NotImplementedError
 
     def countTotalItems(self, ctx):
@@ -68,7 +68,7 @@ class SortablePagedTableMixin(PagedTableMixin):
         client.call('setSortState', self.sortColumn,
                     self.sortDirection)
 
-    def handle_updateTable(self, ctx, pageNumber, 
+    def handle_updateTable(self, ctx, pageNumber,
                            sortColumn=None, sortDirection=None):
         
         if sortColumn is None:
@@ -81,7 +81,7 @@ class SortablePagedTableMixin(PagedTableMixin):
             sortDirection = self.sortDirection
         else:
             self.sortDirection = sortDirection
-        
+
         yield PagedTableMixin.handle_updateTable(self, ctx, pageNumber,
                                                  sortColumn, sortDirection)
 

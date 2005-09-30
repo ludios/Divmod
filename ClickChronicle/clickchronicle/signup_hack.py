@@ -14,7 +14,7 @@ from xmantissa import signup
 class EmaillessSignerUpper(signup.FreeSignerUpper):
     def handle_issueTicket(self, ctx, emailAddress):
         (domain, port) = signup.domainAndPortFromContext(ctx)
-        
+
         if port == 80:
             port = ''
         else:
@@ -24,7 +24,7 @@ class EmaillessSignerUpper(signup.FreeSignerUpper):
                                                   unicode(emailAddress, 'ascii'),
                                                   self.original.benefactor)
         ticket.claim()
-         
+
         ticketLink = 'http://%s%s/%s/%s' % (domain, port,
                                             self.original.booth.prefixURL, ticket.nonce)
         return livepage.set( 'signup-status', tags.a(href=ticketLink)['click here to redeem'] )

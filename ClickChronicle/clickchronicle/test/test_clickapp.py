@@ -46,7 +46,7 @@ class ClickRecorderTestCase(CCTestBase, TestCase):
         self.assertNItems(ss, Bookmark, 1)
         self.assertEqual(visit.url, bm.url)
         self.assertEqual(visit.domain, bm.domain)
-        
+
     def testReferrer(self):
         iterurls = self.urlsWithSameDomain()
         url = iterurls.next()

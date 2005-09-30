@@ -105,7 +105,7 @@ class FetchFavIconTask(Item):
 
     def retryableFailure(self, f):
         return f.check(weberror) is not None
-        
+
 class FetchSourceTask(Item):
     schemaVersion = 1
     typeName = 'clickchronicle_fetch_source_task'
@@ -136,7 +136,7 @@ class FetchSourceTask(Item):
             self._cache(source, pageInfo)
         if self.storeFavicon:
             self._enqueueFaviconTask(pageInfo)
-    
+
     def _ebGotSource(self, err):
         err.trap(weberror.Error)
         return failure.Failure(queue.TaskError("HTTP error while downloading page (%r)" % (err.getErrorMessage(),)))
@@ -154,7 +154,7 @@ class FetchSourceTask(Item):
 
     def _enqueueFaviconTask(self, pageInfo):
         domain = self.visit.domain
-        
+
         if domain.favIcon is None:
             for tsk in self.store.query(
                 FetchFavIconTask,
@@ -262,7 +262,7 @@ class CacheManager(Item):
             url = URL.fromString(faviconURL)
         else:
             url = URL.fromString(domain.url).child("favicon.ico")
-            
+
         d = webclient.getPageAndHeaders(['content-type'], str(url))
         d.addCallback(gotFavicon)
         return d
@@ -278,12 +278,12 @@ class CacheManager(Item):
             source, headers = result
             print 'Discovered headers for', repr(url), 'tobe', repr(headers)
             contentType = headers[0]
-            
+
             if contentType:
                 encoding = _parseContentType(contentType[0])
                 if encoding is not None:
                     fallbackCharset = encoding
-            
+
             pageInfo = getPageInfo(source, charset=fallbackCharset)
             print 'Discovered', repr(pageInfo.charset), 'as encoding for', repr(url)
             return source, pageInfo
@@ -311,7 +311,7 @@ def makeDocument(visit, pageSource, pageInfo):
     decodedSource = pageSource.decode(encoding, 'replace')
 
     text = tagstrip.cook(decodedSource)
-    
+
     values = [
         Value('type', 'url'),
         Value('url', visit.url),

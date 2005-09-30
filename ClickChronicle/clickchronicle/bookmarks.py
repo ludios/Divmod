@@ -34,7 +34,7 @@ class Folder(Element):
 
 class BookmarkFile(Document):
     doctype = 'NETSCAPE-Bookmark-file-1'
-    
+
 if __name__ == '__main__':
     folder = Folder('Folder One', 'this is folder 1',
                 (Bookmark('Folder One, Child One', 'http://f1.c1'),
@@ -47,5 +47,5 @@ if __name__ == '__main__':
                       Folder('SubSubFolder Two', 'this is subsubfolder 2',
                           (Folder('SubSubSubFolder One', 'this is subsubsubfolder 1',
                               (Bookmark('SubSubSubFolder One, Child One', 'http://sssf1.c1'),)),))))))
-                     
+
     print BookmarkFile(folder).toxml()

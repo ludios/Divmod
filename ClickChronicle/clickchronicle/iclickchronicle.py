@@ -39,7 +39,7 @@ class ICache(Interface):
     """
     Interface for fetching and caching data from external sources.
     """
-    
+
 
 class IIndexable(Interface):
     """
@@ -56,4 +56,3 @@ class IClickRecorder(Interface):
     """
     ClickRecorder interface.
     """
-

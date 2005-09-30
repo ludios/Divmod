@@ -64,7 +64,7 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
     def __init__(self, original, docFactory=None):
         self.store = original.store
         website.AxiomFragment.__init__(self, original, docFactory)
-        
+
         self.translator = ixmantissa.IWebTranslator(original.installedOn)
         self.clickList = original.store.query(ClickList).next()
         pagingPatterns = inevow.IQ(self.translator.getDocFactory("paging-patterns"))
@@ -95,7 +95,7 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
             bookmark=visit.asBookmark()
             return bookmark
         bm = self.store.transact(_)
-                
+
     def trimTitle(self, visitDict):
         title = visitDict["title"]
         if self.maxTitleLength < len(title):
@@ -113,7 +113,7 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
 
         desc['icon'] = iconPath
         return self.trimTitle(desc)
-    
+
 class CCPrivatePagedTable(CCPrivatePagedTableMixin, PagedTableMixin):
     pass
 
@@ -343,7 +343,7 @@ class DomainListFragment(CCPrivateSortablePagedTable):
     pagingItem = Domain
     sortDirection = 'ascending'
     sortColumn = 'timestamp'
-    
+
     def countTotalItems(self, ctx):
         return self.original.clicks
 
@@ -389,7 +389,7 @@ class PreferencesFragment(rend.Fragment):
     def head(self):
         yield makeScriptTag("/static/js/MochiKit/MochiKit.js")
         yield makeScriptTag("/static/js/editable-form.js")
-    
+
     def data_changePasswordLink(self, ctx, data):
         # XXX this is crap, i can't think of an nice way to modify
         # AuthenticationApplication's getTabs(), so we hide subtabs
@@ -401,7 +401,7 @@ class PreferencesFragment(rend.Fragment):
             translator = ixmantissa.IWebTranslator(avatar)
             self.changePasswordLink = translator.linkTo(authApp.storeID)
         return self.changePasswordLink
-        
+
     def data_preferences(self, ctx, data):
         """
         return a dict of my Preferences instance's columns,

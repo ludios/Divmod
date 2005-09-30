@@ -29,17 +29,17 @@ class PageInfoTestCase(TestCase):
         self.assertEqual(info.faviconURL, data["faviconURL"])
 
     def testMalformed(self):
-        data = dict(faviconURL="blah.png", title="TITLE!@!", 
+        data = dict(faviconURL="blah.png", title="TITLE!@!",
                     charset="abcdefg", faviconURL2="ignore.png")
-        
+
         info = getPageInfo(notSoGoodHtml % data)
         self.assertEqual(info.title, data["title"])
         self.assertEqual(info.charset, data["charset"])
         self.assertEqual(info.faviconURL, data["faviconURL"])
-        
+
         try:
             (linkTag,) = info.linkTags
         except ValueError:
             self.fail("expected only one link tag")
-            
+
         self.assertEqual(linkTag["href"], data["faviconURL"])

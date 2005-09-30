@@ -52,7 +52,7 @@ class VisitMixin(object):
         d = iclickchronicle.ICache(self.store).getPageSource(self.url)
         d.addCallback(cbGotSource)
         return d
-    
+
 class Bookmark(Item, VisitMixin):
     """I correspond to a webpage-visit logged by a clickchronicle user"""
     implements(iclickchronicle.IIndexable)

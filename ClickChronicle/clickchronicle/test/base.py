@@ -176,7 +176,7 @@ class IndexAwareTestBase(DataServingTestBase):
         self.setUpWebServer()
         self.setUpStore()
         self.indexer = self.firstPowerup(self.substore, IIndexer)
-        
+
     def setUpCaching(self):
         self.cacheMan = self.firstPowerup(self.substore, ICache)
         self.recorder.caching = True

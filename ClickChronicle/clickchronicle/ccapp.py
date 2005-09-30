@@ -11,7 +11,7 @@ def installSite(siteStore):
     LoginSystem(store = siteStore).installOn(siteStore)
 
     WebSite(store = siteStore, portno = 8080).installOn(siteStore)
-    StaticSite(store = siteStore, prefixURL = u'static', 
+    StaticSite(store = siteStore, prefixURL = u'static',
                staticContentPath = sibpath(__file__, u'static')).installOn(siteStore)
 
     booth = TicketBooth(store = siteStore)
@@ -32,4 +32,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

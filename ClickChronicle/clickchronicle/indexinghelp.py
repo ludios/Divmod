@@ -1,117 +1,18 @@
-import datetime
 from zope.interface import implements
-from twisted.python import log, failure
+from twisted.python import failure
 from twisted.web import error as weberror
-from epsilon import extime
 from axiom.item import Item
-from axiom import attributes, iaxiom
+from axiom import attributes
 from nevow.url import URL
 from xapwrap.index import SmartIndex, ParsedQuery, DocNotFoundError
 from xapwrap.document import Document, TextField, Value
 from clickchronicle import tagstrip, webclient
 from clickchronicle.iclickchronicle import IIndexer, ICache
 from clickchronicle.pageinfo import getPageInfo
+from clickchronicle import queue
 
-from twisted.internet import defer
 
 XAPIAN_INDEX_DIR = 'xap.index'
-
-class TaskError(Exception):
-    """
-    An error occurred while processing a particular task.  The task
-    should be retried.  The error will not be logged.
-    """
-
-class _Task(Item):
-    schemaVersion = 1
-    typeName = 'clickchronicle_queued_task'
-
-    task = attributes.reference()
-    added = attributes.timestamp()
-    retries = attributes.integer(default=0)
-    maxRetries = attributes.integer()
-    lastAttempt = attributes.timestamp()
-    queue = attributes.reference()
-
-    def do(self):
-        return self.task.do()
-
-
-class IndexQueue(Item):
-    schemaVersion = 1
-    typeName = 'clickchronicle_indexing_queue'
-
-    rate = attributes.integer(default=3)
-    interval = attributes.integer(default=5000)
-    maxRetries = attributes.integer(default=3)
-
-    _waitingForQuiet = attributes.inmemory()
-
-    def activate(self):
-        self._waitingForQuiet = []
-
-    def _keepMeInMemory(self, passthrough):
-        return passthrough
-
-    def notifyOnQuiecence(self):
-        if not self.store.count(_Task, _Task.queue == self):
-            return defer.succeed(None)
-        d = defer.Deferred()
-        self._waitingForQuiet.append(d)
-        d.addCallback(self._keepMeInMemory)
-        return d
-
-    def addTask(self, task, maxRetries=None):
-        if maxRetries is None:
-            maxRetries = self.maxRetries
-        if self.store.count(_Task, _Task.queue == self):
-            self._reschedule()
-        _Task(store=self.store,
-              task=task,
-              added=extime.Time(),
-              lastAttempt=extime.Time(),
-              maxRetries=maxRetries,
-              queue=self)
-
-    def _cbTask(self, ignored, task):
-        task.deleteFromStore()
-
-    def _ebTask(self, err, task):
-        if not err.check(TaskError):
-            log.msg("Error processing task: %r" % (task,))
-            log.err(err)
-
-        if task.retries > task.maxRetries or not task.task.retryableFailure(err):
-            log.msg("Giving up on %r" % (task.task,))
-            task.deleteFromStore()
-        else:
-            task.retries += 1
-            task.lastAttempt = extime.Time()
-
-    def _cbRun(self, ignored):
-        if self.store.count(_Task, _Task.queue == self):
-            self._reschedule()
-        else:
-            dl = self._waitingForQuiet
-            self._waitingForQuiet = []
-            for d in dl:
-                d.callback(None)
-
-    def _reschedule(self):
-        sch = iaxiom.IScheduler(self.store)
-        sch.schedule(
-            self,
-            extime.Time() + datetime.timedelta(milliseconds=self.interval))
-
-    def run(self):
-        dl = []
-        for task in self.store.query(_Task,
-                                     _Task.queue == self,
-                                     sort=_Task.lastAttempt.ascending,
-                                     limit=self.rate):
-            dl.append(task.do().addCallbacks(self._cbTask, self._ebTask, callbackArgs=(task,), errbackArgs=(task,)))
-        defer.DeferredList(dl).addCallback(self._cbRun)
-
 
 class SyncIndexer(Item):
     """
@@ -238,7 +139,7 @@ class FetchSourceTask(Item):
     
     def _ebGotSource(self, err):
         err.trap(weberror.Error)
-        return failure.Failure(TaskError("HTTP error while downloading page (%r)" % (err.getErrorMessage(),)))
+        return failure.Failure(queue.TaskError("HTTP error while downloading page (%r)" % (err.getErrorMessage(),)))
 
     def _index(self, source, pageInfo):
         self.indexer.index(makeDocument(self.visit, source, pageInfo))
@@ -265,13 +166,12 @@ class FetchSourceTask(Item):
                     absURL = str(URL.fromString(self.visit.url).click(pageInfo.faviconURL))
                 else:
                     absURL = None
-                # is there a better way to go about this?
-                for partask in self.store.query(_Task, _Task.task == self):
-                    partask.queue.addTask(FetchFavIconTask(store=self.store,
-                                                           domain=domain,
-                                                           faviconURL=absURL,
-                                                           cacheMan=self.cacheMan))
-                    break
+
+                self.cacheMan.tasks.addTask(
+                    FetchFavIconTask(store=self.store,
+                                     domain=domain,
+                                     faviconURL=absURL,
+                                     cacheMan=self.cacheMan))
 
 class CacheManager(Item):
     """
@@ -290,7 +190,7 @@ class CacheManager(Item):
 
     def __init__(self, **kw):
         super(CacheManager, self).__init__(**kw)
-        self.tasks = IndexQueue(store=self.store)
+        self.tasks = queue.Queue(store=self.store)
 
     def installOn(self, other):
         other.powerUp(self, ICache)

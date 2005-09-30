@@ -10,7 +10,7 @@ from clickchronicle.signup_hack import EmaillessTicketSignup
 def installSite(siteStore):
     LoginSystem(store = siteStore).installOn(siteStore)
 
-    WebSite(store = siteStore, portno = 8080).installOn(siteStore)
+    WebSite(store = siteStore, portno = 27916).installOn(siteStore)
     StaticSite(store = siteStore, prefixURL = u'static', 
                staticContentPath = sibpath(__file__, u'static')).installOn(siteStore)
 

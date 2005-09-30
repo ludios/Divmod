@@ -7,12 +7,12 @@ from axiom.item import Item
 from axiom import attributes, iaxiom
 from nevow.url import URL
 from xapwrap.index import SmartIndex, ParsedQuery, DocNotFoundError
-from xapwrap.document import Document, TextField, StandardAnalyzer, Term, Value
+from xapwrap.document import Document, TextField, Value
 from clickchronicle import tagstrip, webclient
-from clickchronicle.iclickchronicle import IIndexer, IIndexable, ICache
-from clickchronicle.util import maybeDeferredWrapper
+from clickchronicle.iclickchronicle import IIndexer, ICache
+from clickchronicle.pageinfo import getPageInfo
 
-from twisted.internet import reactor, defer
+from twisted.internet import defer
 
 XAPIAN_INDEX_DIR = 'xap.index'
 
@@ -29,6 +29,7 @@ class _Task(Item):
     task = attributes.reference()
     added = attributes.timestamp()
     retries = attributes.integer(default=0)
+    maxRetries = attributes.integer()
     lastAttempt = attributes.timestamp()
     queue = attributes.reference()
 
@@ -60,13 +61,16 @@ class IndexQueue(Item):
         d.addCallback(self._keepMeInMemory)
         return d
 
-    def addTask(self, task):
+    def addTask(self, task, maxRetries=None):
+        if maxRetries is None:
+            maxRetries = self.maxRetries
         if self.store.count(_Task, _Task.queue == self):
             self._reschedule()
         _Task(store=self.store,
               task=task,
               added=extime.Time(),
               lastAttempt=extime.Time(),
+              maxRetries=maxRetries,
               queue=self)
 
     def _cbTask(self, ignored, task):
@@ -77,7 +81,7 @@ class IndexQueue(Item):
             log.msg("Error processing task: %r" % (task,))
             log.err(err)
 
-        if task.retries > self.maxRetries:
+        if task.retries > task.maxRetries or not task.task.retryableFailure(err):
             log.msg("Giving up on %r" % (task.task,))
             task.deleteFromStore()
         else:
@@ -189,14 +193,18 @@ class FetchFavIconTask(Item):
     typeName = 'clickchronicle_fetch_favicon_task'
 
     domain = attributes.reference()
+    faviconURL = attributes.bytes()
     cacheMan = attributes.reference()
 
     def __repr__(self):
         return '<Fetching FavIcon for %r>' % (self.domain,)
 
     def do(self):
-        return self.cacheMan.fetchFavicon(self.domain)
+        return self.cacheMan.fetchFavicon(self.domain, faviconURL=self.faviconURL)
 
+    def retryableFailure(self, f):
+        return f.check(weberror) is not None
+        
 class FetchSourceTask(Item):
     schemaVersion = 1
     typeName = 'clickchronicle_fetch_source_task'
@@ -207,6 +215,7 @@ class FetchSourceTask(Item):
 
     indexIt = attributes.boolean()
     cacheIt = attributes.boolean()
+    storeFavicon = attributes.boolean()
 
     def __repr__(self):
         return '<Fetching %r>' % (self.visit.url,)
@@ -216,20 +225,25 @@ class FetchSourceTask(Item):
         d.addCallbacks(self._cbGotSource, self._ebGotSource)
         return d
 
-    def _cbGotSource(self, (source, encoding)):
-        if self.indexIt:
-            self._index(source, encoding)
-        if self.cacheIt:
-            self._cache(source, encoding)
+    def retryableFailure(self, f):
+        return f.check(weberror.Error) is not None
 
+    def _cbGotSource(self, (source, pageInfo)):
+        if self.indexIt:
+            self._index(source, pageInfo)
+        if self.cacheIt:
+            self._cache(source, pageInfo)
+        if self.storeFavicon:
+            self._enqueueFaviconTask(pageInfo)
+    
     def _ebGotSource(self, err):
         err.trap(weberror.Error)
         return failure.Failure(TaskError("HTTP error while downloading page (%r)" % (err.getErrorMessage(),)))
 
-    def _index(self, source, encoding):
-        self.indexer.index(makeDocument(self.visit, source, encoding))
+    def _index(self, source, pageInfo):
+        self.indexer.index(makeDocument(self.visit, source, pageInfo))
 
-    def _cache(self, source, encoding):
+    def _cache(self, source, pageInfo):
         """
         Cache the source for this visit.
         """
@@ -237,7 +251,28 @@ class FetchSourceTask(Item):
         newFile.write(source)
         newFile.close()
 
-from twisted.web import client
+    def _enqueueFaviconTask(self, pageInfo):
+        domain = self.visit.domain
+        
+        if domain.favIcon is None:
+            for tsk in self.store.query(
+                FetchFavIconTask,
+                attributes.AND(FetchFavIconTask.domain == domain,
+                               FetchFavIconTask.cacheMan == self.cacheMan)):
+                break
+            else:
+                if pageInfo.faviconURL is not None:
+                    absURL = str(URL.fromString(self.visit.url).click(pageInfo.faviconURL))
+                else:
+                    absURL = None
+                # is there a better way to go about this?
+                mytask = self.store.query(_Task, _Task.task == self).next()
+                mytask.queue.addTask(
+                    FetchFavIconTask(store=self.store,
+                                     domain=domain,
+                                     faviconURL=absURL,
+                                     cacheMan=self.cacheMan))
+
 class CacheManager(Item):
     """
     Implements interfaces to fetch and cache data from external
@@ -287,21 +322,8 @@ class CacheManager(Item):
                                 indexer=IIndexer(self.store),
                                 cacheMan=self,
                                 indexIt=indexIt,
-                                cacheIt=cacheIt))
-
-        domain = visit.domain
-        if domain.favIcon is None and storeFavicon:
-            for tsk in self.store.query(
-                FetchFavIconTask,
-                attributes.AND(FetchFavIconTask.domain == domain,
-                               FetchFavIconTask.cacheMan == self)):
-                break
-            else:
-                self.tasks.addTask(
-                    FetchFavIconTask(store=self.store,
-                                     domain=domain,
-                                     cacheMan=self))
-
+                                cacheIt=cacheIt,
+                                storeFavicon=storeFavicon))
 
     def cachedFileNameFor(self, visit):
         """
@@ -321,7 +343,7 @@ class CacheManager(Item):
         except OSError:
             pass
 
-    def fetchFavicon(self, domain):
+    def fetchFavicon(self, domain, faviconURL=None):
         def gotFavicon((data, (contentType,))):
             if contentType:
                 contentType = contentType[0]
@@ -336,24 +358,35 @@ class CacheManager(Item):
                 domain.favIcon = fi
             s.transact(txn)
 
-        url = str(URL(netloc=domain.url, pathsegs=('favicon.ico',)))
-        d = webclient.getPageAndHeaders(['content-type'], url)
+        if faviconURL is not None:
+            url = URL.fromString(faviconURL)
+        else:
+            url = URL(netloc=domain.url, pathsegs=("favicon.ico",))
+            
+        d = webclient.getPageAndHeaders(['content-type'], str(url))
         d.addCallback(gotFavicon)
         return d
 
 
-    def getPageSource(self, url):
+    def getPageSource(self, url, fallbackCharset="ascii"):
         """Asynchronously get the page source for a URL.
+           default to fallbackCharset if we can't find a
+           charset declaration in page headers or <meta>
+           tags
         """
-        def gotPage(result):
+        def gotPage(result, fallbackCharset=fallbackCharset):
             source, headers = result
             print 'Discovered headers for', repr(url), 'tobe', repr(headers)
             contentType = headers[0]
+            
             if contentType:
                 encoding = _parseContentType(contentType[0])
-                print 'Discovered', repr(encoding), 'as encoding for', repr(url)
-                return source, encoding
-            return source, None
+                if encoding is not None:
+                    fallbackCharset = encoding
+            
+            pageInfo = getPageInfo(source, charset=fallbackCharset)
+            print 'Discovered', repr(pageInfo.charset), 'as encoding for', repr(url)
+            return source, pageInfo
 
         return webclient.getPageAndHeaders(
             ['content-type'], url).addCallback(gotPage)
@@ -370,30 +403,15 @@ def _parseContentType(ctype):
             return parts[1].strip()
     return None
 
-def _getEncoding(meta):
-    # TODO This should really be coming from the http encoding
-    if 'http-equiv' in meta:
-        equivs=meta['http-equiv']
-        if 'content-type' in equivs:
-            ctype = equivs['content-type']
-            return _parseContentType(ctype)
-    return None
-
-CHARSET_SEARCH_LIMIT = 2048 # The charset must appear within this number of characters
-def makeDocument(visit, pageSource, encoding=None):
-    title = visit.title # TODO - Should get the title from BeautifulSoup
-
-    if encoding is None:
-        (ignore, meta)=tagstrip.cook(pageSource[:CHARSET_SEARCH_LIMIT])
-        encoding = _getEncoding(meta)
-    if encoding is None:
-        encoding = 'ascii'
+def makeDocument(visit, pageSource, pageInfo):
+    encoding = pageInfo.charset
+    title = visit.title
 
     title = title.decode(encoding, 'replace')
     decodedSource = pageSource.decode(encoding, 'replace')
 
-    (text, meta) = tagstrip.cook(decodedSource)
-        
+    text = tagstrip.cook(decodedSource)
+    
     values = [
         Value('type', 'url'),
         Value('url', visit.url),
@@ -407,9 +425,7 @@ def makeDocument(visit, pageSource, encoding=None):
     #                terms.append(Term(tok))
 
     # Add page text
-    textFields = [TextField(text)]
-    if visit.title:
-        textFields.append(TextField(visit.title))
+    textFields = [TextField(text), TextField(title)]
     # Use storeID for simpler removal of visit from index at a later stage
     doc = Document(uid=visit.storeID,
                    textFields=textFields,
@@ -426,9 +442,7 @@ if __name__ == '__main__':
         print fname
         source = open(fname, 'rb').read()
         source =source.decode('utf-8')
-        (text, meta) = tagstrip.cook(source)
+        text = tagstrip.cook(source)
 
-        print meta
-        print '***********'
         print type(text)
         #print text.decode('utf-8')

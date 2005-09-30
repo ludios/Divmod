@@ -1,6 +1,19 @@
 from BeautifulSoup import BeautifulSoup
 import re
 
+        
+def lowerValues(tags, keys):
+    for attrs in tags:
+        for key in keys:
+            value = attrs.get(key)
+            if value is not None:
+                attrs[key] = value.lower()
+                
+def mergeDefaults(results, defaults):
+    for (k, defv) in defaults.iteritems():
+        if results[k] is None:
+            results[k] = defv
+
 class PageInfoParser(BeautifulSoup):
     charsetRegex = re.compile(r";\s*charset=(\S+)$")
     
@@ -35,28 +48,33 @@ class PageInfoParser(BeautifulSoup):
         for faviconURL in (d.get("href") for d in self.linkTags
                             if d.get("rel") == "icon"):
             return faviconURL
+                
+    def pageInfo(self, **defaults):
+        lowerValues(self.linkTags, ("rel",))
+        lowerValues(self.metaTags, ("http-equiv",))
         
-    def lowerValues(self, tags, keys):
-        for attrs in tags:
-            for key in keys:
-                value = attrs.get(key)
-                if value is not None:
-                    attrs[key] = value.lower()
-                    
-    def pageInfo(self):
-        self.lowerValues(self.linkTags, ("rel",))
-        self.lowerValues(self.metaTags, ("http-equiv",))
-        return PageInfo(self.title, self.getCharset(), self.getFaviconURL(),
-                        self.metaTags, self.linkTags)
+        # if we were supplied default values for title, charset, or faviconURL,
+        # and didn't get data from the page source for any of those fields, 
+        # substitute defaults
+        
+        refutableResults = dict(title=self.title, 
+                                charset=self.getCharset(), 
+                                faviconURL=self.getFaviconURL())
+        
+        mergeDefaults(refutableResults, defaults)
+        
+        return PageInfo(self.metaTags, self.linkTags, **refutableResults)
                         
 class PageInfo(object):
     __slots__ = ("title", "charset", "faviconURL", "metaTags", "linkTags")
 
-    def __init__(self, title, charset, faviconURL, metaTags, linkTags):
+    def __init__(self, metaTags, linkTags, faviconURL=None, title=None, charset=None):
         self.charset = charset
         self.faviconURL = faviconURL
         self.metaTags = metaTags
         self.title = title
         self.linkTags = linkTags 
 
-getPageInfo = lambda html: PageInfoParser(html).pageInfo()
+def getPageInfo(html, **defaults):
+    return PageInfoParser(html).pageInfo(**defaults)
+    

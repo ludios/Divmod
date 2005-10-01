@@ -1,7 +1,6 @@
 from BeautifulSoup import BeautifulSoup
 import re
 
-
 def lowerValues(tags, keys):
     for attrs in tags:
         for key in keys:
@@ -14,17 +13,36 @@ def mergeDefaults(results, defaults):
         if results[k] is None:
             results[k] = defv
 
+class DoneParsing(Exception):
+    """
+       strange things seem to happen to sgmllib if reset() is called
+       in a start_ handler - making it difficult for us to stop parsing
+       dead in our tracks - so we'll use exception to communicate results
+       to the user of PageInfoParser
+    """
+
 class PageInfoParser(BeautifulSoup):
     charsetRegex = re.compile(r";\s*charset=(\S+)$")
+    headTags = ("script", "noscript", "link", "meta", "title")
+    seenHead = False
 
-    def __init__(self, *a, **k):
+    def __init__(self, html, defaults):
         self.metaTags = []
         self.linkTags = []
         self.title = None
-        BeautifulSoup.__init__(self, *a, **k)
+        self.defaults = defaults
+        BeautifulSoup.__init__(self, html)
 
-    end_head = start_body = lambda self, tag: self.reset()
-    parse_comment = lambda self, tag: None
+    def abort(self, t=None):
+        raise DoneParsing, self.pageInfo(**self.defaults)
+
+    def do_head(self, tag):
+        self.seenHead = True
+
+    def unknown_starttag(self, tag, attributes):
+        if self.seenHead and tag not in self.headTags:
+            self.abort()
+        BeautifulSoup.unknown_starttag(self, tag, attributes)
 
     def do_link(self, attrs):
         self.linkTags.append(dict(attrs))
@@ -35,6 +53,7 @@ class PageInfoParser(BeautifulSoup):
     def handle_data(self, data):
         if self.currentTag.name == "title" and self.title is None:
             self.title = data
+        BeautifulSoup.handle_data(self, data)
 
     def getCharset(self):
         for ctype in (d.get("content") for d in self.metaTags
@@ -76,4 +95,19 @@ class PageInfo(object):
         self.linkTags = linkTags
 
 def getPageInfo(html, **defaults):
-    return PageInfoParser(html).pageInfo(**defaults)
+    try:
+        p = PageInfoParser(html, defaults)
+    except DoneParsing, dp:
+        (pageInfo,) = dp.args
+        return pageInfo
+    else:
+        return p.pageInfo(**defaults)
+
+if __name__ == "__main__":
+    import sys
+    pinfo = getPageInfo(file(sys.argv[1]).read())
+    print "Charset: ", pinfo.charset
+    print "Favicon URL:", pinfo.faviconURL
+    print "Meta Tags:", pinfo.metaTags
+    print "Title:", pinfo.title
+    print "Link Tags:", pinfo.linkTags

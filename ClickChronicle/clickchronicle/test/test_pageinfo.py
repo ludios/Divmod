@@ -6,16 +6,19 @@ goodHtml = """
     <head>
         <title>%(title)s</title>
         <link rel="icon" href="%(faviconURL)s" />
-        <meta http-equiv="content-type" content="text/html; charset=%(charset)s" />
+        <META http-equiv="content-type" content="text/html; charset=%(charset)s" />
     </head>
     <body>this is a bland body</body>
 </html>
 """
 
 notSoGoodHtml = """
+<html>
+<head>
 <title>%(title)s</title>
 <link rel="ICON" href="%(faviconURL)s" />
 <meta HTTP-EQUIV="content-Type" content="text/html; charset=%(charset)s" />
+</head>
 <body>
     <link rel=ICON href="%(faviconURL2)s />
 """
@@ -36,10 +39,6 @@ class PageInfoTestCase(TestCase):
         self.assertEqual(info.title, data["title"])
         self.assertEqual(info.charset, data["charset"])
         self.assertEqual(info.faviconURL, data["faviconURL"])
-
-        try:
-            (linkTag,) = info.linkTags
-        except ValueError:
-            self.fail("expected only one link tag")
-
+        self.assertEqual(len(info.linkTags), 1)
+        (linkTag,) = info.linkTags
         self.assertEqual(linkTag["href"], data["faviconURL"])

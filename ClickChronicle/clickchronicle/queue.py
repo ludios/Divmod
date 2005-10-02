@@ -65,6 +65,7 @@ class Queue(item.Item):
     rate = attributes.integer(default=3)
     interval = attributes.integer(default=5000)
     maxRetries = attributes.integer(default=3)
+    initialDelay = 250
 
     _waitingForQuiet = attributes.inmemory()
 
@@ -75,6 +76,7 @@ class Queue(item.Item):
         return passthrough
 
     def notifyOnQuiecence(self):
+        print 'Q len:',self.store.count(_Task, _Task.queue == self)
         if not self.store.count(_Task, _Task.queue == self):
             return defer.succeed(None)
         d = defer.Deferred()
@@ -85,14 +87,20 @@ class Queue(item.Item):
     def addTask(self, task, maxRetries=None):
         if maxRetries is None:
             maxRetries = self.maxRetries
-        if self.store.count(_Task, _Task.queue == self):
-            self._reschedule()
         _Task(store=self.store,
               task=task,
               added=extime.Time(),
               lastAttempt=extime.Time(),
               maxRetries=maxRetries,
               queue=self)
+        taskCount = self.store.count(_Task, _Task.queue == self)
+        if taskCount <= 1:
+            # if the only task is the one we just created, kick it off
+            # with a smaller delay
+            delay = self.initialDelay
+        else:
+            delay = self.interval
+        self._reschedule(delay=delay)
 
     def _cbTask(self, ignored, task):
         task.deleteFromStore()
@@ -118,11 +126,13 @@ class Queue(item.Item):
             for d in dl:
                 d.callback(None)
 
-    def _reschedule(self):
+    def _reschedule(self, delay=None):
+        if delay is None:
+            delay = self.interval
         sch = iaxiom.IScheduler(self.store)
         sch.schedule(
             self,
-            extime.Time() + datetime.timedelta(milliseconds=self.interval))
+            extime.Time() + datetime.timedelta(milliseconds=delay))
 
     def run(self):
         dl = []

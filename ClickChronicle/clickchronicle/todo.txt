@@ -2,7 +2,8 @@ Features/Fixes to do:
 ---------------------
 
 -Page processing
-Discover page enconding more effectively using BeautfiulSoup
+Discover page encoding more effectively using BeautfiulSoup
+Discover page title using BS
 Create queue for indexing and removing from index to defend against
 race conditions and batch index changes for efficiency
 Ignore pages with a Content-Length header or number of bytes 
@@ -68,7 +69,6 @@ Same as public site
 Compile Greasemonkey script into standalone extension OR Fix our
 extension and move title stuff to server
 Allow uname, pword to be set so user does not need to log in
-Add record/pause UI
 Implement "exits from this page" option in extention.
 Use https to post urls to the server
 Allow user to define a tag that all their clicks get given for a
@@ -118,6 +118,7 @@ Add "ignore" attribute to domains (DONE)
 Track and record referrer information. (DONE)
 Figure out how to do unicode indexing (DONE)
 Logout link to __logout__ (DONE)
+Extension/Add record/pause UI
 
 Tests done:
 -----------

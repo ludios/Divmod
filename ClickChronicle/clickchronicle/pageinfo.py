@@ -65,7 +65,7 @@ class PageInfoParser(BeautifulSoup):
 
     def getFaviconURL(self):
         for faviconURL in (d.get("href") for d in self.linkTags
-                            if d.get("rel") == "icon"):
+                            if d.get("rel") == "icon" or d.get("rel") == "shortcut icon"):
             return faviconURL
 
     def pageInfo(self, **defaults):

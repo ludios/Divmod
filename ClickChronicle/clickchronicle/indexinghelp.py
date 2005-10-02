@@ -307,8 +307,15 @@ def makeDocument(visit, pageSource, pageInfo):
     encoding = pageInfo.charset
     title = visit.title
 
-    title = title.decode(encoding, 'replace')
+    # 2 Choices here: go with the title sent by the extension already decoded using utf-8
+    # or get title from pageInfo and decode it using the charset from pageInfo
+    
+    #newTitle = pageInfo.title.decode(encoding, 'replace')
     decodedSource = pageSource.decode(encoding, 'replace')
+    #if newTitle == title:
+    #    print 'titles match'
+    #else:
+    #    print "*** titles don't match", len(title), len(newTitle)
 
     text = tagstrip.cook(decodedSource)
 

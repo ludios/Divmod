@@ -96,6 +96,19 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
             return bookmark
         bm = self.store.transact(_)
 
+    def handle_delete(self, ctx, url):
+        print 'XXX delete'
+        store = self.original.store
+        visit = store.query(Visit, Visit.url == url).next()
+        def _():
+            visit.deleteFromStore()
+        bm = self.store.transact(_)
+
+    def handle_info(self, ctx, url):
+        store = self.original.store
+        visit = store.query(Visit, Visit.url == url).next()
+        # TODO - Display info page for visit
+
     def trimTitle(self, visitDict):
         title = visitDict["title"]
         if self.maxTitleLength < len(title):

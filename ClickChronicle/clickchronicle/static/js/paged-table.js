@@ -10,6 +10,8 @@ function selectOptionWithValue( elem, value ) {
 
 ignore = partial(server.handle, "ignore");
 bookmark = partial(server.handle, "bookmark");
+delete = partial(server.handle, "delete");
+info = partial(server.handle, "info");
 
 var UP_ARROW = "\u2191";
 var DN_ARROW = "\u2193";

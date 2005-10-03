@@ -5,7 +5,7 @@ from twisted.python import util
 from twisted.python.components import registerAdapter
 
 from nevow.url import URL
-from nevow import rend, inevow, tags, loaders, flat
+from nevow import rend, inevow, tags, loaders, flat, livepage
 
 from epsilon.extime import Time
 
@@ -25,8 +25,7 @@ from clickchronicle.searchparser import parseSearchString
 flat.registerFlattener(lambda t, ign: t.asHumanly(), Time)
 
 def makeScriptTag(src):
-    return tags.script(type="application/x-javascript",
-                       src=src)
+    return tags.script(type="application/x-javascript", src=src)
 
 class SearchBox(Item):
     implements(ixmantissa.INavigableElement)
@@ -74,39 +73,42 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
         self.tablePattern = pgen("clickTable")
         self.pageNumbersPattern = pgen("pagingWidget")
         self.navBarPattern = pgen("navBar")
+        self.infoPattern = pgen("visitInfo")
 
     def head(self):
         yield makeScriptTag("/static/js/MochiKit/MochiKit.js")
         yield makeScriptTag("/static/js/paged-table.js")
 
-    def handle_ignore(self, ctx, url):
+    def handle_ignore(self, ctx, visitStoreID):
         store = self.original.store
-        # find any Visit with this url
-        visit = store.query(Visit, Visit.url == url).next()
+        visit = store.getItemByID(int(visitStoreID))
         iclickchronicle.IClickRecorder(store).ignoreVisit(visit)
         # rewind to the first page, to reflect changes
         return self.handle_updateTable(ctx, self.startPage)
 
-    def handle_bookmark(self, ctx, url):
+    def handle_bookmark(self, ctx, visitStoreID):
         store = self.original.store
-        visit = store.query(Visit, Visit.url == url).next()
+        visit = store.getItemByID(int(visitStoreID))
         def _():
             bookmark=visit.asBookmark()
             return bookmark
         bm = self.store.transact(_)
 
-    def handle_delete(self, ctx, url):
-        print 'XXX delete'
+    def handle_delete(self, ctx, visitStoreID):
         store = self.original.store
-        visit = store.query(Visit, Visit.url == url).next()
+        visit = store.getItemByID(int(visitStoreID))
         def _():
             visit.deleteFromStore()
         bm = self.store.transact(_)
 
-    def handle_info(self, ctx, url):
+    def handle_info(self, ctx, visitStoreID):
         store = self.original.store
-        visit = store.query(Visit, Visit.url == url).next()
-        # TODO - Display info page for visit
+        visit = store.getItemByID(int(visitStoreID))
+        newest = store.query(Visit, Visit.url == visit.url,
+                             sort=Visit.timestamp.desc, limit=1).next()
+        # this is pretty dinky at the moment
+        data = (("URL", visit.url), ("Last Visited", newest.timestamp))
+        return (livepage.js.gotInfo(visitStoreID, self.infoPattern(data=data)), livepage.eol)
 
     def trimTitle(self, visitDict):
         title = visitDict["title"]

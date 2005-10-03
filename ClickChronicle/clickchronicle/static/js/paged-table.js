@@ -1,3 +1,39 @@
+/* map shorthand action names to names of handler functions
+ * wrap them anonymously because they're not defined yet */
+
+const actions = {
+    "ignore"   : "doIgnore",
+    "info"     : "doInfo",
+    "bookmark" : "doBookmark",
+    "delete"   : "doDelete"
+};
+
+function sub() {
+    var args = sub.arguments;
+    var str  = args[0];
+    for(i = 1 ; i < args.length ; i++)
+        str = str.replace(/%s/, args[i].toString());
+    return str;
+}
+
+function cementActionLinks() {
+    var clickTable = $("clickTable");
+    var rows = getElementsByTagAndClassName("tr", null, clickTable);
+    for(var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        if(!row.getAttribute("id"))
+            continue;
+        for(var aname in actions) {
+            var links = getElementsByTagAndClassName("a", aname + "-action", row);
+            for(var k = 0; k < links.length; k++) {
+                var link = links[k];
+                link.href = "#" + row.id; // so something shows in the statusbar
+                link.onclick = new Function("ignore", sub("%s(%s); return false;", actions[aname], row.id));
+            }
+        }
+    }
+}
+
 var activeSortCol = null;
 
 function selectOptionWithValue( elem, value ) {
@@ -8,11 +44,28 @@ function selectOptionWithValue( elem, value ) {
         }
 }
 
-ignore = partial(server.handle, "ignore");
-bookmark = partial(server.handle, "bookmark");
-/* "delete" is a reserved word */
-doDelete = partial(server.handle, "delete");
-info = partial(server.handle, "info");
+function doIgnore(identifier) {
+    server.handle("ignore", identifier);
+}
+
+function doBookmark(identifier) {
+    server.handle("bookmark", identifier);
+}
+
+function doDelete(identifier) {
+    server.handle("delete", identifier);
+}
+
+function gotInfo(identifier, html) {
+    var tr = $(identifier).nextSibling;
+    var cell = getElementsByTagAndClassName("td", "content", tr)[0];
+    cell.innerHTML = html;
+    setDisplayForElement("table-row", tr);
+}
+
+function doInfo(identifier) {
+    server.handle("info", identifier);
+}
 
 var UP_ARROW = "\u2191";
 var DN_ARROW = "\u2193";
@@ -84,6 +137,7 @@ function setCurrentPage( page ) {
 function setTotalItems( items ) {
     document.getElementById("totalItems").firstChild.nodeValue = items;
     setPageState();
+    cementActionLinks();
 }
 
 function getSelected( selectId ) {

@@ -31,7 +31,8 @@ class DefaultDisplayableVisit:
         return dict(url=self.original.url.decode('utf-8'),
                     title=self.original.title,
                     visitCount=self.original.visitCount,
-                    timestamp=self.original.timestamp)
+                    timestamp=self.original.timestamp,
+                    identifier=self.original.storeID)
 
 class DisplayableDomain(DefaultDisplayableVisit):
     def asIcon(self):

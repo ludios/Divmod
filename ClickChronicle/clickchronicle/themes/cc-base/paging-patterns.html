@@ -1,6 +1,18 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:nevow="http://nevow.com/ns/nevow/0.1">
+  <table cellspacing="0" class="thinFancyTable" nevow:pattern="visitInfo" nevow:render="sequence">
+    <tr nevow:pattern="item" nevow:render="sequence">
+      <td class="fancyRowHeader" nevow:pattern="item" nevow:render="data"/>
+      <td class="fancyCell" nevow:pattern="item" nevow:render="data"/>
+    </tr>
+  </table>
 
   <table cellspacing="0" class="fancyTable" nevow:pattern="clickTable" nevow:render="sequence">
+    <!-- js will unhide and fill me will an instance of the visitInfo pattern if the relevant button is clicked -->
+    <tr nevow:pattern="divider" style="display: none;">
+      <td/>
+      <td colspan="3" class="content"/>
+    </tr>
+
     <tr class="fancyRowFirst" nevow:pattern="header">
       <td style="text-align: center; width: 20%" class="fancyCol">
         Timestamp
@@ -8,11 +20,14 @@
       <td class="fancyCol" style="width: 100%">
         Link
       </td>
-      <td class="fancyCol" style="text-align: center; width: 10%">Action</td>
+      <td class="fancyCol" style="text-align: center; width: 10%">
+        Action
+      </td>
       <td class="lastFancyCol" style="width: 10%">
         Visits
       </td>
     </tr>
+
     <tr class="fancyRowAlt" nevow:pattern="item" nevow:render="mapping">
       <td class="fancyCol" style="text-align: center;"><nevow:slot name="timestamp"/></td>
       <td class="fancyCol">
@@ -29,25 +44,45 @@
       </td>
       <td class="lastFancyCol" style="text-align: center"><nevow:slot name="visitCount"/></td>
     </tr>
+
     <tr class="fancyRow" nevow:pattern="item" nevow:render="mapping">
+      <nevow:attr name="id"><nevow:slot name="identifier"/></nevow:attr>
       <td class="fancyCol" style="text-align: center"><nevow:slot name="timestamp"/></td>
       <td class="fancyCol">
         <img class="linkIcon" width="16" height="16"><nevow:attr name="src"><nevow:slot name="icon"/></nevow:attr></img>
         <a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a>
       </td>
       <td class="fancyCol" style="text-align: center">
-        <a onclick="ignore(this.href); return false">
-          <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
-          <img src="/static/images/ignore_link.png" class="linkIcon"/></a>
-        <a onclick="bookmark(this.href); return false">
-          <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
-          <img src="/static/images/bookmark.png" class="linkIcon"/></a>
+        <a class="info-action">
+          <nevow:attr name="href"><nevow:slot name="identifier"/></nevow:attr>
+          <img src="/static/images/info.png" class="linkIcon"/>
+        </a>
+        <a class="ignore-action">
+          <nevow:attr name="href"><nevow:slot name="identifier"/></nevow:attr>
+          <img src="/static/images/ignore_link.png" class="linkIcon"/>
+        </a>
+        <a class="bookmark-action">
+          <nevow:attr name="href"><nevow:slot name="identifier"/></nevow:attr>
+          <img src="/static/images/bookmark.png" class="linkIcon"/>
+        </a>
+        <a class="delete-action">
+          <nevow:attr name="href"><nevow:slot name="identifier"/></nevow:attr>
+          <img src="/static/images/delete.png" class="linkIcon"/>
+        </a>
       </td>
       <td class="lastFancyCol" style="text-align: center"><nevow:slot name="visitCount"/></td>
     </tr>
   </table>
 
-  <table cellspacing="0" class="fancyTable" nevow:pattern="sortableClickTable" nevow:render="sequence">
+  <table cellspacing="0" id="clickTable" class="fancyTable" nevow:pattern="sortableClickTable" nevow:render="sequence">
+    <tr style="display: none" nevow:pattern="divider">
+      <td style="border-bottom: solid 1px #B0B0B0" colspan="4" class="content"/>
+    </tr>
+
+    <tr style="display: none" nevow:pattern="footer">
+      <td style="border-bottom: solid 1px #B0B0B0" colspan="4" class="content"/>
+    </tr>
+
     <tr class="fancyRowFirst" nevow:pattern="header">
       <td style="text-align: center; width: 20%;" class="sFancyCol" id="sortcol_timestamp" onclick="toggleSort('timestamp')">
         Timestamp
@@ -61,47 +96,51 @@
         Visits
       </td>
     </tr>
+
     <tr class="fancyRowAlt" nevow:pattern="item" nevow:render="mapping">
+      <nevow:attr name="id"><nevow:slot name="identifier"/></nevow:attr>
       <td class="fancyCol" style="text-align: center;" id="sortcol_timestamp"><nevow:slot name="timestamp"/></td>
       <td class="fancyCol">
         <img class="linkIcon" width="16" height="16"><nevow:attr name="src"><nevow:slot name="icon"/></nevow:attr></img>
         <a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a>
       </td>
       <td class="fancyCol" style="text-align: center">
-        <a onclick="info(this.href); return false">
-          <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
-          <img src="/static/images/info.png" class="linkIcon"/></a>
-        <a onclick="ignore(this.href); return false">
-          <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
-          <img src="/static/images/ignore_link.png" class="linkIcon"/></a>
-        <a onclick="bookmark(this.href); return false">
-          <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
-          <img src="/static/images/bookmark.png" class="linkIcon"/></a>
-        <a onclick="doDelete(this.href); return false">
-          <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
-          <img src="/static/images/delete.png" class="linkIcon"/></a>
+        <a class="info-action">
+          <img src="/static/images/info.png" class="linkIcon"/>
+        </a>
+        <a class="ignore-action">
+          <img src="/static/images/ignore_link.png" class="linkIcon"/>
+        </a>
+        <a class="bookmark-action">
+          <img src="/static/images/bookmark.png" class="linkIcon"/>
+        </a>
+        <a class="delete-action">
+          <img src="/static/images/delete.png" class="linkIcon"/>
+        </a>
       </td>
       <td class="lastFancyCol" style="text-align: center"><nevow:slot name="visitCount"/></td>
     </tr>
+
     <tr class="fancyRow" nevow:pattern="item" nevow:render="mapping">
+      <nevow:attr name="id"><nevow:slot name="identifier"/></nevow:attr>
       <td class="fancyCol" style="text-align: center"><nevow:slot name="timestamp"/></td>
       <td class="fancyCol">
         <img class="linkIcon" width="16" height="16"><nevow:attr name="src"><nevow:slot name="icon"/></nevow:attr></img>
         <a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a>
       </td>
       <td class="fancyCol" style="text-align: center">
-	<a onclick="info(this.href); return false">
-          <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
-          <img src="/static/images/info.png" class="linkIcon"/></a>
-        <a onclick="ignore(this.href); return false">
-          <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
-          <img src="/static/images/ignore_link.png" class="linkIcon"/></a>
-        <a onclick="bookmark(this.href); return false">
-          <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
-          <img src="/static/images/bookmark.png" class="linkIcon"/></a>
-        <a onclick="doDelete(this.href); return false">
-          <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
-          <img src="/static/images/delete.png" class="linkIcon"/></a>
+        <a class="info-action">
+          <img src="/static/images/info.png" class="linkIcon"/>
+        </a>
+        <a class="ignore-action">
+          <img src="/static/images/ignore_link.png" class="linkIcon"/>
+        </a>
+        <a class="bookmark-action">
+          <img src="/static/images/bookmark.png" class="linkIcon"/>
+        </a>
+        <a class="delete-action">
+          <img src="/static/images/delete.png" class="linkIcon"/>
+        </a>
       </td>
       <td class="lastFancyCol" style="text-align: center"><nevow:slot name="visitCount"/></td>
     </tr>

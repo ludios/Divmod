@@ -76,6 +76,14 @@ ul {
 	border-bottom: none;
 }
 
+.thinFancyTable {
+	width: 60%;
+	margin: 10px;
+	margin-left: 20px;
+	border: solid 1px #B0B0B0;
+	border-bottom: none;
+}
+
 tr.fancyRowFirst { 
 	background-color: #FFFFFF;
 	background-image: url(/static/images/header_bg.png);
@@ -122,7 +130,6 @@ tr.fancyRowFirst {
 	border-left: solid 1px #B0B0B0;
 	padding: 4px 4px 4px 4px;
 }
-	
 
 .fancyCol { 
 	padding: 4px 4px 4px 4px; 

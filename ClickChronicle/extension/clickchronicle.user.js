@@ -1,15 +1,16 @@
 // ==UserScript==
 // @name          ClickChronicle
 // @namespace     http://clickchronicle.com/
-// @description   Capture surfing to ClickChronicle
+// @description   Capture browsing to ClickChronicle
 // @include       *
 // @exclude       *divmod.com*
 // @exclude       *clickchronicle.com*
+// @exclude       *gmail.com*
 // ==/UserScript==
 
 (function() {
     const POST_INTERCEPT = 'HistoryIntercept';
-    var intercept_on = true;
+    var intercept_on;
    
     interceptor_setup();
 
@@ -17,7 +18,7 @@
     // Post the URL to the divmod server
     if(intercept_on){
       GM_xmlhttpRequest({ method:"POST",
-			    url:'http://clickchronicle:8080/private/record' +
+			    url:'https://www.clickchronicle.com/private/record' +
 		            '?url=' + encodeURIComponent(document.location.href) +
 			    '&title=' + encodeURIComponent(document.title) +
 			    '&referrer=' + encodeURIComponent(document.referrer),
@@ -89,7 +90,7 @@
 
     function interceptor_setup()
     {
-      intercept_on = GM_getValue(POST_INTERCEPT, false);
+      intercept_on = GM_getValue(POST_INTERCEPT, true);
       setup_pi_button();
     }
 

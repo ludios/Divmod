@@ -85,8 +85,7 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
         visit = store.query(Visit, Visit.url == url).next()
         iclickchronicle.IClickRecorder(store).ignoreVisit(visit)
         # rewind to the first page, to reflect changes
-        return self.updateTable(ctx, self.startPage,
-                                self.defaultItemsPerPage)
+        return self.handle_updateTable(ctx, self.startPage)
 
     def handle_bookmark(self, ctx, url):
         store = self.original.store

@@ -77,7 +77,7 @@
         <a onclick="bookmark(this.href); return false">
           <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
           <img src="/static/images/bookmark.png" class="linkIcon"/></a>
-        <a onclick="delete(this.href); return false">
+        <a onclick="doDelete(this.href); return false">
           <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
           <img src="/static/images/delete.png" class="linkIcon"/></a>
       </td>
@@ -99,7 +99,7 @@
         <a onclick="bookmark(this.href); return false">
           <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
           <img src="/static/images/bookmark.png" class="linkIcon"/></a>
-        <a onclick="delete(this.href); return false">
+        <a onclick="doDelete(this.href); return false">
           <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
           <img src="/static/images/delete.png" class="linkIcon"/></a>
       </td>

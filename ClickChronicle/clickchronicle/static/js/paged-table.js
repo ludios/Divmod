@@ -10,7 +10,8 @@ function selectOptionWithValue( elem, value ) {
 
 ignore = partial(server.handle, "ignore");
 bookmark = partial(server.handle, "bookmark");
-delete = partial(server.handle, "delete");
+/* "delete" is a reserved word */
+doDelete = partial(server.handle, "delete");
 info = partial(server.handle, "info");
 
 var UP_ARROW = "\u2191";
@@ -24,7 +25,7 @@ function toggleSort(column) {
     } else
         server.handle("updateTable", getSelected("pages"), column);
 }
-    
+
 function setSortState(column, direction) {
     try{ activeSortCol.removeChild($("sortArrow")) } catch(e) {}
     var col = $("sortcol_" + column);
@@ -48,7 +49,7 @@ function doEnable(eid1, eid2) {
     hideElement(eid1 + "_disabled");
     hideElement(eid2 + "_disabled");
 }
- 
+
 function firstPrevDisable() { doDisable("first", "prev") }
 function lastNextDisable()  { doDisable("last", "next")  }
 function firstPrevEnable()  { doEnable("first", "prev")  }
@@ -61,7 +62,7 @@ function setPageState() {
 
     (onFirstPage ? firstPrevDisable : firstPrevEnable)();
     (onLastPage  ? lastNextDisable  : lastNextEnable)();
-    
+
     pages.disabled = (onFirstPage && onLastPage) ? true : false;
     var noItems = ($("totalItems").firstChild.nodeValue == 0);
 
@@ -108,7 +109,7 @@ function goLast() {
     setCurrentPage( lastPage );
     updateTable();
 }
-           
+
 function goNext() {
     var pagesElem = document.getElementById("pages");
     var nextPageElem = pagesElem.childNodes[pagesElem.selectedIndex + 1];

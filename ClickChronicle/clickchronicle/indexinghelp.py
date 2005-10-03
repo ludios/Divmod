@@ -88,8 +88,16 @@ class FavIcon(Item, website.PrefixURLMixin):
     def createResource(self):
         return static.Data(self.data, self.contentType)
 
+class PageFetchingTaskMixin(object):
+    def retryableFailure(self, f):
+        return f.check(weberror.Error) is not None
 
-class FetchFavIconTask(Item):
+    def _ebGotSource(self, err):
+        # return likely errors as TaskError so they aren't reported
+        err.trap(weberror.Error)
+        return failure.Failure(queue.TaskError("HTTP error while downloading page (%r)" % (err.getErrorMessage(),)))
+
+class FetchFavIconTask(Item, PageFetchingTaskMixin):
     schemaVersion = 1
     typeName = 'clickchronicle_fetch_favicon_task'
 
@@ -101,12 +109,37 @@ class FetchFavIconTask(Item):
         return '<Fetching FavIcon for %r>' % (self.domain,)
 
     def do(self):
-        return self.cacheMan.fetchFavicon(self.domain, faviconURL=self.faviconURL)
+        futureFavicon = self.cacheMan.fetchFavicon(self.domain, faviconURL=self.faviconURL)
+        futureFavicon.addErrback(self._ebGotSource)
+        return futureFavicon
 
-    def retryableFailure(self, f):
-        return f.check(weberror) is not None
+class FetchDomainTitleTask(Item, PageFetchingTaskMixin):
+    schemaVersion = 1
+    typeName = "clickchronicle_fetch_domain_title_task"
 
-class FetchSourceTask(Item):
+    domain = attributes.reference()
+    cacheMan = attributes.reference()
+
+    def __repr__(self):
+        return "<Fetching %r>" % self.domain.url
+
+    def do(self):
+        futureSource = self.cacheMan.getPageSource(self.domain.url)
+        futureSource.addCallbacks(self._cbGotSource, self._ebGotSource)
+        return futureSource
+
+    def _cbGotSource(self, (source, pageInfo)):
+        if pageInfo.title is None:
+            title = self.domain.url
+        else:
+            title = pageInfo.title.decode(pageInfo.charset, "replace")
+
+        def txn():
+            self.domain.title = title
+
+        self.store.transact(txn)
+
+class FetchSourceTask(Item, PageFetchingTaskMixin):
     schemaVersion = 1
     typeName = 'clickchronicle_fetch_source_task'
 
@@ -126,9 +159,6 @@ class FetchSourceTask(Item):
         d.addCallbacks(self._cbGotSource, self._ebGotSource)
         return d
 
-    def retryableFailure(self, f):
-        return f.check(weberror.Error) is not None
-
     def _cbGotSource(self, (source, pageInfo)):
         if self.indexIt:
             self._index(source, pageInfo)
@@ -136,10 +166,6 @@ class FetchSourceTask(Item):
             self._cache(source, pageInfo)
         if self.storeFavicon:
             self._enqueueFaviconTask(pageInfo)
-
-    def _ebGotSource(self, err):
-        err.trap(weberror.Error)
-        return failure.Failure(queue.TaskError("HTTP error while downloading page (%r)" % (err.getErrorMessage(),)))
 
     def _index(self, source, pageInfo):
         self.indexer.index(makeDocument(self.visit, source, pageInfo))
@@ -225,6 +251,18 @@ class CacheManager(Item):
                                 cacheIt=cacheIt,
                                 storeFavicon=storeFavicon))
 
+        if visit.domain.title is None:
+            url = URL.fromString(visit.url)
+            if url.isRoot(url.pathList()):
+                def txn():
+                    visit.domain.title = visit.title
+                self.store.transact(txn)
+            else:
+                self.tasks.addTask(
+                    FetchDomainTitleTask(store=self.store,
+                                         domain=visit.domain,
+                                         cacheMan=self))
+
     def cachedFileNameFor(self, visit):
         """
         Return the path to the cached source for this visit.
@@ -309,7 +347,7 @@ def makeDocument(visit, pageSource, pageInfo):
 
     # 2 Choices here: go with the title sent by the extension already decoded using utf-8
     # or get title from pageInfo and decode it using the charset from pageInfo
-    
+
     #newTitle = pageInfo.title.decode(encoding, 'replace')
     decodedSource = pageSource.decode(encoding, 'replace')
     #if newTitle == title:

@@ -508,7 +508,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         Otherwise create a new Visit.
         """
         host = str(URL.fromString(url).click("/"))
-        domain = self.store.findOrCreate(Domain, url=host, title=unicode(host))
+        domain = self.store.findOrCreate(Domain, url=host)
         if domain.ignore:
             return
         existingVisit = self.findVisitForToday(url)

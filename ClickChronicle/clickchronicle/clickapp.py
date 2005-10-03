@@ -97,9 +97,11 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
     def handle_delete(self, ctx, visitStoreID):
         store = self.original.store
         visit = store.getItemByID(int(visitStoreID))
+        clickApp = iclickchronicle.IClickRecorder(store)
         def _():
-            visit.deleteFromStore()
-        bm = self.store.transact(_)
+            clickApp.forgetVisit(visit)
+        self.store.transact(_)
+        return self.handle_updateTable(ctx, self.startPage)
 
     def handle_info(self, ctx, visitStoreID):
         store = self.original.store
@@ -581,6 +583,18 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             self.visitCount -= 1
         self.store.transact(_)
 
+    def bulkForgetVisits(self, visitList):
+        indexer = iclickchronicle.IIndexer(self.store)
+        indexer.bulkDelete(visitList)
+        cacheMan = iclickchronicle.ICache(self.store)
+        for visit in visitList:
+            cacheMan.forget(visit)
+        def _():
+            for visit in visitList:
+                visit.deleteFromStore()
+            self.visitCount -= len(visitList)
+        self.store.transact(_)
+
     def forgetOldestVisit(self):
         """
         Remove oldest Visit from the store, cache and index.
@@ -595,9 +609,8 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         def txn():
             # ignore the Domain
             visit.domain.ignore = True
-            for (i, similarVisit) in enumerate(self.store.query(Visit, Visit.domain == visit.domain)):
-                self.forgetVisit(similarVisit)
-
+            visitsToDelete = list(self.store.query(Visit, Visit.domain == visit.domain))
+            self.bulkForgetVisits(visitsToDelete)
         self.store.transact(txn)
 
 

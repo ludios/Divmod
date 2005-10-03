@@ -36,8 +36,8 @@ class SyncIndexer(Item):
     def incrementIndexCount(self):
         self._setIndexCount(self.indexCount + 1)
 
-    def decrementIndexCount(self):
-        self._setIndexCount(self.indexCount - 1)
+    def decrementIndexCount(self, decrement=1):
+        self._setIndexCount(self.indexCount - decrement)
 
     def index(self, doc):
         self.incrementIndexCount()
@@ -55,6 +55,17 @@ class SyncIndexer(Item):
             pass
         else:
             self.decrementIndexCount()
+        xapIndex.close()
+
+    def bulkDelete(self, itemList):
+        xapDir = self.store.newDirectory(XAPIAN_INDEX_DIR)
+        xapIndex = SmartIndex(str(xapDir.path), True)
+        for item in itemList:
+            try:
+                xapIndex.delete_document(item.storeID)
+            except DocNotFoundError:
+                pass
+        self.decrementIndexCount(len(itemList))
         xapIndex.close()
 
     def search(self, aString, **kwargs):

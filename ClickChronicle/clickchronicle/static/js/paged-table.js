@@ -56,10 +56,19 @@ function doDelete(identifier) {
     server.handle("delete", identifier);
 }
 
+function closeInfo(identifier) {
+    var tr = $(identifier).nextSibling;
+    var cell = getElementsByTagAndClassName("td", "content", tr)[0];
+    hideElement(tr);
+    replaceChildNodes(cell);
+}
+
 function gotInfo(identifier, html) {
     var tr = $(identifier).nextSibling;
     var cell = getElementsByTagAndClassName("td", "content", tr)[0];
     cell.innerHTML = html;
+    var close = getElementsByTagAndClassName("a", "close-info-action", tr)[0];
+    close.onclick = function(e) { closeInfo(identifier); return false };
     setDisplayForElement("table-row", tr);
 }
 

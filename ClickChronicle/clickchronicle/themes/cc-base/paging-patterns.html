@@ -1,8 +1,17 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:nevow="http://nevow.com/ns/nevow/0.1">
-  <table cellspacing="0" class="thinFancyTable" nevow:pattern="visitInfo" nevow:render="sequence">
-    <tr nevow:pattern="item" nevow:render="sequence">
-      <td class="fancyRowHeader" nevow:pattern="item" nevow:render="data"/>
-      <td class="fancyCell" nevow:pattern="item" nevow:render="data"/>
+  <table nevow:pattern="visitInfo">
+    <tr valign="top">
+      <td style="width: 100%">
+        <table cellspacing="0" class="thinFancyTable" nevow:render="sequence">
+          <tr nevow:pattern="item" nevow:render="sequence">
+            <td class="fancyRowHeader" nevow:pattern="item" nevow:render="data"/>
+            <td class="fancyCell" nevow:pattern="item" nevow:render="data"/>
+          </tr>
+        </table>
+      </td>
+      <td>
+        <a href="#" class="close-info-action">close</a>
+      </td>
     </tr>
   </table>
 
@@ -79,6 +88,7 @@
       <td style="border-bottom: solid 1px #B0B0B0" colspan="4" class="content"/>
     </tr>
 
+    <!-- duplicate the "divider" pattern as "footer" so it shows after the last click also -->
     <tr style="display: none" nevow:pattern="footer">
       <td style="border-bottom: solid 1px #B0B0B0" colspan="4" class="content"/>
     </tr>

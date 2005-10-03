@@ -130,14 +130,12 @@ class FetchDomainTitleTask(Item, PageFetchingTaskMixin):
 
     def _cbGotSource(self, (source, pageInfo)):
         if pageInfo.title is None:
-            title = self.domain.url
+            title = unicode(self.domain.url)
         else:
             title = pageInfo.title.decode(pageInfo.charset, "replace")
 
-        def txn():
-            self.domain.title = title
+        self.domain.title = title
 
-        self.store.transact(txn)
 
 class FetchSourceTask(Item, PageFetchingTaskMixin):
     schemaVersion = 1

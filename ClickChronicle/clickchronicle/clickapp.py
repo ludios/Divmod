@@ -513,11 +513,13 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             return
         existingVisit = self.findVisitForToday(url)
         timeNow = Time.fromDatetime(datetime.now())
+
         if existingVisit:
             # Already visited today
             # XXX What should we do about referrer for existing visit
             # XXX we'll conveniently ignore it for now
             def _():
+                domain.timestamp = timeNow
                 existingVisit.timestamp = timeNow
                 existingVisit.visitCount += 1
                 existingVisit.domain.visitCount += 1
@@ -526,6 +528,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
 
         # New visit today
         def _():
+            domain.timestamp = timeNow
             visit = Visit(store = self.store,
                           url = url,
                           timestamp = timeNow,

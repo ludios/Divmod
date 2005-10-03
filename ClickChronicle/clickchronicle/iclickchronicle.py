@@ -2,7 +2,7 @@ from zope.interface import Interface
 
 class IDisplayableVisit(Interface):
     """
-    I represent a displayable view of an Item
+    I represent a displayable view of a visitable Item
     """
 
     def asDict(self):
@@ -13,6 +13,11 @@ class IDisplayableVisit(Interface):
     def asIcon(self):
         """
         Return FavIcon item associated with this visit
+        """
+
+    def getLatest(self, count):
+        """
+        Return "count" latest visits to similar resources
         """
 
 class IIndexer(Interface):

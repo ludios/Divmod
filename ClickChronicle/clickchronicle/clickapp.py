@@ -104,8 +104,10 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
     def handle_info(self, ctx, visitStoreID):
         store = self.original.store
         visit = store.getItemByID(int(visitStoreID))
-        newest = store.query(Visit, Visit.url == visit.url,
-                             sort=Visit.timestamp.desc, limit=1).next()
+        visit = iclickchronicle.IDisplayableVisit(visit)
+
+        newest = visit.getLatest(count=1).next()
+
         # this is pretty dinky at the moment
         data = (("URL", visit.url), ("Last Visited", newest.timestamp))
         return (livepage.js.gotInfo(visitStoreID, self.infoPattern(data=data)), livepage.eol)

@@ -1,5 +1,4 @@
 from zope.interface import implements
-from twisted.python.components import registerAdapter
 from axiom.item import Item
 from axiom import attributes
 from epsilon.extime import Time
@@ -7,7 +6,17 @@ from datetime import datetime
 
 from clickchronicle import iclickchronicle, indexinghelp
 
-class Domain(Item):
+class DisplayableVisitMixin(object):
+    implements(iclickchronicle.IDisplayableVisit)
+
+    def asDict(self):
+        return dict(url=self.url.decode("utf-8"),
+                    title=self.title,
+                    visitCount=self.visitCount,
+                    timestamp=self.timestamp,
+                    identifier=self.storeID)
+
+class Domain(Item, DisplayableVisitMixin):
     url = attributes.bytes()
     title = attributes.text()
     visitCount = attributes.integer(default=0)
@@ -21,26 +30,12 @@ class Domain(Item):
     def __repr__(self):
         return '<Domain %r>' % (self.url,)
 
-class DefaultDisplayableVisit:
-    implements(iclickchronicle.IDisplayableVisit)
-
-    def __init__(self, original):
-        self.original = original
-
-    def asDict(self):
-        return dict(url=self.original.url.decode('utf-8'),
-                    title=self.original.title,
-                    visitCount=self.original.visitCount,
-                    timestamp=self.original.timestamp,
-                    identifier=self.original.storeID)
-
-class DisplayableDomain(DefaultDisplayableVisit):
     def asIcon(self):
-        return self.original.favIcon
+        return self.favIcon
 
-registerAdapter(DisplayableDomain,
-                Domain,
-                iclickchronicle.IDisplayableVisit)
+    def getLatest(self, count):
+        return self.store.query(Domain, Domain.url == self.url,
+                                sort=Domain.timestamp.desc, limit=count)
 
 class VisitMixin(object):
     def asDocument(self):
@@ -54,7 +49,7 @@ class VisitMixin(object):
         d.addCallback(cbGotSource)
         return d
 
-class Bookmark(Item, VisitMixin):
+class Bookmark(Item, VisitMixin, DisplayableVisitMixin):
     """I correspond to a webpage-visit logged by a clickchronicle user"""
     implements(iclickchronicle.IIndexable)
 
@@ -68,7 +63,14 @@ class Bookmark(Item, VisitMixin):
     schemaVersion = 1
     typeName = 'bookmark'
 
-class Visit(Item, VisitMixin):
+    def asIcon(self):
+        return self.domain.favIcon
+
+    def getLatest(self, count):
+        return self.store.query(Bookmark, Bookmark.url == self.url,
+                                sort=Bookmark.timestamp.desc, limit=count)
+
+class Visit(Item, VisitMixin, DisplayableVisitMixin):
     """I correspond to a webpage-visit logged by a clickchronicle user"""
     implements(iclickchronicle.IIndexable)
 
@@ -83,24 +85,23 @@ class Visit(Item, VisitMixin):
     typeName = 'visit'
 
     def asBookmark(self):
-        # TODO Detect duplicates
-        dt=Time.fromDatetime(datetime.now())
-        return Bookmark(store=self.store,
-                        url=self.url,
-                        title=self.title,
-                        domain=self.domain,
-                        timestamp=dt)
+        dt = Time.fromDatetime(datetime.now())
+        bookmark = self.store.findOrCreate(Bookmark,
+                                           url=self.url,
+                                           title=self.title,
+                                           domain=self.domain)
+        def txn():
+            bookmark.timestamp = dt
+            return bookmark
 
-class DisplayableVisit(DefaultDisplayableVisit):
+        return self.store.transact(txn)
+
     def asIcon(self):
-        return self.original.domain.favIcon
+        return self.domain.favIcon
 
-registerAdapter(DisplayableVisit,
-                Visit,
-                iclickchronicle.IDisplayableVisit)
-registerAdapter(DisplayableVisit,
-                Bookmark,
-                iclickchronicle.IDisplayableVisit)
+    def getLatest(self, count):
+        return self.store.query(Visit, Visit.url == self.url,
+                                sort=Visit.timestamp.desc, limit=count)
 
 class BookmarkVisit(Item):
     """A special visit that is used as visit.referrer if the visit was referred

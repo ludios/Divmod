@@ -69,15 +69,17 @@ class Queue(item.Item):
 
     _waitingForQuiet = attributes.inmemory()
 
+    def __len__(self):
+        return self.store.count(_Task, _Task.queue == self)
+
     def activate(self):
         self._waitingForQuiet = []
 
     def _keepMeInMemory(self, passthrough):
         return passthrough
 
-    def notifyOnQuiecence(self):
-        print 'Q len:',self.store.count(_Task, _Task.queue == self)
-        if not self.store.count(_Task, _Task.queue == self):
+    def notifyOnQuiescence(self):
+        if not len(self):
             return defer.succeed(None)
         d = defer.Deferred()
         self._waitingForQuiet.append(d)
@@ -93,7 +95,7 @@ class Queue(item.Item):
               lastAttempt=extime.Time(),
               maxRetries=maxRetries,
               queue=self)
-        taskCount = self.store.count(_Task, _Task.queue == self)
+        taskCount = len(self)
         if taskCount <= 1:
             # if the only task is the one we just created, kick it off
             # with a smaller delay
@@ -118,7 +120,7 @@ class Queue(item.Item):
             task.lastAttempt = extime.Time()
 
     def _cbRun(self, ignored):
-        if self.store.count(_Task, _Task.queue == self):
+        if len(self):
             self._reschedule()
         else:
             dl = self._waitingForQuiet
@@ -132,7 +134,7 @@ class Queue(item.Item):
         sch = iaxiom.IScheduler(self.store)
         sch.schedule(
             self,
-            extime.Time() + datetime.timedelta(milliseconds=delay))
+            extime.Time()) # + datetime.timedelta(milliseconds=delay))
 
     def run(self):
         dl = []
@@ -140,5 +142,7 @@ class Queue(item.Item):
                                      _Task.queue == self,
                                      sort=_Task.lastAttempt.ascending,
                                      limit=self.rate):
-            dl.append(task.do().addCallbacks(self._cbTask, self._ebTask, callbackArgs=(task,), errbackArgs=(task,)))
+            d = defer.maybeDeferred(task.do)
+            d.addCallbacks(self._cbTask, self._ebTask, callbackArgs=(task,), errbackArgs=(task,))
+            dl.append(d)
         defer.DeferredList(dl).addCallback(self._cbRun)

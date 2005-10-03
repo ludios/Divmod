@@ -194,6 +194,6 @@ class MeanResourceTestCase(MeanResourceTestBase, TestCase):
         self.recorder.recordClick(dict(url=self.urls['mean'],
                                        title='mean'), indexIt=True)
 
-        futureSuccess = cacheMan.tasks.notifyOnQuiecence()
+        futureSuccess = cacheMan.tasks.notifyOnQuiescence()
 
         return futureSuccess.addCallback(lambda ign: onRecordingError())

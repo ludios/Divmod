@@ -118,7 +118,7 @@ class CCTestBase:
                                                     storeFavicon=False)
 
         cacheMan = iclickchronicle.ICache(self.substore)
-        return cacheMan.tasks.notifyOnQuiecence()
+        return cacheMan.tasks.notifyOnQuiescence()
 
 
 class DataServingTestBase(CCTestBase):

@@ -25,8 +25,7 @@ class EmaillessSignerUpper(signup.FreeSignerUpper):
                                                   self.original.benefactor)
         ticket.claim()
 
-        ticketLink = 'http://%s%s/%s/%s' % (domain, port,
-                                            self.original.booth.prefixURL, ticket.nonce)
+        ticketLink = '/%s/%s' % (self.original.booth.prefixURL, ticket.nonce)
         return livepage.set( 'signup-status', tags.a(href=ticketLink)['click here to redeem'] )
 
 class EmaillessTicketSignup(Item, PrefixURLMixin):

@@ -72,14 +72,14 @@ class SyncIndexer(Item):
 
     def search(self, aString, **kwargs):
         xapDir = self.store.newDirectory(XAPIAN_INDEX_DIR)
-        xapIndex = SmartIndex(str(xapDir.path), False)
+        xapIndex = SmartIndex(str(xapDir.path), True)
         result = xapIndex.search(aString, **kwargs)
         xapIndex.close()
         return result
 
     def count(self, aString):
         xapDir = self.store.newDirectory(XAPIAN_INDEX_DIR)
-        xapIndex = SmartIndex(str(xapDir.path), False)
+        xapIndex = SmartIndex(str(xapDir.path), True)
         query = ParsedQuery(aString).prepare(xapIndex.qp)
         count = xapIndex.count(query)
         xapIndex.close()

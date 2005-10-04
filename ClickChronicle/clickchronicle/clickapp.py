@@ -96,7 +96,8 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
             return bookmark
         bm = self.store.transact(_)
 
-        return (livepage.js.bookmarked(visit.url), livepage.eol)
+        yield (livepage.js.bookmarked(visit.url), livepage.eol)
+        yield self.handle_updateTable(ctx, self.currentPage)
 
     def handle_delete(self, ctx, visitStoreID):
         store = self.original.store

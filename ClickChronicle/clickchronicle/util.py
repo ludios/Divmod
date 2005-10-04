@@ -13,6 +13,7 @@ def maybeDeferredWrapper(f):
 class PagedTableMixin:
     itemsPerPage = 10
     startPage = 1
+    currentPage = startPage
 
     patterns = None
 
@@ -28,6 +29,7 @@ class PagedTableMixin:
 
     def handle_updateTable(self, ctx, pageNumber, *args):
         pageNumber = int(pageNumber)
+        self.currentPage = pageNumber
         rowDicts = list(self.generateRowDicts(ctx, pageNumber, *args))
         offset = (pageNumber - 1) * self.itemsPerPage
 

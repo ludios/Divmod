@@ -52,9 +52,6 @@ class Queue(item.Item):
     """
     @ivar rate: The number of tasks which will be attempted at a time.
 
-    @ivar interval: The number of milliseconds between the completion
-    of one set of tasks and the initiation of the next set.
-
     @ivar maxRetries: The number of retryable failures which will be
     allowed before a task is abandoned.
     """
@@ -63,16 +60,16 @@ class Queue(item.Item):
     typeName = 'clickchronicle_queue'
 
     rate = attributes.integer(default=3)
-    interval = attributes.integer(default=5000)
     maxRetries = attributes.integer(default=3)
-    initialDelay = 250
 
+    running = attributes.inmemory()
     _waitingForQuiet = attributes.inmemory()
 
     def __len__(self):
         return self.store.count(_Task, _Task.queue == self)
 
     def activate(self):
+        self.running = False
         self._waitingForQuiet = []
 
     def _keepMeInMemory(self, passthrough):
@@ -95,14 +92,7 @@ class Queue(item.Item):
               lastAttempt=extime.Time(),
               maxRetries=maxRetries,
               queue=self)
-        taskCount = len(self)
-        if taskCount <= 1:
-            # if the only task is the one we just created, kick it off
-            # with a smaller delay
-            delay = self.initialDelay
-        else:
-            delay = self.interval
-        self._reschedule(delay=delay)
+        self._reschedule()
 
     def _cbTask(self, ignored, task):
         task.deleteFromStore()
@@ -120,6 +110,7 @@ class Queue(item.Item):
             task.lastAttempt = extime.Time()
 
     def _cbRun(self, ignored):
+        self.running = False
         if len(self):
             self._reschedule()
         else:
@@ -128,15 +119,17 @@ class Queue(item.Item):
             for d in dl:
                 d.callback(None)
 
-    def _reschedule(self, delay=None):
-        if delay is None:
-            delay = self.interval
+    def _reschedule(self):
         sch = iaxiom.IScheduler(self.store)
         sch.schedule(
             self,
-            extime.Time()) # + datetime.timedelta(milliseconds=delay))
+            extime.Time())
 
     def run(self):
+        if self.running:
+            return
+        self.running = True
+
         dl = []
         for task in self.store.query(_Task,
                                      _Task.queue == self,

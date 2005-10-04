@@ -17,6 +17,7 @@ class PagedTableMixin:
     tablePattern = None
     pageNumbersPattern = None
     navBarPattern = None
+    clickActionsPattern = None
 
     def data_totalItems(self, ctx, data):
         return self.countTotalItems(ctx)
@@ -31,7 +32,7 @@ class PagedTableMixin:
     def handle_updateTable(self, ctx, pageNumber, *args):
         pageNumber = int(pageNumber)
         rowDicts = list(self.generateRowDicts(ctx, pageNumber, *args))
-        table = self.tablePattern(data=rowDicts)
+        table = self.tablePattern(data=rowDicts).fillSlots("clickActions", self.clickActionsPattern())
         offset = (pageNumber - 1) * self.itemsPerPage
 
         yield (livepage.set('tableContainer', table), livepage.eol)

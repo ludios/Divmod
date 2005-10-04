@@ -74,6 +74,7 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
         self.pageNumbersPattern = pgen("pagingWidget")
         self.navBarPattern = pgen("navBar")
         self.infoPattern = pgen("visitInfo")
+        self.clickActionsPattern = pgen("clickActions")
 
     def head(self):
         yield makeScriptTag("/static/js/MochiKit/MochiKit.js")
@@ -342,6 +343,11 @@ class BookmarkListFragment(CCPrivateSortablePagedTable):
     pagingItem = Bookmark
     sortDirection = 'descending'
     sortColumn = 'timestamp'
+
+    def __init__(self, original, docFactory=None):
+        CCPrivateSortablePagedTable.__init__(self, original, docFactory)
+        docFactory = inevow.IQ(self.translator.getDocFactory(self.fragmentName))
+        self.clickActionsPattern = docFactory.patternGenerator("clickActions")
 
     def countTotalItems(self, ctx):
         return iclickchronicle.IClickRecorder(self.original.store).visitCount

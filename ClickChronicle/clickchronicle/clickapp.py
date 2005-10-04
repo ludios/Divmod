@@ -118,15 +118,15 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
 
         newest = visit.getLatest(count=1).next()
 
-        # this is pretty dinky at the moment
-        data = (("URL", visit.url), ("Referrer", visit.referrer.title), ("Last Visited", newest.timestamp))
+        data = (("URL", tags.a(href=visit.url)[self.trimTitle(visit.url)]),
+                ("Referrer", visit.referrer.title),
+                ("Last Visited", newest.timestamp))
         return (livepage.js.gotInfo(visitStoreID, self.infoPattern(data=data)), livepage.eol)
 
-    def trimTitle(self, visitDict):
-        title = visitDict["title"]
+    def trimTitle(self, title):
         if self.maxTitleLength < len(title):
-            visitDict["title"] = "%s..." % title[:self.maxTitleLength - 3]
-        return visitDict
+            title = "%s..." % title[:self.maxTitleLength - 3]
+        return title
 
     def prepareVisited(self, visited):
         visited = iclickchronicle.IDisplayableVisit(visited)
@@ -138,7 +138,8 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
             iconPath = '/' + icon.prefixURL
 
         desc['icon'] = iconPath
-        return self.trimTitle(desc)
+        desc['title'] = self.trimTitle(desc['title'])
+        return desc
 
 class CCPrivatePagedTable(CCPrivatePagedTableMixin, PagedTableMixin):
     pass

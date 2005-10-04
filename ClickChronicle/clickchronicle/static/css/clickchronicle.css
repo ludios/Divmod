@@ -56,6 +56,13 @@ img.navIcon {
 	  width: 100%;
 }
 
+.completionDialog {
+	  color: #C60000;
+	  font-weight: bold;
+	  text-align: center;
+	  width: 100%;
+}
+
 ul {
 	padding:0;
 	margin:0;

@@ -8,11 +8,28 @@ const actions = {
     "delete"   : "doDelete"
 };
 
+const tooltips = {
+    "ignore" : "Ignore future clicks to this visit's domain",
+    "info" : "View click information",
+    "bookmark" : "Bookmark this click",
+    "delete" : "Delete this click"
+}
+
+/* if %s appears in the completion message, it will be replaced with the URL
+ *  of the acted-upon click, or whatever identifier the server handler returns */
+
+const completionMessages = {
+    "ignore" : "Click successfully ignored",
+    "bookmark" : 'Successfully bookmarked "%s"',
+    "delete" : "Click deleted"
+}
+
 function sub() {
     var args = sub.arguments;
     var str  = args[0];
-    for(i = 1 ; i < args.length ; i++)
-        str = str.replace(/%s/, args[i].toString());
+    if(str.match(/%s/))
+        for(i = 1 ; i < args.length ; i++)
+            str = str.replace(/%s/, args[i].toString());
     return str;
 }
 
@@ -29,6 +46,7 @@ function cementActionLinks() {
                 var link = links[k];
                 link.href = "#" + row.id; // so something shows in the statusbar
                 link.onclick = new Function("ignore", sub("%s(%s); return false;", actions[aname], row.id));
+                link.onmouseover = new Function("ignore", sub("return '%s'", escape(tooltips[aname])));
             }
         }
     }
@@ -47,6 +65,17 @@ function selectOptionWithValue( elem, value ) {
 function doIgnore(identifier) {
     server.handle("ignore", identifier);
 }
+
+function displayCompletionForAction(action, identifier) {
+    var dialog = $("completionDialog")
+    dialog.appendChild(SPAN(null, sub(completionMessages[action], identifier)));
+    new Fadomatic(dialog, 5).fadeOut();
+    setTimeout(function() { replaceChildNodes(dialog) }, 1000);
+}
+
+bookmarked = partial(displayCompletionForAction, "bookmark");
+deleted = partial(displayCompletionForAction, "delete");
+ignored = partial(displayCompletionForAction, "ignore");
 
 function doBookmark(identifier) {
     server.handle("bookmark", identifier);

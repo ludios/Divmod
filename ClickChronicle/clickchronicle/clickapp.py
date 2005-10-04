@@ -77,6 +77,7 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
         self.clickActionsPattern = pgen("clickActions")
 
     def head(self):
+        yield makeScriptTag("/static/js/fadomatic.js")
         yield makeScriptTag("/static/js/MochiKit/MochiKit.js")
         yield makeScriptTag("/static/js/paged-table.js")
 
@@ -85,7 +86,9 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
         visit = store.getItemByID(int(visitStoreID))
         iclickchronicle.IClickRecorder(store).ignoreVisit(visit)
         # rewind to the first page, to reflect changes
-        return self.handle_updateTable(ctx, self.startPage)
+
+        yield (livepage.js.ignored(visit.url), livepage.eol)
+        yield self.handle_updateTable(ctx, self.startPage)
 
     def handle_bookmark(self, ctx, visitStoreID):
         store = self.original.store
@@ -95,6 +98,8 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
             return bookmark
         bm = self.store.transact(_)
 
+        return (livepage.js.bookmarked(visit.url), livepage.eol)
+
     def handle_delete(self, ctx, visitStoreID):
         store = self.original.store
         visit = store.getItemByID(int(visitStoreID))
@@ -102,7 +107,9 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
         def _():
             clickApp.forgetVisit(visit)
         self.store.transact(_)
-        return self.handle_updateTable(ctx, self.startPage)
+
+        yield (livepage.js.deleted(visit.url), livepage.eol)
+        yield self.handle_updateTable(ctx, self.startPage)
 
     def handle_info(self, ctx, visitStoreID):
         store = self.original.store

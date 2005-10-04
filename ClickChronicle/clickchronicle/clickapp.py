@@ -135,7 +135,7 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
         if icon is None:
             iconPath = self.defaultFavIconPath
         else:
-            iconPath = '/%s' % icon.prefixURL
+            iconPath = '/' + icon.prefixURL
 
         desc['icon'] = iconPath
         return self.trimTitle(desc)

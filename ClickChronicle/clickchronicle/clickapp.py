@@ -66,15 +66,13 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
 
         self.translator = ixmantissa.IWebTranslator(original.installedOn)
         self.clickList = original.store.query(ClickList).next()
-        pagingPatterns = inevow.IQ(self.translator.getDocFactory("paging-patterns"))
+        self.pagingPatterns = inevow.IQ(self.translator.getDocFactory("paging-patterns"))
+        self.patterns = dict()
 
-        pgen = pagingPatterns.patternGenerator
-
-        self.tablePattern = pgen("clickTable")
-        self.pageNumbersPattern = pgen("pagingWidget")
-        self.navBarPattern = pgen("navBar")
-        self.infoPattern = pgen("visitInfo")
-        self.clickActionsPattern = pgen("clickActions")
+        pgen = self.pagingPatterns.patternGenerator
+        for pname in ("clickTable", "pagingWidget", "navBar", "visitInfo", "clickActions",
+                      "visitRow", "bookmarkedVisitRow", "bookmarkActions"):
+            self.patterns[pname] = pgen(pname)
 
     def head(self):
         yield makeScriptTag("/static/js/fadomatic.js")
@@ -121,7 +119,7 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
         data = (("URL", tags.a(href=visit.url)[self.trimTitle(visit.url)]),
                 ("Referrer", visit.referrer.title),
                 ("Last Visited", newest.timestamp))
-        return (livepage.js.gotInfo(visitStoreID, self.infoPattern(data=data)), livepage.eol)
+        return (livepage.js.gotInfo(visitStoreID, self.patterns["visitInfo"](data=data)), livepage.eol)
 
     def trimTitle(self, title):
         if self.maxTitleLength < len(title):
@@ -137,9 +135,24 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
         else:
             iconPath = '/' + icon.prefixURL
 
-        desc['icon'] = iconPath
-        desc['title'] = self.trimTitle(desc['title'])
+        desc.update(icon=iconPath, title=self.trimTitle(desc["title"]))
         return desc
+
+    def constructTable(self, ctx, rows):
+        content = []
+        for row in rows:
+            if row["bookmarked"]:
+                rowPattern = "bookmarkedVisitRow"
+                actionsPattern = "bookmarkActions"
+            else:
+                rowPattern = "visitRow"
+                actionsPattern = "clickActions"
+
+            p = self.patterns[rowPattern](data=row)
+            p = p.fillSlots("clickActions", self.patterns[actionsPattern]())
+            content.append(p)
+
+        return self.patterns["clickTable"].fillSlots("rows", content)
 
 class CCPrivatePagedTable(CCPrivatePagedTableMixin, PagedTableMixin):
     pass
@@ -149,8 +162,7 @@ class CCPrivateSortablePagedTable(CCPrivatePagedTableMixin, SortablePagedTableMi
 
     def __init__(self, original, docFactory=None):
         CCPrivatePagedTableMixin.__init__(self, original, docFactory)
-        pagingPatterns = inevow.IQ(self.translator.getDocFactory("paging-patterns"))
-        self.tablePattern = pagingPatterns.patternGenerator("sortableClickTable")
+        self.patterns["clickTable"] = self.pagingPatterns.patternGenerator("sortableClickTable")
 
     def generateRowDicts(self, ctx, pageNumber, sortCol, sortDirection):
         sort = getattr(getattr(self.pagingItem, sortCol), sortDirection)
@@ -354,8 +366,7 @@ class BookmarkListFragment(CCPrivateSortablePagedTable):
 
     def __init__(self, original, docFactory=None):
         CCPrivateSortablePagedTable.__init__(self, original, docFactory)
-        docFactory = inevow.IQ(self.translator.getDocFactory(self.fragmentName))
-        self.clickActionsPattern = docFactory.patternGenerator("clickActions")
+        self.patterns["visitRow"] = self.patterns["bookmarkedVisitRow"]
 
     def countTotalItems(self, ctx):
         return iclickchronicle.IClickRecorder(self.original.store).visitCount

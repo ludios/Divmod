@@ -157,7 +157,7 @@ td.sFancyCol:hover {
 .lastFancyCol  { padding: 4px 4px 4px 4px; border-bottom: solid 1px #B0B0B0 }
 .sLastFancyCol { padding: 4px 4px 4px 4px; border-bottom: solid 1px #B0B0B0 }
 
-.sLastFancyCol:hover {
+td.sLastFancyCol:hover {
 	background-image: url(/static/images/header_bg_hover.png);
 }
 

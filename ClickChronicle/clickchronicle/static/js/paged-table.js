@@ -24,6 +24,21 @@ const completionMessages = {
     "delete" : "Click deleted"
 }
 
+/* alternateRowClasses will cyclically assign these class names to rows in the
+ * given table */
+
+const alternate = ["fancyRowAlt", "fancyRow"];
+
+function alternateRowClasses(table, withClass) {
+    var rows = getElementsByTagAndClassName("tr", withClass, table);
+    var numVisible = 0;
+    for(var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        row.className = alternate[numVisible % alternate.length];
+        numVisible += 1;
+    }
+}
+
 function sub() {
     var args = sub.arguments;
     var str  = args[0];
@@ -187,6 +202,7 @@ function setTotalItems( items ) {
     document.getElementById("totalItems").firstChild.nodeValue = items;
     setPageState();
     cementActionLinks();
+    alternateRowClasses("clickTable", "clickTableRow");
 }
 
 function getSelected( selectId ) {

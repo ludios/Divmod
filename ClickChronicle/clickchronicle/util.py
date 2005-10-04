@@ -14,28 +14,24 @@ class PagedTableMixin:
     itemsPerPage = 10
     startPage = 1
 
-    tablePattern = None
-    pageNumbersPattern = None
-    navBarPattern = None
-    clickActionsPattern = None
+    patterns = None
 
     def data_totalItems(self, ctx, data):
         return self.countTotalItems(ctx)
 
     def render_navBar(self, ctx, data):
         pageNumData = self.calculatePages(ctx)
-        content = self.navBarPattern.fillSlots('pagingWidget',
-                        self.pageNumbersPattern(data=pageNumData))
+        content = self.patterns["navBar"].fillSlots('pagingWidget',
+                        self.patterns["pagingWidget"](data=pageNumData))
 
         return ctx.tag[content]
 
     def handle_updateTable(self, ctx, pageNumber, *args):
         pageNumber = int(pageNumber)
         rowDicts = list(self.generateRowDicts(ctx, pageNumber, *args))
-        table = self.tablePattern(data=rowDicts).fillSlots("clickActions", self.clickActionsPattern())
         offset = (pageNumber - 1) * self.itemsPerPage
 
-        yield (livepage.set('tableContainer', table), livepage.eol)
+        yield (livepage.set('tableContainer', self.constructTable(ctx, rowDicts)), livepage.eol)
         yield (livepage.set('startItem', offset + 1), livepage.eol)
         yield (livepage.set('endItem', offset + len(rowDicts)), livepage.eol)
         yield (livepage.js.setTotalItems(self.countTotalItems(ctx)), livepage.eol)
@@ -50,13 +46,16 @@ class PagedTableMixin:
     # override these methods
     def generateRowDicts(self, ctx, pageNumber):
         """I return a sequence of dictionaries that will be used as data for
-           the corresponding template's 'table' pattern.
+           the constructTable method
 
            pageNumber: number of page currently being viewed, starting from 1, not 0"""
 
         raise NotImplementedError
 
     def countTotalItems(self, ctx):
+        raise NotImplementedError
+
+    def constructTable(self, ctx, rows):
         raise NotImplementedError
 
 class SortablePagedTableMixin(PagedTableMixin):

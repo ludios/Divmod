@@ -20,6 +20,22 @@
     </a>
   </span>
 
+  <span nevow:pattern="bookmarkActions" style="text-align: center">
+    <a class="info-action">
+      <nevow:attr name="href"><nevow:slot name="identifier"/></nevow:attr>
+      <img src="/static/images/info.png" class="linkIcon"/>
+    </a>
+    <a class="ignore-action">
+      <nevow:attr name="href"><nevow:slot name="identifier"/></nevow:attr>
+      <img src="/static/images/ignore_link.png" class="linkIcon"/>
+    </a>
+    <img src="/static/images/bookmark_disabled.png" class="linkIcon"/>
+    <a class="delete-action">
+      <nevow:attr name="href"><nevow:slot name="identifier"/></nevow:attr>
+      <img src="/static/images/delete.png" class="linkIcon"/>
+    </a>
+  </span>
+
   <table nevow:pattern="visitInfo" style="width: 80%">
     <tr valign="top">
       <td style="width: 100%">
@@ -33,18 +49,38 @@
     </tr>
   </table>
 
-  <table cellspacing="0" id="clickTable" class="fancyTable" nevow:pattern="clickTable" nevow:render="sequence">
-    <!-- js will unhide and fill me will an instance of the visitInfo pattern if the relevant button is clicked -->
-    <tr style="display: none" nevow:pattern="divider">
-      <td style="border-bottom: solid 1px #B0B0B0" colspan="4" class="content"/>
-    </tr>
+  <tr class="clickTableRow" nevow:pattern="visitRow" nevow:render="mapping">
+    <nevow:attr name="id"><nevow:slot name="identifier"/></nevow:attr>
+    <td class="fancyCol" style="text-align: center;"><nevow:slot name="timestamp"/></td>
+    <td class="fancyCol">
+      <img class="linkIcon" width="16" height="16">
+        <nevow:attr name="src" nevow:render="string" nevow:data="icon"/>
+      </img>
+      <a nevow:render="string" nevow:data="title"><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr></a>
+    </td>
+    <td class="fancyCol" style="text-align: center">
+      <nevow:slot name="clickActions"/>
+    </td>
+    <td class="lastFancyCol" style="text-align: center"><nevow:slot name="visitCount"/></td>
+  </tr>
 
-    <!-- duplicate the "divider" pattern as "footer" so it shows after the last click also -->
-    <tr style="display: none" nevow:pattern="footer">
-      <td style="border-bottom: solid 1px #B0B0B0" colspan="4" class="content"/>
-    </tr>
+  <tr class="clickTableRow" nevow:pattern="bookmarkedVisitRow" nevow:render="mapping">
+    <nevow:attr name="id"><nevow:slot name="identifier"/></nevow:attr>
+    <td class="fancyCol" style="text-align: center"><nevow:slot name="timestamp"/></td>
+    <td class="fancyCol">
+      <img class="linkIcon" width="16" height="16">
+        <nevow:attr name="src" nevow:render="string" nevow:data="icon"/>
+      </img>
+      <a nevow:render="string" nevow:data="title"><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr></a>
+    </td>
+    <td class="fancyCol" style="text-align: center">
+      <nevow:slot name="clickActions"/>
+    </td>
+    <td class="lastFancyCol" style="text-align: center"><nevow:slot name="visitCount"/></td>
+  </tr>
 
-    <tr class="fancyRowFirst" nevow:pattern="header">
+  <table cellspacing="0" id="clickTable" class="fancyTable" nevow:pattern="clickTable">
+    <tr class="fancyRowFirst">
       <td style="text-align: center; width: 20%" class="fancyCol">
         Timestamp
       </td>
@@ -59,44 +95,12 @@
       </td>
     </tr>
 
-    <tr class="fancyRowAlt" nevow:pattern="item" nevow:render="mapping">
-      <nevow:attr name="id"><nevow:slot name="identifier"/></nevow:attr>
-      <td class="fancyCol" style="text-align: center;"><nevow:slot name="timestamp"/></td>
-      <td class="fancyCol">
-        <img class="linkIcon" width="16" height="16"><nevow:attr name="src"><nevow:slot name="icon"/></nevow:attr></img>
-        <a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a>
-      </td>
-      <td class="fancyCol" style="text-align: center">
-        <nevow:slot name="clickActions"/>
-      </td>
-      <td class="lastFancyCol" style="text-align: center"><nevow:slot name="visitCount"/></td>
-    </tr>
+    <nevow:slot name="rows"/>
 
-    <tr class="fancyRow" nevow:pattern="item" nevow:render="mapping">
-      <nevow:attr name="id"><nevow:slot name="identifier"/></nevow:attr>
-      <td class="fancyCol" style="text-align: center"><nevow:slot name="timestamp"/></td>
-      <td class="fancyCol">
-        <img class="linkIcon" width="16" height="16"><nevow:attr name="src"><nevow:slot name="icon"/></nevow:attr></img>
-        <a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a>
-      </td>
-      <td class="fancyCol" style="text-align: center">
-        <nevow:slot name="clickActions"/>
-      </td>
-      <td class="lastFancyCol" style="text-align: center"><nevow:slot name="visitCount"/></td>
-    </tr>
   </table>
 
-  <table cellspacing="0" id="clickTable" class="fancyTable" nevow:pattern="sortableClickTable" nevow:render="sequence">
-    <tr style="display: none" nevow:pattern="divider">
-      <td style="border-bottom: solid 1px #B0B0B0" colspan="4" class="content"/>
-    </tr>
-
-    <!-- duplicate the "divider" pattern as "footer" so it shows after the last click also -->
-    <tr style="display: none" nevow:pattern="footer">
-      <td style="border-bottom: solid 1px #B0B0B0" colspan="4" class="content"/>
-    </tr>
-
-    <tr class="fancyRowFirst" nevow:pattern="header">
+  <table cellspacing="0" id="clickTable" class="fancyTable" nevow:pattern="sortableClickTable">
+    <tr class="fancyRowFirst">
       <td style="text-align: center; width: 20%;" class="sFancyCol" id="sortcol_timestamp" onclick="toggleSort('timestamp')">
         Timestamp
       </td>
@@ -110,31 +114,8 @@
       </td>
     </tr>
 
-    <tr class="fancyRowAlt" nevow:pattern="item" nevow:render="mapping">
-      <nevow:attr name="id"><nevow:slot name="identifier"/></nevow:attr>
-      <td class="fancyCol" style="text-align: center;" id="sortcol_timestamp"><nevow:slot name="timestamp"/></td>
-      <td class="fancyCol">
-        <img class="linkIcon" width="16" height="16"><nevow:attr name="src"><nevow:slot name="icon"/></nevow:attr></img>
-        <a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a>
-      </td>
-      <td class="fancyCol" style="text-align: center">
-        <nevow:slot name="clickActions"/>
-      </td>
-      <td class="lastFancyCol" style="text-align: center"><nevow:slot name="visitCount"/></td>
-    </tr>
+    <nevow:slot name="rows"/>
 
-    <tr class="fancyRow" nevow:pattern="item" nevow:render="mapping">
-      <nevow:attr name="id"><nevow:slot name="identifier"/></nevow:attr>
-      <td class="fancyCol" style="text-align: center"><nevow:slot name="timestamp"/></td>
-      <td class="fancyCol">
-        <img class="linkIcon" width="16" height="16"><nevow:attr name="src"><nevow:slot name="icon"/></nevow:attr></img>
-        <a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a>
-      </td>
-      <td class="fancyCol" style="text-align: center">
-        <nevow:slot name="clickActions"/>
-      </td>
-      <td class="lastFancyCol" style="text-align: center"><nevow:slot name="visitCount"/></td>
-    </tr>
   </table>
 
   <select onchange="updateTable()" id="pages"
@@ -165,6 +146,7 @@
         page: <span id="pagingWidgetContainer"><nevow:slot name="pagingWidget"/></span>
       </td>
     </tr>
+
   </table>
 
 </html>

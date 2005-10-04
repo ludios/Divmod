@@ -14,7 +14,12 @@ class DisplayableVisitMixin(object):
                     title=self.title,
                     visitCount=self.visitCount,
                     timestamp=self.timestamp,
-                    identifier=self.storeID)
+                    identifier=self.storeID,
+                    bookmarked=self.hasBookmark())
+
+    def hasBookmark(self):
+        for bookmark in self.store.query(Bookmark, Bookmark.url == self.url):
+            return True
 
 class Domain(Item, DisplayableVisitMixin):
     url = attributes.bytes()
@@ -77,6 +82,9 @@ class Bookmark(Item, VisitMixin, DisplayableVisitMixin):
     def getLatest(self, count):
         return self.store.query(Bookmark, Bookmark.url == self.url,
                                 sort=Bookmark.timestamp.desc, limit=count)
+
+    def hasBookmark(self):
+        return True
 
 class Visit(Item, VisitMixin, DisplayableVisitMixin):
     """I correspond to a webpage-visit logged by a clickchronicle user"""

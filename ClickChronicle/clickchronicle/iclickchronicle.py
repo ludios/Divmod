@@ -20,6 +20,11 @@ class IDisplayableVisit(Interface):
         Return "count" latest visits to similar resources
         """
 
+    def hasBookmark(self):
+        """
+        Return boolean indicating whether this visit has an associated bookmark
+        """
+
 class IIndexer(Interface):
     """
     Interface for providing full-text indexing services.

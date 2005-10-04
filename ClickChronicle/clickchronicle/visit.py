@@ -109,8 +109,8 @@ class BookmarkVisit(Item):
     should only be used as a visit.referrer"""
 
     # XXX Not sure which attributes we need. Particularly referrer?
-    url = attributes.bytes(default='bookmark')
-    title = attributes.text(default=u'bookmark')
+    url = attributes.bytes(default='Bookmark')
+    title = attributes.text(default=u'Bookmark')
 
     referrer = attributes.reference(allowNone=True)
 

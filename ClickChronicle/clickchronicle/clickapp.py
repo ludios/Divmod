@@ -119,7 +119,7 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
         newest = visit.getLatest(count=1).next()
 
         # this is pretty dinky at the moment
-        data = (("URL", visit.url), ("Last Visited", newest.timestamp))
+        data = (("URL", visit.url), ("Referrer", visit.referrer.title), ("Last Visited", newest.timestamp))
         return (livepage.js.gotInfo(visitStoreID, self.infoPattern(data=data)), livepage.eol)
 
     def trimTitle(self, visitDict):

@@ -36,6 +36,14 @@ class Domain(Item, DisplayableVisitMixin):
     def getLatest(self, count):
         return self.store.query(Domain, Domain.url == self.url,
                                 sort=Domain.timestamp.desc, limit=count)
+    def asBookmark(self):
+        dt = Time.fromDatetime(datetime.now())
+        bookmark = self.store.findOrCreate(Bookmark,
+                                           url=self.url,
+                                           title=self.title,
+                                           domain=self,
+                                           timestamp=dt)
+        return bookmark
 
 class VisitMixin(object):
     def asDocument(self):

@@ -1,5 +1,3 @@
-import urllib
-
 from zope.interface import implements
 from twisted.python import failure
 from twisted.web import error as weberror
@@ -301,7 +299,7 @@ class CacheManager(Item):
 
             s = self.store
             def txn():
-                fi = FavIcon(prefixURL='private/icons/%s.ico' % urllib.quote(domain.url, ''),
+                fi = FavIcon(prefixURL='private/icons/%s.ico' % url.netloc,
                              data=data, contentType=contentType, store=s)
                 fi.installOn(s)
                 domain.favIcon = fi

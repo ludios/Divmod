@@ -26,7 +26,7 @@
       <td style="text-align: center; width: 20%" class="fancyCol">
         Timestamp
       </td>
-      <td class="fancyCol" style="width: 100%">
+      <td class="fancyCol">
         Link
       </td>
       <td class="fancyCol" style="text-align: center; width: 10%">
@@ -44,12 +44,20 @@
         <a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a>
       </td>
       <td class="fancyCol" style="text-align: center">
+        <a class="info-action">
+          <nevow:attr name="href"><nevow:slot name="identifier"/></nevow:attr>
+          <img src="/static/images/info.png" class="linkIcon"/>
+        </a>
         <a onclick="ignore(this.href); return false">
           <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
           <img src="/static/images/ignore_link.png" class="linkIcon"/></a>
         <a onclick="bookmark(this.href); return false">
           <nevow:attr name="href"><nevow:slot name="url"/></nevow:attr>
           <img src="/static/images/bookmark.png" class="linkIcon"/></a>
+        <a class="delete-action">
+          <nevow:attr name="href"><nevow:slot name="identifier"/></nevow:attr>
+          <img src="/static/images/delete.png" class="linkIcon"/>
+        </a>
       </td>
       <td class="lastFancyCol" style="text-align: center"><nevow:slot name="visitCount"/></td>
     </tr>

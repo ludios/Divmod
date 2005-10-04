@@ -529,6 +529,10 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         domain = self.store.findOrCreate(Domain, url=host)
         if domain.ignore:
             return
+        # Defensive coding. Never allow visit.referrer to be None.
+        # May need to be revisited
+        if referrer is None:
+            referrer = self.bookmarkVisit
         existingVisit = self.findVisitForToday(url)
         timeNow = Time.fromDatetime(datetime.now())
 
@@ -541,6 +545,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                 existingVisit.timestamp = timeNow
                 existingVisit.visitCount += 1
                 existingVisit.domain.visitCount += 1
+                existingVisit.referrer = referrer
                 return existingVisit
             return self.store.transact(_)
 

@@ -40,7 +40,7 @@ a:visited { color: #7c7777; text-decoration: none }
 a:hover   { color: #575757; text-decoration: none }
 a:active  { color: #FFFFFF; text-decoration: underline }
 
-.navRow       { background: #C0C0C0 }
+.navRow       { background: #C0C0C0; vertical-align: middle }
 
 img.navIcon { 
 	border: none; 
@@ -57,7 +57,7 @@ img.navIcon {
 }
 
 .completionDialog {
-	  color: #C60000;
+	  color: #04a700;
 	  font-weight: bold;
 	  text-align: center;
 	  width: 100%;

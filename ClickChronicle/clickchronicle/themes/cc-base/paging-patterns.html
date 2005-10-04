@@ -20,7 +20,7 @@
     </a>
   </span>
 
-  <table nevow:pattern="visitInfo">
+  <table nevow:pattern="visitInfo" style="width: 80%">
     <tr valign="top">
       <td style="width: 100%">
         <table cellspacing="0" class="thinFancyTable" nevow:render="sequence">
@@ -30,17 +30,18 @@
           </tr>
         </table>
       </td>
-      <td>
-        <a href="#" class="close-info-action">close</a>
-      </td>
     </tr>
   </table>
 
-  <table cellspacing="0" class="fancyTable" nevow:pattern="clickTable" nevow:render="sequence">
+  <table cellspacing="0" id="clickTable" class="fancyTable" nevow:pattern="clickTable" nevow:render="sequence">
     <!-- js will unhide and fill me will an instance of the visitInfo pattern if the relevant button is clicked -->
-    <tr nevow:pattern="divider" style="display: none;">
-      <td/>
-      <td colspan="3" class="content"/>
+    <tr style="display: none" nevow:pattern="divider">
+      <td style="border-bottom: solid 1px #B0B0B0" colspan="4" class="content"/>
+    </tr>
+
+    <!-- duplicate the "divider" pattern as "footer" so it shows after the last click also -->
+    <tr style="display: none" nevow:pattern="footer">
+      <td style="border-bottom: solid 1px #B0B0B0" colspan="4" class="content"/>
     </tr>
 
     <tr class="fancyRowFirst" nevow:pattern="header">
@@ -59,6 +60,7 @@
     </tr>
 
     <tr class="fancyRowAlt" nevow:pattern="item" nevow:render="mapping">
+      <nevow:attr name="id"><nevow:slot name="identifier"/></nevow:attr>
       <td class="fancyCol" style="text-align: center;"><nevow:slot name="timestamp"/></td>
       <td class="fancyCol">
         <img class="linkIcon" width="16" height="16"><nevow:attr name="src"><nevow:slot name="icon"/></nevow:attr></img>
@@ -141,7 +143,7 @@
   </select>
 
   <table id="navTable" style="width: 100%" cellspacing="0" nevow:pattern="navBar">
-    <tr class="navRow">
+    <tr class="navRow" valign="middle">
       <td style="padding: 4px">
         <img id="first" style="display: none;" src="/static/images/first.png" onclick="goFirst()"/>
         <img id="first_disabled" src="/static/images/first_disabled.png"/>
@@ -155,6 +157,9 @@
         <img id="last" style="display: none;" src="/static/images/last.png" onclick="goLast()"/>
         <img id="last_disabled" src="/static/images/last_disabled.png"/>
 
+      </td>
+      <td>
+        <span id="completionDialog" class="completionDialog"/>
       </td>
       <td style="text-align: right; padding: 4px;">
         page: <span id="pagingWidgetContainer"><nevow:slot name="pagingWidget"/></span>

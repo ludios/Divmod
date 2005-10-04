@@ -33,6 +33,14 @@ function sub() {
     return str;
 }
 
+function getActionLinks(action, parent) {
+    return getElementsByTagAndClassName("a", sub("%s-action", action), parent);
+}
+
+function makeActor(action, identifier) {
+    return new Function("ignore", sub("%s(%s); return false;", actions[action], identifier));
+}
+
 function cementActionLinks() {
     var clickTable = $("clickTable");
     var rows = getElementsByTagAndClassName("tr", null, clickTable);
@@ -41,12 +49,11 @@ function cementActionLinks() {
         if(!row.getAttribute("id"))
             continue;
         for(var aname in actions) {
-            var links = getElementsByTagAndClassName("a", aname + "-action", row);
-            for(var k = 0; k < links.length; k++) {
-                var link = links[k];
+            var links = getActionLinks(aname, row);
+            for(var j = 0; j < links.length; j++) {
+                var link = links[j];
                 link.href = "#" + row.id; // so something shows in the statusbar
-                link.onclick = new Function("ignore", sub("%s(%s); return false;", actions[aname], row.id));
-                link.onmouseover = new Function("ignore", sub("return '%s'", escape(tooltips[aname])));
+                link.onclick = makeActor(aname, row.id);
             }
         }
     }
@@ -67,10 +74,10 @@ function doIgnore(identifier) {
 }
 
 function displayCompletionForAction(action, identifier) {
-    var dialog = $("completionDialog")
+    var dialog = $("completionDialog");
+    replaceChildNodes(dialog)
     dialog.appendChild(SPAN(null, sub(completionMessages[action], identifier)));
-    new Fadomatic(dialog, 5).fadeOut();
-    setTimeout(function() { replaceChildNodes(dialog) }, 1000);
+    new Fadomatic(dialog, 2).fadeOut();
 }
 
 bookmarked = partial(displayCompletionForAction, "bookmark");
@@ -85,20 +92,24 @@ function doDelete(identifier) {
     server.handle("delete", identifier);
 }
 
-function closeInfo(identifier) {
-    var tr = $(identifier).nextSibling;
-    var cell = getElementsByTagAndClassName("td", "content", tr)[0];
-    hideElement(tr);
+function closeInfo(infoRow) {
+    var cell = getElementsByTagAndClassName("td", "content", infoRow)[0];
+    hideElement(infoRow);
     replaceChildNodes(cell);
 }
 
 function gotInfo(identifier, html) {
-    var tr = $(identifier).nextSibling;
-    var cell = getElementsByTagAndClassName("td", "content", tr)[0];
+    var clickRow = $(identifier);
+    var infoRow  = clickRow.nextSibling;
+    var cell = getElementsByTagAndClassName("td", "content", infoRow)[0];
     cell.innerHTML = html;
-    var close = getElementsByTagAndClassName("a", "close-info-action", tr)[0];
-    close.onclick = function(e) { closeInfo(identifier); return false };
-    setDisplayForElement("table-row", tr);
+    var infoLink = getActionLinks("info", clickRow)[0];
+    infoLink.onclick = function(e) {
+        closeInfo(infoRow);
+        infoLink.onclick = makeActor("info", identifier);
+        return false;
+    }
+    setDisplayForElement("table-row", infoRow);
 }
 
 function doInfo(identifier) {

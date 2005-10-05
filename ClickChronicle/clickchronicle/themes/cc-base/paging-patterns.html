@@ -54,9 +54,9 @@
     <td class="fancyCol" style="text-align: center;"><nevow:slot name="timestamp"/></td>
     <td class="fancyCol">
       <img class="linkIcon" width="16" height="16">
-        <nevow:attr name="src" nevow:render="string" nevow:data="icon"/>
+      <nevow:attr name="src"><nevow:slot name="icon"/></nevow:attr>
       </img>
-      <a nevow:render="string" nevow:data="title"><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr></a>
+      <a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a>
     </td>
     <td class="fancyCol" style="text-align: center">
       <nevow:slot name="clickActions"/>
@@ -69,9 +69,9 @@
     <td class="fancyCol" style="text-align: center"><nevow:slot name="timestamp"/></td>
     <td class="fancyCol">
       <img class="linkIcon" width="16" height="16">
-        <nevow:attr name="src" nevow:render="string" nevow:data="icon"/>
+        <nevow:attr name="src"><nevow:slot name="icon"/></nevow:attr>
       </img>
-      <a nevow:render="string" nevow:data="title"><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr></a>
+      <a><nevow:attr name="href"><nevow:slot name="url"/></nevow:attr><nevow:slot name="title"/></a>
     </td>
     <td class="fancyCol" style="text-align: center">
       <nevow:slot name="clickActions"/>

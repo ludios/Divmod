@@ -40,8 +40,15 @@ class ClickChroniclePublicPage(Item):
     def createResource(self):
         return PublicPage(self.installedOn)
 
+staticTemplate = lambda fname: loaders.xmlfile(util.sibpath(__file__, "static/html/" + fname))
+
 class PublicPage(rend.Page):
-    docFactory = loaders.xmlfile(util.sibpath(__file__, 'static/html/index.html'))
+    docFactory = staticTemplate("index.html")
+
+    def __init__(self, original):
+        rend.Page.__init__(self, original)
+        self.children =  {"privacy-policy" : rend.Page(original, staticTemplate("privacy-policy.html")),
+                          "faq" : rend.Page(original, staticTemplate("faq.html")) }
 
     def child_(self, ctx):
         return self

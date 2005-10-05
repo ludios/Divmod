@@ -46,7 +46,7 @@ class TopPanel(Item):
         (username, domain), = userbase.getAccountNames(self.installedOn)
         return topPanelPattern.fillSlots(
             "form-action", translator.linkTo(self.storeID)
-            ).fillSlots("username", username)
+            ).fillSlots("username", '%s@%s' % (username, domain))
 
     def getTabs(self):
         return []

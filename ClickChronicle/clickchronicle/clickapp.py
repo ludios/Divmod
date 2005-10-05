@@ -387,6 +387,16 @@ class DomainListFragment(CCPrivateSortablePagedTable):
     sortDirection = 'ascending'
     sortColumn = 'timestamp'
 
+    def handle_delete(self, ctx, visitStoreID):
+        store = self.original.store
+        domain = store.getItemByID(int(visitStoreID))
+        clickApp = iclickchronicle.IClickRecorder(store)
+        def _():
+            clickApp.deleteDomain(domain)
+        self.store.transact(_)
+        yield (livepage.js.deleted(domain.url), livepage.eol)
+        yield self.handle_updateTable(ctx, self.startPage)
+
     def visitInfo(self, visit):
         newest = visit.getLatest(count=1).next()
 
@@ -649,6 +659,13 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             self.bulkForgetVisits(visitsToDelete)
         self.store.transact(txn)
 
+    def deleteDomain(self, domain):
+        # Oh so close to ignoreVisit
+        def txn():
+            visitsToDelete = list(self.store.query(Visit, Visit.domain == domain))
+            self.bulkForgetVisits(visitsToDelete)
+            domain.deleteFromStore()
+        self.store.transact(txn)
 
 class SearchClicks(CCPrivatePagedTable):
     implements(ixmantissa.INavigableFragment)

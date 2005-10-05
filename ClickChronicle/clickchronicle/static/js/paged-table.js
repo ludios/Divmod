@@ -56,6 +56,10 @@ function makeActor(action, identifier) {
     return new Function("ignore", sub("%s(%s); return false;", actions[action], identifier));
 }
 
+function makeTooltip(text) {
+    return new Function("event", sub('toolTip("%s", this)', text));
+}
+
 function cementActionLinks() {
     var clickTable = $("clickTable");
     var rows = getElementsByTagAndClassName("tr", null, clickTable);
@@ -69,6 +73,8 @@ function cementActionLinks() {
                 var link = links[j];
                 link.href = "#" + row.id; // so something shows in the statusbar
                 link.onclick = makeActor(aname, row.id);
+                var img = getElementsByTagAndClassName("img", "linkIcon", link)[0];
+                img.onmouseover = makeTooltip(img.title);
             }
         }
     }
@@ -244,3 +250,27 @@ function goPrev() {
     setCurrentPage( prevPage );
     updateTable();
 }
+
+function toolTip(text,me) {
+  theObj=me;
+  theObj.onmousemove=updatePos;
+  document.getElementById('toolTipBox').innerHTML=text;
+  document.getElementById('toolTipBox').style.display="block";
+  window.onscroll=updatePos;
+}
+
+function updatePos() {
+  var ev=arguments[0]?arguments[0]:event;
+  var x=ev.clientX;
+  var y=ev.clientY;
+  diffX=24;
+  diffY=0;
+  document.getElementById('toolTipBox').style.top  = y-2+diffY+document.body.scrollTop+ "px";
+  document.getElementById('toolTipBox').style.left = x-2+diffX+document.body.scrollLeft+"px";
+  theObj.onmouseout=hideMe;
+}
+
+function hideMe() {
+  document.getElementById('toolTipBox').style.display="none";
+}
+

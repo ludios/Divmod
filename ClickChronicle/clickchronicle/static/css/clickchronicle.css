@@ -4,6 +4,17 @@ body {
 }
 
 .hidden { display: none; }
+#toolTipBox {
+
+	display: none;
+	padding: 5;
+	border: black solid 1px;
+	position: absolute;
+	font-size: .9em;
+	opacity: .8;
+  	background-color: #B0B0B0;
+  	color: 000000;
+}
 
 form { margin-bottom: 4px; }
 #filterDialog { display: none }

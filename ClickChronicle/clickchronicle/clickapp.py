@@ -27,31 +27,26 @@ flat.registerFlattener(lambda t, ign: t.asHumanly(), Time)
 def makeScriptTag(src):
     return tags.script(type="application/x-javascript", src=src)
 
-class SearchBox(Item):
+class TopPanel(Item):
     implements(ixmantissa.INavigableElement)
-    typeName = 'clickchronicle_searchbox'
+    typeName = 'clickchronicle_toppanel'
     schemaVersion = 1
-
-    searchPattern = attributes.inmemory()
-    formAction = attributes.inmemory()
 
     installedOn = attributes.reference()
 
-    searches = attributes.integer(default=0)
-
     def installOn(self, other):
-        assert self.installedOn is None, "Cannot install SearchBox on more than one thing"
+        assert self.installedOn is None, "Cannot install TopPanel on more than one thing"
         other.powerUp(self, ixmantissa.INavigableElement)
         self.installedOn = other
 
     def topPanelContent(self):
         translator = ixmantissa.IWebTranslator(self.installedOn, None)
-        if translator is not None:
-            docFactory = translator.getDocFactory('search-box-fragment')
-            self.searchPattern = inevow.IQ(docFactory).patternGenerator('search')
-            self.formAction = translator.linkTo(self.storeID)
-            return self.searchPattern.fillSlots('action', self.formAction)
-        return None
+        docFactory = inevow.IQ(translator.getDocFactory("top-panel-fragment"))
+        topPanelPattern = docFactory.patternGenerator("top-panel")
+        (username, domain), = userbase.getAccountNames(self.installedOn)
+        return topPanelPattern.fillSlots(
+            "form-action", translator.linkTo(self.storeID)
+            ).fillSlots("username", username)
 
     def getTabs(self):
         return []
@@ -111,16 +106,19 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
         yield (livepage.js.deleted(visit.url), livepage.eol)
         yield self.handle_updateTable(ctx, self.startPage)
 
+    def visitInfo(self, visit):
+        newest = visit.getLatest(count=1).next()
+
+        return (("URL", tags.a(href=visit.url)[self.trimTitle(visit.url)]),
+                ("Referrer", visit.referrer.title),
+                ("Last Visited", newest.timestamp))
+
     def handle_info(self, ctx, visitStoreID):
         store = self.original.store
         visit = store.getItemByID(int(visitStoreID))
         visit = iclickchronicle.IDisplayableVisit(visit)
 
-        newest = visit.getLatest(count=1).next()
-
-        data = (("URL", tags.a(href=visit.url)[self.trimTitle(visit.url)]),
-                ("Referrer", visit.referrer.title),
-                ("Last Visited", newest.timestamp))
+        data = self.visitInfo(visit)
         return (livepage.js.gotInfo(visitStoreID, self.patterns["visitInfo"](data=data)), livepage.eol)
 
     def trimTitle(self, title):
@@ -238,7 +236,7 @@ class ClickChronicleInitializer(Item):
 
         for item in (ClickList, DomainList, Preferences,
                      ClickRecorder, indexinghelp.SyncIndexer, BookmarkList,
-                     SearchBox, AuthenticationApplication, indexinghelp.CacheManager):
+                     TopPanel, AuthenticationApplication, indexinghelp.CacheManager):
             avatar.findOrCreate(item).installOn(avatar)
 
         avatar.powerDown(self, ixmantissa.INavigableElement)
@@ -388,6 +386,12 @@ class DomainListFragment(CCPrivateSortablePagedTable):
     pagingItem = Domain
     sortDirection = 'ascending'
     sortColumn = 'timestamp'
+
+    def visitInfo(self, visit):
+        newest = visit.getLatest(count=1).next()
+
+        return (("URL", tags.a(href=visit.url)[self.trimTitle(visit.url)]),
+                ("Last Visited", newest.timestamp))
 
     def countTotalItems(self, ctx):
         return self.original.clicks
@@ -712,7 +716,7 @@ class SearchClicks(CCPrivatePagedTable):
         self.original.store.transact(txn)
 
 registerAdapter(SearchClicks,
-                SearchBox,
+                TopPanel,
                 ixmantissa.INavigableFragment)
 
 class URLGrabber(rend.Page):

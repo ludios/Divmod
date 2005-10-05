@@ -22,11 +22,11 @@ class DisplayableVisitMixin(object):
             return True
 
 class Domain(Item, DisplayableVisitMixin):
-    url = attributes.bytes()
-    title = attributes.text()
+    url = attributes.bytes(allowNone=False)
+    title = attributes.text(allowNone=True) # We use None to denote that a title has not been set
     visitCount = attributes.integer(default=0)
     ignore = attributes.boolean(default=False)
-    favIcon = attributes.reference()
+    favIcon = attributes.reference(allowNone=True)
     timestamp = attributes.timestamp()
 
     schemaVersion = 1
@@ -43,12 +43,20 @@ class Domain(Item, DisplayableVisitMixin):
                                 sort=Domain.timestamp.desc, limit=count)
     def asBookmark(self):
         dt = Time.fromDatetime(datetime.now())
+        referrer = self.store.findFirst(BookmarkVisit)
         bookmark = self.store.findOrCreate(Bookmark,
                                            url=self.url,
                                            title=self.title,
                                            domain=self,
-                                           timestamp=dt)
+                                           timestamp=dt,
+                                           referrer=referrer)
         return bookmark
+
+    def asDict(self):
+        myDict = super(Domain, self).asDict()
+        if self.title is None:
+            myDict['title']=self.url
+        return myDict
 
 class VisitMixin(object):
     def asDocument(self):
@@ -67,11 +75,11 @@ class Bookmark(Item, VisitMixin, DisplayableVisitMixin):
     implements(iclickchronicle.IIndexable)
 
     timestamp = attributes.timestamp()
-    url = attributes.bytes()
-    title = attributes.text()
+    url = attributes.bytes(allowNone=False)
+    title = attributes.text(allowNone=False)
     visitCount = attributes.integer(default=0)
     domain = attributes.reference(allowNone=False)
-    referrer = attributes.reference()
+    referrer = attributes.reference(allowNone=False)
 
     schemaVersion = 1
     typeName = 'bookmark'
@@ -91,11 +99,11 @@ class Visit(Item, VisitMixin, DisplayableVisitMixin):
     implements(iclickchronicle.IIndexable)
 
     timestamp = attributes.timestamp()
-    url = attributes.bytes()
-    title = attributes.text()
+    url = attributes.bytes(allowNone=False)
+    title = attributes.text(allowNone=False)
     visitCount = attributes.integer(default=0)
     domain = attributes.reference(allowNone=False)
-    referrer = attributes.reference()
+    referrer = attributes.reference(allowNone=False)
 
     schemaVersion = 1
     typeName = 'visit'
@@ -105,12 +113,10 @@ class Visit(Item, VisitMixin, DisplayableVisitMixin):
         bookmark = self.store.findOrCreate(Bookmark,
                                            url=self.url,
                                            title=self.title,
-                                           domain=self.domain)
-        def txn():
-            bookmark.timestamp = dt
-            return bookmark
-
-        return self.store.transact(txn)
+                                           domain=self.domain,
+                                           referrer=self.referrer,
+                                           timestamp=dt)
+        return bookmark
 
     def asIcon(self):
         return self.domain.favIcon
@@ -125,8 +131,8 @@ class BookmarkVisit(Item):
     should only be used as a visit.referrer"""
 
     # XXX Not sure which attributes we need. Particularly referrer?
-    url = attributes.bytes(default='Bookmark')
-    title = attributes.text(default=u'Bookmark')
+    url = attributes.bytes(default='Unavailable')
+    title = attributes.text(default=u'Unavailable')
 
     referrer = attributes.reference(allowNone=True)
 

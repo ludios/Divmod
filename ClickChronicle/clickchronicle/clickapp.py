@@ -395,6 +395,11 @@ class BookmarkListFragment(CCPrivateSortablePagedTable):
     def countTotalItems(self, ctx):
         return self.original.installedOn.count(self.pagingItem)
 
+    def visitInfo(self, bm):
+        return (("URL", tags.a(href=bm.url)[self.trimTitle(bm.url)]),
+                ("Referrer", bm.referrer.title),
+                ("Created", bm.timestamp))
+
 registerAdapter(BookmarkListFragment,
                 BookmarkList,
                 ixmantissa.INavigableFragment)

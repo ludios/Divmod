@@ -23,8 +23,8 @@ def installSite(siteStore):
 
     WebSite(
         store = siteStore,
-        portNumber = 20080,
-        securePortNumber = 20443,
+        portNumber = 8080,
+        securePortNumber = 8443,
         certificateFile = 'server.pem').installOn(siteStore)
     StaticSite(store = siteStore, prefixURL = u'static',
                staticContentPath = sibpath(__file__, u'static')).installOn(siteStore)

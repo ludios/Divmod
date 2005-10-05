@@ -325,7 +325,6 @@ class CacheManager(Item):
         """
         def gotPage(result, fallbackCharset=fallbackCharset):
             source, headers = result
-            print 'Discovered headers for', repr(url), 'tobe', repr(headers)
             contentType = headers[0]
 
             if contentType:
@@ -334,7 +333,6 @@ class CacheManager(Item):
                     fallbackCharset = encoding
 
             pageInfo = getPageInfo(source, charset=fallbackCharset)
-            print 'Discovered', repr(pageInfo.charset), 'as encoding for', repr(url)
             return source, pageInfo
 
         return webclient.getPageAndHeaders(

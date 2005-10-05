@@ -74,7 +74,7 @@ function cementActionLinks() {
                 link.href = "#" + row.id; // so something shows in the statusbar
                 link.onclick = makeActor(aname, row.id);
                 var img = getElementsByTagAndClassName("img", "linkIcon", link)[0];
-                img.onmouseover = makeTooltip(img.title);
+                img.onmouseover = makeTooltip(link.getAttribute("alt"));
             }
         }
     }

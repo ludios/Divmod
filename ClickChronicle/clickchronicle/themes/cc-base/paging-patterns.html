@@ -2,39 +2,37 @@
 
   <!-- onclick handlers and tooltips will be added to these actions by javascript -->
   <span nevow:pattern="clickActions" style="text-align: center">
-    <a class="info-action">
+    <a alt="View extended information" class="info-action">
       <nevow:attr name="href"><nevow:slot name="identifier"/></nevow:attr>
-      <img title="View extended information" src="/static/images/info.png" class="linkIcon"/>
+      <img src="/static/images/info.png" class="linkIcon"/>
     </a>
-    <a class="ignore-action">
+    <a alt="Delete this click, and ignore future visits to it's domain" class="ignore-action">
       <nevow:attr name="href"><nevow:slot name="identifier"/></nevow:attr>
-      <img title="Delete this click, and ignore future visits to it's domain" 
-        src="/static/images/ignore_link.png" class="linkIcon"/>
+      <img src="/static/images/ignore_link.png" class="linkIcon"/>
     </a>
-    <a class="bookmark-action">
+    <a alt="Add this click to your bookmarks" class="bookmark-action">
       <nevow:attr name="href"><nevow:slot name="identifier"/></nevow:attr>
-      <img title="Add this click to your bookmarks" src="/static/images/bookmark.png" class="linkIcon"/>
+      <img src="/static/images/bookmark.png" class="linkIcon"/>
     </a>
-    <a class="delete-action">
+    <a alt="Delete this click" class="delete-action">
       <nevow:attr name="href"><nevow:slot name="identifier"/></nevow:attr>
-      <img title="Delete this click" src="/static/images/delete.png" class="linkIcon"/>
+      <img src="/static/images/delete.png" class="linkIcon"/>
     </a>
   </span>
 
   <span nevow:pattern="bookmarkActions" style="text-align: center">
-    <a class="info-action">
+    <a alt="View extended information" class="info-action">
       <nevow:attr name="href"><nevow:slot name="identifier"/></nevow:attr>
-      <img title="View extended information" src="/static/images/info.png" class="linkIcon"/>
+      <img src="/static/images/info.png" class="linkIcon"/>
     </a>
-    <a class="ignore-action">
+    <a alt="Delete this bookmark, and ignore future visits to it's domain" class="ignore-action">
       <nevow:attr name="href"><nevow:slot name="identifier"/></nevow:attr>
-      <img title="Delete this bookmark, and ignore future visits to it's domain" 
-        src="/static/images/ignore_link.png" class="linkIcon"/>
+      <img src="/static/images/ignore_link.png" class="linkIcon"/>
     </a>
     <img src="/static/images/bookmark_disabled.png" class="linkIcon"/>
-    <a class="delete-action">
+    <a alt="Delete this bookmark" class="delete-action">
       <nevow:attr name="href"><nevow:slot name="identifier"/></nevow:attr>
-      <img title="Delete this bookmark" src="/static/images/delete.png" class="linkIcon"/>
+      <img src="/static/images/delete.png" class="linkIcon"/>
     </a>
   </span>
 

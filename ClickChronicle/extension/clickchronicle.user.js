@@ -11,7 +11,7 @@
 (function() {
     const POST_INTERCEPT = 'HistoryIntercept';
     var intercept_on;
-   
+
     interceptor_setup();
 
     // The actual work!

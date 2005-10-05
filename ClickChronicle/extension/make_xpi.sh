@@ -22,7 +22,7 @@ then
 	exit
 fi
 cd $extension_dir/chrome/
-zip content.jar -r content -x '*svn*' 
+zip content.jar -r content -x '*svn*'
 cd $extension_dir
 rm -rf clickchronicle.xpi
 zip -r clickchronicle.xpi chrome/content.jar

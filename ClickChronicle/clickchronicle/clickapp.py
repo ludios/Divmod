@@ -24,6 +24,28 @@ from clickchronicle.searchparser import parseSearchString
 
 flat.registerFlattener(lambda t, ign: t.asHumanly(), Time)
 
+class ClickChroniclePublicPage(Item):
+    implements(ixmantissa.IPublicPage, inevow.IResource)
+
+    typeName = 'clickchronicle_public_page'
+    schemaVersion = 1
+
+    installedOn = attributes.reference()
+
+    def installOn(self, other):
+        assert self.installedOn is None, "Cannot install ClickChroniclePublicPage on more than one thing"
+        other.powerUp(self, ixmantissa.IPublicPage)
+        self.installedOn = other
+
+    def createResource(self):
+        return PublicPage(self.installedOn)
+
+class PublicPage(rend.Page):
+    docFactory = loaders.xmlfile(util.sibpath(__file__, 'static/html/index.html'))
+
+    def child_(self, ctx):
+        return self
+
 def makeScriptTag(src):
     return tags.script(type="application/x-javascript", src=src)
 

@@ -9,6 +9,7 @@ from xapwrap.document import Document, TextField, Value
 from clickchronicle import tagstrip, webclient
 from clickchronicle.iclickchronicle import IIndexer, ICache
 from clickchronicle.pageinfo import getPageInfo
+from clickchronicle.imagedetect import getImageType
 from clickchronicle import queue
 
 
@@ -292,12 +293,12 @@ class CacheManager(Item):
 
     def fetchFavicon(self, domain, faviconURL=None):
         def gotFavicon((data, (contentType,))):
-            if contentType:
-                contentType = contentType[0]
-                if not contentType.startswith("image"):
+            if len(contentType) == 0 or not contentType[0].startswith("image"):
+                contentType = getImageType(data)
+                if contentType is None:
                     return
             else:
-                contentType = 'image/x-icon'
+                contentType = contentType[0]
 
             s = self.store
             def txn():

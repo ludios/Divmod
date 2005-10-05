@@ -294,6 +294,8 @@ class CacheManager(Item):
         def gotFavicon((data, (contentType,))):
             if contentType:
                 contentType = contentType[0]
+                if not contentType.startswith("image"):
+                    return
             else:
                 contentType = 'image/x-icon'
 

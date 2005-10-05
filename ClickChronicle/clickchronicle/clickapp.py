@@ -66,6 +66,7 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
 
         self.translator = ixmantissa.IWebTranslator(original.installedOn)
         self.clickList = original.store.query(ClickList).next()
+        self.itemsPerPage = original.store.query(Preferences).next().itemsPerPage
         self.pagingPatterns = inevow.IQ(self.translator.getDocFactory("paging-patterns"))
         self.patterns = dict()
 
@@ -406,7 +407,7 @@ class Preferences(Item):
     installedOn = attributes.reference()
     displayName = attributes.bytes(default='none set')
     homepage = attributes.bytes(default='http://www.clickchronicle.com')
-    itemsPerPage = attributes.integer(default=10)
+    itemsPerPage = attributes.integer(default=20)
 
     def installOn(self, other):
         assert self.installedOn is None, "cannot install Preferences on more than one thing!"

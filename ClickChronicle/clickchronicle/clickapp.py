@@ -66,9 +66,11 @@ class TopPanel(Item):
         docFactory = inevow.IQ(translator.getDocFactory("top-panel-fragment"))
         topPanelPattern = docFactory.patternGenerator("top-panel")
         (username, domain), = userbase.getAccountNames(self.installedOn)
-        return topPanelPattern.fillSlots(
-            "form-action", translator.linkTo(self.storeID)
-            ).fillSlots("username", '%s@%s' % (username, domain))
+        return [
+            tags.a(href='/static/js/clickchronicle.user.js')['Get Extension'],
+            topPanelPattern.fillSlots(
+                "form-action", translator.linkTo(self.storeID)
+            ).fillSlots("username", '%s@%s' % (username, domain))]
 
     def getTabs(self):
         return []

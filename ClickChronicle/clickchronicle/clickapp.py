@@ -67,7 +67,7 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
 
         pgen = self.pagingPatterns.patternGenerator
         for pname in ("clickTable", "pagingWidget", "navBar", "visitInfo", "clickActions",
-                      "visitRow", "bookmarkedVisitRow", "bookmarkActions"):
+                      "visitRow", "bookmarkedVisitRow", "bookmarkActions", "clickInfoRow"):
             self.patterns[pname] = pgen(pname)
 
     def head(self):
@@ -150,7 +150,7 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
 
             p = self.patterns[rowPattern](data=row)
             p = p.fillSlots("clickActions", self.patterns[actionsPattern]())
-            content.append(p)
+            content.extend((p, self.patterns["clickInfoRow"]()))
 
         return self.patterns["clickTable"].fillSlots("rows", content)
 

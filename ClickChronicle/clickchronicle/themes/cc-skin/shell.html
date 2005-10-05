@@ -1,23 +1,10 @@
-<html xmlns:nevow="http://nevow.com/ns/nevow/0.1">
+<html cellspacing="0" xmlns:nevow="http://nevow.com/ns/nevow/0.1">
   <head nevow:render="head"/>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
   <body>
     <table width="100%">
       <tr>
-        <td align="center">
-          <!-- in my universe, tables are the solution to all layout problems.
-               if you can get this to look the same without them, please do so -->
-          <table>
-            <tr valign="top">
-              <td>
-                <img src="/static/images/logo.png"/>
-              </td>
-              <td>
-                <span nevow:render="topPanel"/>
-              </td>
-            </tr>
-          </table>
-        </td>
+        <td nevow:render="topPanel"/>
       </tr>
       <tr>
         <td align="center"><br/><span nevow:render="navigation"/></td>

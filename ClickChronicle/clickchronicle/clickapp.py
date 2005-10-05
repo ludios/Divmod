@@ -369,7 +369,7 @@ class BookmarkListFragment(CCPrivateSortablePagedTable):
         self.patterns["visitRow"] = self.patterns["bookmarkedVisitRow"]
 
     def countTotalItems(self, ctx):
-        return iclickchronicle.IClickRecorder(self.original.store).visitCount
+        return self.original.installedOn.count(self.pagingItem)
 
 registerAdapter(BookmarkListFragment,
                 BookmarkList,
@@ -394,7 +394,7 @@ class DomainListFragment(CCPrivateSortablePagedTable):
                 ("Last Visited", newest.timestamp))
 
     def countTotalItems(self, ctx):
-        return self.original.clicks
+        return self.original.installedOn.count(self.pagingItem)
 
 registerAdapter(DomainListFragment,
                 DomainList,

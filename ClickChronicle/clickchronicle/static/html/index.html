@@ -7,22 +7,7 @@
 
     <nevow:invisible nevow:render="liveglue" />
 
-    <script language="javascript">
-        var clickchronicle_clickCount = 0;
-        var clickchronicle_clickLimit = 10;
-        function addClick(title, url) {
-            var clicks = document.getElementById('click-list');
-            clickchronicle_clickCount += 1;
-            if (clickchronicle_clickCount > clickchronicle_clickLimit) {
-                clicks.removeChild(clicks.firstChild);
-            }
-            var newClick = document.createElement('a');
-            a.setAttribute('href', url);
-            var clickTitle = document.createTextNode(title);
-            a.appendChild(clickTitle);
-            clicks.appendChild(a);
-        }
-    </script>
+    <script type="text/javascript" src="/static/js/live-clicks.js" />
 
   </head>
 
@@ -46,7 +31,7 @@
       </tr>
     </table>
 
-    <div id="clicks" />
+    <div id="click-list" />
 
   </body>
 

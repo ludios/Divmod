@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from zope.interface import implements
 
-from twisted.python import util
+from twisted.python import util, log
 from twisted.python.components import registerAdapter
 
 from nevow.url import URL
@@ -11,6 +11,8 @@ from epsilon.extime import Time
 
 from axiom.item import Item
 from axiom import userbase, scheduler, attributes
+
+from vertex import juice, q2q
 
 from xmantissa import ixmantissa, webnav, website, webapp
 from xmantissa.webgestalt import AuthenticationApplication
@@ -24,6 +26,42 @@ from clickchronicle.searchparser import parseSearchString
 
 flat.registerFlattener(lambda t, ign: t.asHumanly(), Time)
 
+AGGREGATION_PROTOCOL = 'clickchronicle-click-aggregation-protocol'
+
+class AggregateClick(juice.Command):
+    commandName = 'Aggregate-Click'
+
+    arguments = [('title', juice.Unicode()),
+                 ('url', juice.String())]
+
+class ClickAggregationProtocol(juice.Juice):
+    def aggregate(self, title, url):
+        return AggregateClick(title=title, url=url).do(self)
+
+    def command_AGGREGATE_CLICK(self, title, url):
+        # XXX Desync this, it's gonna get slow.
+        for listener in self.factory.listenCollection.clickListeners:
+            listener.observeClick(title, url)
+    command_AGGREGATE_CLICK.command = AggregateClick
+
+class ClickSender(ClickAggregationProtocol):
+    def connectionMade(self):
+        self.aggregate(self.factory.title, self.factory.url).addErrback(log.err)
+
+class ClickAggregationFactory(juice.JuiceServerFactory):
+    protocol = ClickAggregationProtocol
+
+    def __init__(self, listenCollection):
+        self.listenCollection = listenCollection
+
+class ClickAggregationClientFactory(juice.JuiceClientFactory):
+    protocol = ClickSender
+
+    def __init__(self, title, url):
+        self.title = title
+        self.url = url
+
+
 class ClickChroniclePublicPage(Item):
     implements(ixmantissa.IPublicPage, inevow.IResource)
 
@@ -32,17 +70,44 @@ class ClickChroniclePublicPage(Item):
 
     installedOn = attributes.reference()
 
+    clickListeners = attributes.inmemory()
+
+    def _listen(self):
+        # We won't be listening until someone views the ClickChronicle
+        # front page.  That's okay though, because if no one is
+        # looking at the page, we don't really need to aggregate
+        # clicks (at least for now).
+
+        # XXX YERK
+        x = self.store.parent
+
+        user, domain = userbase.getAccountNames(self.installedOn).next()
+        listenAddress = q2q.Q2QAddress(domain, user)
+        svc = ixmantissa.IQ2QService(x)
+        # svc.listenQ2Q(listenAddress, {AGGREGATION_PROTOCOL: ClickAggregationFactory(self)}, 'Shared Click Aggregator')
+
+    def activate(self):
+        self.clickListeners = []
+        if self.installedOn is not None:
+            self._listen()
+
     def installOn(self, other):
         assert self.installedOn is None, "Cannot install ClickChroniclePublicPage on more than one thing"
         other.powerUp(self, ixmantissa.IPublicPage)
         self.installedOn = other
+        self._listen()
 
     def createResource(self):
-        return PublicPage(self.installedOn)
+        return PublicPage(self)
+
+    def listenClicks(self, who):
+        self.clickListeners.append(who)
+        return lambda: self.clickListeners.remove(who)
+
 
 staticTemplate = lambda fname: loaders.xmlfile(util.sibpath(__file__, "static/html/" + fname))
 
-class PublicPage(rend.Page):
+class PublicPage(livepage.LivePage):
     docFactory = staticTemplate("index.html")
 
     def __init__(self, original):
@@ -50,8 +115,17 @@ class PublicPage(rend.Page):
         self.children =  {"privacy-policy" : rend.Page(original, staticTemplate("privacy-policy.html")),
                           "faq" : rend.Page(original, staticTemplate("faq.html")) }
 
+    def goingLive(self, ctx, client):
+        self.client = client
+        unlisten = self.original.listenClicks(self)
+        client.notifyOnClose().addCallback(lambda ign: unlisten())
+
     def child_(self, ctx):
         return self
+
+    def observeClick(self, title, url):
+        self.client.send('addClick(%r, %r)' % (title, url))
+
 
 def makeScriptTag(src):
     return tags.script(type="application/x-javascript", src=src)
@@ -581,6 +655,10 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             url, title,
             referrer, indexIt=indexIt,
             storeFavicon=storeFavicon)
+
+        if False:
+            svc = ixmantissa.IQ2QService(self.store.parent)
+            svc.connectQ2Q(fromAddress, toAddress, AGGREGATION_PROTOCOL, ClickAggregationClientFactory(title, url))
 
 
     def findOrCreateVisit(self, url, title, referrer=None, indexIt=True, storeFavicon=True):

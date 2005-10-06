@@ -11,6 +11,7 @@ from axiom.store import Store
 from axiom.userbase import LoginSystem
 from axiom.scheduler import Scheduler
 
+from xmantissa import endpoint
 from xmantissa.website import WebSite, StaticSite
 from xmantissa.publicweb import PublicWeb
 from xmantissa.signup import TicketBooth
@@ -20,6 +21,8 @@ from clickchronicle.signup_hack import EmaillessTicketSignup
 
 def installSite(siteStore):
     LoginSystem(store = siteStore).installOn(siteStore)
+
+    endpoint.UniversalEndpointService(store=siteStore).installOn(siteStore)
 
     WebSite(
         store = siteStore,
@@ -44,7 +47,7 @@ def installSite(siteStore):
 def installClickChronicleUser(siteStore):
     ls = portal.IRealm(siteStore)
 
-    ccAvatar = ls.addAccount('clickchronicle', 'system', None)
+    ccAvatar = ls.addAccount('clickchronicle', 'clickchronicle.com', None)
     ccAvatarStore = ccAvatar.avatars.open()
     ClickChroniclePublicPage(store=ccAvatarStore).installOn(ccAvatarStore)
 

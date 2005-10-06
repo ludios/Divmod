@@ -135,7 +135,7 @@ class TopPanel(Item):
     typeName = 'clickchronicle_toppanel'
     schemaVersion = 1
 
-    searches = attributes.internet(default=0)
+    searches = attributes.integer(default=0)
     installedOn = attributes.reference()
 
     def installOn(self, other):

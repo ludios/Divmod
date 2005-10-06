@@ -5,13 +5,13 @@ from xmantissa.website import PrefixURLMixin
 from zope.interface import implements
 from xmantissa.ixmantissa import ISiteRootPlugin
 from xmantissa import signup
-
-# workaround to put the ticket link in the page
-# template itself, without changing the template file
-# or the Ticket item.  a lot of copy & paste, probably
-# a lot of wrongness
+from clickchronicle.clickapp import staticTemplate
 
 class EmaillessSignerUpper(signup.FreeSignerUpper):
+    def __init__(self, original):
+        signup.FreeSignerUpper.__init__(self, original)
+        self.docFactory = staticTemplate("signup.html")
+
     def handle_issueTicket(self, ctx, emailAddress):
         (domain, port) = signup.domainAndPortFromContext(ctx)
 

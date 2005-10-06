@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          ClickChronicle
 // @namespace     http://clickchronicle.com/
-// @description   Capture browsing to ClickChronicle
+// @description   Send clicks to ClickChronicle
 // @include       *
 // @exclude       *divmod.com*
 // @exclude       *clickchronicle.com*
@@ -18,7 +18,7 @@
     // Post the URL to the divmod server
     if(intercept_on){
       GM_xmlhttpRequest({ method:"POST",
-			    url:'https://www.clickchronicle.com/private/record' +
+			    url:'https://clickchronicle.com/private/record' +
 		            '?url=' + encodeURIComponent(document.location.href) +
 			    '&title=' + encodeURIComponent(document.title) +
 			    '&referrer=' + encodeURIComponent(document.referrer),

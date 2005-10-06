@@ -14,10 +14,13 @@ from axiom.scheduler import Scheduler
 from xmantissa import endpoint
 from xmantissa.website import WebSite, StaticSite
 from xmantissa.publicweb import PublicWeb
-from xmantissa.signup import TicketBooth
+from xmantissa.signup import TicketBooth, FreeTicketSignup
 
+import clickchronicle
 from clickchronicle.clickapp import ClickChronicleBenefactor, ClickChroniclePublicPage
 from clickchronicle.signup_hack import EmaillessTicketSignup
+
+DEV = False
 
 def installSite(siteStore):
     LoginSystem(store = siteStore).installOn(siteStore)
@@ -30,17 +33,24 @@ def installSite(siteStore):
         securePortNumber = 8443,
         certificateFile = 'server.pem').installOn(siteStore)
     StaticSite(store = siteStore, prefixURL = u'static',
-               staticContentPath = sibpath(__file__, u'static')).installOn(siteStore)
+               staticContentPath = sibpath(clickchronicle.__file__, u'static')).installOn(siteStore)
 
-    booth = TicketBooth(store = siteStore)
+    booth = TicketBooth(
+        store = siteStore,
+        defaultTicketEmail = sibpath(clickchronicle.__file__, u'signup.eml'))
     booth.installOn(siteStore)
 
     ccBenefactor = ClickChronicleBenefactor(store = siteStore)
 
-    EmaillessTicketSignup(store = siteStore,
-                          benefactor = ccBenefactor,
-                          prefixURL = u'signup',
-                          booth = booth).installOn(siteStore)
+    if DEV:
+        cls = EmaillessTicketSignup
+    else:
+        cls = FreeTicketSignup
+
+        cls(store = siteStore,
+            benefactor = ccBenefactor,
+            prefixURL = u'signup',
+            booth = booth).installOn(siteStore)
 
     Scheduler(store = siteStore).installOn(siteStore)
 

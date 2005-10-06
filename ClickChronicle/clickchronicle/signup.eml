@@ -1,0 +1,23 @@
+From: %(from)s
+To: %(to)s
+Subject: Welcome to Click Chronicle!
+Date: %(date)s
+Message-ID: %(message-id)s
+Content-Type: text/html
+Reply-To: %(from)s
+MIME-Version: 1.0
+
+<html>
+<head>
+<title>Welcome to Click Chronicle!</title>
+</head>
+<body>
+
+Congratulations on joining the Click Chronicle alpha!  <i>All your clikz r bel0ng 2 us.</i>
+
+<a href="%(link)s">
+    Claim your account
+</a>
+
+</body>
+</html>

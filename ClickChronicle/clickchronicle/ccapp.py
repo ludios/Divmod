@@ -14,11 +14,11 @@ from axiom.scheduler import Scheduler
 from xmantissa import endpoint
 from xmantissa.website import WebSite, StaticSite
 from xmantissa.publicweb import PublicWeb
-from xmantissa.signup import TicketBooth, FreeTicketSignup
+from xmantissa.signup import TicketBooth
 
 import clickchronicle
 from clickchronicle.clickapp import ClickChronicleBenefactor, ClickChroniclePublicPage
-from clickchronicle.signup_hack import EmaillessTicketSignup
+from clickchronicle.signup_hack import EmaillessTicketSignup, PrettyFreeTicketSignup
 
 DEV = False
 
@@ -45,7 +45,7 @@ def installSite(siteStore):
     if DEV:
         cls = EmaillessTicketSignup
     else:
-        cls = FreeTicketSignup
+        cls = PrettyFreeTicketSignup
 
     cls(store = siteStore,
         benefactor = ccBenefactor,

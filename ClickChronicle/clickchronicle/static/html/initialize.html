@@ -1,23 +1,15 @@
-<html xmlns:nevow="http://nevow.com/ns/nevow/0.1">
-  <head>
-    <script language="javascript">
-      function checkPasswords(form) {
-          if (form.password.value != form.confirm.value) {
-              alert("Passwords don't match!  Try again.");
-              form.password.value = form.confirm.value = '';
-              form.password.focus();
-              return false;
-          } else {
-              return true;
-          }
-      }
-    </script>
-  </head>
-  <body>
-    <form action="" onsubmit="return checkPasswords(this);">
-      <label>Password</label><input type="password" name="password" />
-      <label>Confirm</label><input type="password" name="confirm" />
-      <input type="submit" value="Set Password" />
-    </form>
-  </body>
-</html>
+<form action="" onsubmit="return checkPaswords(this);" xmlns:nevow="http://nevow.com/ns/nevow/0.1">
+  <table>
+    <tr>
+      <td><label>Password</label></td><td><input class="text" type="password" name="password" /></td>
+    </tr>
+    <tr>
+      <td><label>Confirm</label></td><td><input class="text" type="password" name="confirm" /></td>
+    </tr>
+    <tr>
+      <td colspan="2" align="right">
+        <input type="submit" class="submit" value="Set Password" />
+      </td>
+    </tr>
+  </table>
+</form>

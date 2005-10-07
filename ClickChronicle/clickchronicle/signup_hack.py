@@ -5,12 +5,9 @@ from xmantissa.website import PrefixURLMixin
 from zope.interface import implements
 from xmantissa.ixmantissa import ISiteRootPlugin
 from xmantissa import signup
-from clickchronicle.clickapp import staticTemplate
+from clickchronicle.clickapp import CCPublicPageMixin, staticTemplate
 
 class EmaillessSignerUpper(signup.FreeSignerUpper):
-    def __init__(self, original):
-        signup.FreeSignerUpper.__init__(self, original)
-        self.docFactory = staticTemplate("signup.html")
 
     def handle_issueTicket(self, ctx, emailAddress):
         (domain, port) = signup.domainAndPortFromContext(ctx)
@@ -28,6 +25,14 @@ class EmaillessSignerUpper(signup.FreeSignerUpper):
         ticketLink = '/%s/%s' % (self.original.booth.prefixURL, ticket.nonce)
         return livepage.set( 'signup-status', tags.a(href=ticketLink)['click here to redeem'] )
 
+# remove all this static-shell special case nonsense when CC's usage
+# of top panel content has been merged into mantissa (search, username display)
+
+class PrettyFreeSignerUpper(CCPublicPageMixin, signup.FreeSignerUpper):
+    def __init__(self, original):
+        signup.FreeSignerUpper.__init__(self, original)
+        self.docFactory = staticTemplate("static-shell.html")
+
 class EmaillessTicketSignup(Item, PrefixURLMixin):
     implements(ISiteRootPlugin)
 
@@ -40,3 +45,16 @@ class EmaillessTicketSignup(Item, PrefixURLMixin):
 
     def createResource(self):
         return EmaillessSignerUpper(self)
+
+class PrettyFreeTicketSignup(Item, PrefixURLMixin):
+    implements(ISiteRootPlugin)
+
+    typeName = 'pretty_free_ticket_signup'
+    schemaVersion = 1
+
+    prefixURL = text()
+    booth = reference()
+    benefactor = reference()
+
+    def createResource(self):
+        return PrettyFreeSignerUpper(self)

@@ -1,0 +1,16 @@
+<div xmlns:nevow="http://nevow.com/ns/nevow/0.1">
+  Enter your email address below to signup to clickchronicle<p/>
+
+    <form onsubmit="
+                    document.getElementById('signup-status').innerHTML = 'THINKING';
+                    this.onsubmit=function(){
+                      alert('Signup in progress...');
+                      return false;
+                    };
+                    server.handle('issueTicket', input_email.value);
+                    return false;">
+      Email: <input id="input_email" type="text" class="text" name="email" />
+      <input type="submit" class="submit" value="Signup!"/>
+      <div id="signup-status"/>
+    </form>
+</div>

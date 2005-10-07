@@ -7,7 +7,7 @@ from twisted.python import util, log
 from twisted.python.components import registerAdapter
 
 from nevow.url import URL
-from nevow import rend, inevow, tags, loaders, flat, livepage
+from nevow import rend, inevow, tags, loaders, flat, livepage, entities
 
 from epsilon.extime import Time
 
@@ -18,6 +18,7 @@ from vertex import juice, q2q
 
 from xmantissa import ixmantissa, webnav, website, webapp
 from xmantissa.webgestalt import AuthenticationApplication
+from xmantissa.publicresource import PublicLivePage, PublicPage
 
 from clickchronicle import iclickchronicle
 from clickchronicle import indexinghelp
@@ -57,7 +58,7 @@ class ClickChroniclePublicPage(Item):
         self.installedOn = other
 
     def createResource(self):
-        return PublicPage(self)
+        return PublicIndexPage(self)
 
     def observeClick(self, title, url):
         self.recentClicks.append((title, url))
@@ -75,13 +76,42 @@ class ClickChroniclePublicPage(Item):
 
 staticTemplate = lambda fname: loaders.xmlfile(util.sibpath(__file__, "static/html/" + fname))
 
-class PublicPage(livepage.LivePage):
-    docFactory = staticTemplate("index.html")
+class CCPublicPageMixin(object):
+    headerFragment = staticTemplate("header.html")
+    navigationFragment = staticTemplate("static-nav.html")
+    title = "ClickChronicle"
+    footer = flat.flatten((entities.copy, "Divmod 2005"))
 
+    def render_head(self, ctx, data):
+        yield super(CCPublicPageMixin, self).render_head(ctx, data)
+        yield tags.title[self.title]
+        yield tags.link(rel="stylesheet", type="text/css", href="/static/css/static-site.css")
+
+    def render_topPanel(self, ctx, data):
+        return ctx.tag[self.headerFragment]
+
+    def render_navigation(self, ctx, data):
+        return ctx.tag[self.navigationFragment]
+
+    def render_footer(self, ctx, data):
+        return ctx.tag[self.footer]
+
+class CCPublicPage(CCPublicPageMixin, PublicPage):
+    def __init__(self, original, fragment):
+        PublicPage.__init__(self, original, fragment)
+        self.docFactory = staticTemplate("static-shell.html")
+
+class PublicIndexPage(CCPublicPageMixin, PublicLivePage):
     def __init__(self, original):
-        rend.Page.__init__(self, original)
-        self.children =  {"privacy-policy" : rend.Page(original, staticTemplate("privacy-policy.html")),
-                          "faq" : rend.Page(original, staticTemplate("faq.html")) }
+        PublicLivePage.__init__(self, original, staticTemplate("index.html"))
+        self.docFactory = staticTemplate("static-shell.html")
+        mkchild = lambda tmplname: CCPublicPage(original, staticTemplate(tmplname))
+        self.children =  {"privacy-policy" : mkchild("privacy-policy.html"),
+                          "faq" : mkchild("faq.html")}
+
+    def render_head(self, ctx, data):
+        yield CCPublicPageMixin.render_head(self, ctx, data)
+        yield makeScriptTag("/static/js/live-clicks.js")
 
     def goingLive(self, ctx, client):
         self.client = client
@@ -320,8 +350,15 @@ class ClickChronicleInitializer(Item):
         self.deleteFromStore()
 
 
-class ClickChronicleInitializerPage(rend.Page):
-    docFactory = loaders.xmlfile(util.sibpath(__file__, 'static/html/initialize.html'))
+class ClickChronicleInitializerPage(CCPublicPageMixin, PublicPage):
+
+    def __init__(self, original):
+        PublicPage.__init__(self, original, staticTemplate("initialize.html"))
+        self.docFactory = staticTemplate("static-shell.html")
+
+    def render_head(self, ctx, data):
+        yield CCPublicPageMixin.render_head(self, ctx, data)
+        yield makeScriptTag("/static/js/initialize.js")
 
     def renderHTTP(self, ctx):
         req = inevow.IRequest(ctx)

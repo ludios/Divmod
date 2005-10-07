@@ -17,3 +17,26 @@ ul {
 	margin: 0;
 	white-space: nowrap;
 }
+
+input.submit {
+	border: 3px double #999999;
+	border-top-color: #CCCCCC;
+	border-left-color: #CCCCCC;
+	background-color: #FFFFFF;
+	color: #333333;
+	font-size: 75%;
+	font-weight: bold;
+	margin-top: 4px;
+}
+
+input.text {
+	border: 1px solid #999999;
+	border-top-color: #CCCCCC;
+	border-left-color: #CCCCCC;
+	margin-right: 2px;
+	padding: 0.25em;
+	background-color: #FFFFFF;
+	color: #333333;
+	font-size: 75%;
+	font-weight: bold;
+}

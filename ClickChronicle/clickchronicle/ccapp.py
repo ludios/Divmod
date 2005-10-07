@@ -47,10 +47,10 @@ def installSite(siteStore):
     else:
         cls = FreeTicketSignup
 
-        cls(store = siteStore,
-            benefactor = ccBenefactor,
-            prefixURL = u'signup',
-            booth = booth).installOn(siteStore)
+    cls(store = siteStore,
+        benefactor = ccBenefactor,
+        prefixURL = u'signup',
+        booth = booth).installOn(siteStore)
 
     Scheduler(store = siteStore).installOn(siteStore)
 

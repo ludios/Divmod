@@ -158,7 +158,7 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
         iclickchronicle.IClickRecorder(store).ignoreVisit(visit)
         # rewind to the first page, to reflect changes
 
-        yield (livepage.js.ignored(visit.url), livepage.eol)
+        yield (livepage.js.ignored(self.trimTitle(visit.url)), livepage.eol)
         yield self.handle_updateTable(ctx, self.startPage)
 
     def handle_bookmark(self, ctx, visitStoreID):
@@ -169,7 +169,7 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
             return bookmark
         bm = self.store.transact(_)
 
-        yield (livepage.js.bookmarked(visit.url), livepage.eol)
+        yield (livepage.js.bookmarked(self.trimTitle(visit.url)), livepage.eol)
         yield self.handle_updateTable(ctx, self.currentPage)
 
     def handle_delete(self, ctx, visitStoreID):
@@ -180,7 +180,7 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
             clickApp.forgetVisit(visit)
         self.store.transact(_)
 
-        yield (livepage.js.deleted(visit.url), livepage.eol)
+        yield (livepage.js.deleted(self.trimTitle(visit.url)), livepage.eol)
         yield self.handle_updateTable(ctx, self.startPage)
 
     def visitInfo(self, visit):
@@ -466,7 +466,7 @@ class DomainListFragment(CCPrivateSortablePagedTable):
     live = True
 
     pagingItem = Domain
-    sortDirection = 'ascending'
+    sortDirection = 'descending'
     sortColumn = 'timestamp'
 
     def handle_delete(self, ctx, visitStoreID):

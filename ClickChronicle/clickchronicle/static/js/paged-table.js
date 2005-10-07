@@ -19,9 +19,9 @@ const tooltips = {
  *  of the acted-upon click, or whatever identifier the server handler returns */
 
 const completionMessages = {
-    "ignore" : "Domain ignored.",
-    "bookmark" : 'Successfully bookmarked "%s".',
-    "delete" : "Click deleted."
+    "ignore" : "Ignoring '%s'",
+    "bookmark" : 'Bookmarked "%s"',
+    "delete" : "Deleted '%s'"
 }
 
 /* alternateRowClasses will cyclically assign these class names to rows in the

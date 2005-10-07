@@ -9,19 +9,19 @@ const actions = {
 };
 
 const tooltips = {
-    "ignore" : "Ignore future clicks to this visit's domain",
+    "ignore" : "Ignore current and future clicks to this click's domain",
     "info" : "View click information",
-    "bookmark" : "Bookmark this click",
-    "delete" : "Delete this click"
+    "bookmark" : "Bookmark click",
+    "delete" : "Delete click"
 }
 
 /* if %s appears in the completion message, it will be replaced with the URL
  *  of the acted-upon click, or whatever identifier the server handler returns */
 
 const completionMessages = {
-    "ignore" : "Click successfully ignored",
-    "bookmark" : 'Successfully bookmarked "%s"',
-    "delete" : "Click deleted"
+    "ignore" : "Domain ignored.",
+    "bookmark" : 'Successfully bookmarked "%s".',
+    "delete" : "Click deleted."
 }
 
 /* alternateRowClasses will cyclically assign these class names to rows in the

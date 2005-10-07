@@ -1,23 +1,18 @@
 From: %(from)s
 To: %(to)s
-Subject: Welcome to Click Chronicle!
+Subject: Welcome to ClickChronicle!
 Date: %(date)s
 Message-ID: %(message-id)s
-Content-Type: text/html
+Content-Type: text/plain
 Reply-To: %(from)s
 MIME-Version: 1.0
 
-<html>
-<head>
-<title>Welcome to Click Chronicle!</title>
-</head>
-<body>
+Thank you for joining the ClickChronicle alpha.
 
-Thank you for joining the Click Chronicle alpha! Please give us your feedback at <a href="http://www.divmod.org/trac">divmod.org/trac</a>.
+Claim your account by the following link:
+%(link)s
 
-<a href="%(link)s">
-    Claim your account
-</a>
+Give us your feedback at http://www.divmod.org/trac
 
-</body>
-</html>
+Thanks,
+--Your ClickChronicle Team

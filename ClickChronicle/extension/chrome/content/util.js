@@ -8,9 +8,6 @@ var gCCPrefs = Components.classes["@mozilla.org/preferences-service;1"]
                 .getService(Components.interfaces.nsIPrefService)
                     .getBranch("extensions.ClickChronicle.");
 
-var gCookieManager2 = Components.classes["@mozilla.org/cookiemanager;1"]
-                        .getService(Components.interfaces.nsICookieManager2);
-
 function clickchronicle_mutableURI(URI) {
     this.URI = URI.clone();
     this.child = function(cname) {
@@ -34,11 +31,9 @@ var gClickChronicleUtils = {
 
     responseCode : function(toURL, cbfunc) {
         var req = new XMLHttpRequest();
-        req.onload = req.onerror = function(event) {
-            try { var status = event.target.status } catch(e) { cbfunc(null); return }
-            cbfunc(status);
-        }
-        req.open("GET", toURL, true);
+        req.onload  = function(event) { cbfunc(event.target.status) }
+        req.onerror = function(event) { cbfunc(null) }
+        req.open("GET", toURL, false);
         req.send(null);
     },
 

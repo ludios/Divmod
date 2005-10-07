@@ -2,14 +2,14 @@
  * wrap them anonymously because they're not defined yet */
 
 const actions = {
-    "ignore"   : "doIgnore",
+    "block"   : "doBlock",
     "info"     : "doInfo",
     "bookmark" : "doBookmark",
     "delete"   : "doDelete"
 };
 
 const tooltips = {
-    "ignore" : "Ignore current and future clicks to this click's domain",
+    "block" : "Block current and future clicks to this click's domain",
     "info" : "View click information",
     "bookmark" : "Bookmark click",
     "delete" : "Delete click"
@@ -19,7 +19,7 @@ const tooltips = {
  *  of the acted-upon click, or whatever identifier the server handler returns */
 
 const completionMessages = {
-    "ignore" : "Ignoring '%s'",
+    "block" : "Blocked '%s'",
     "bookmark" : 'Bookmarked "%s"',
     "delete" : "Deleted '%s'"
 }
@@ -53,7 +53,7 @@ function getActionLinks(action, parent) {
 }
 
 function makeActor(action, identifier) {
-    return new Function("ignore", sub("%s(%s); return false;", actions[action], identifier));
+    return new Function("block", sub("%s(%s); return false;", actions[action], identifier));
 }
 
 function makeTooltip(text) {
@@ -90,8 +90,8 @@ function selectOptionWithValue( elem, value ) {
         }
 }
 
-function doIgnore(identifier) {
-    server.handle("ignore", identifier);
+function doBlock(identifier) {
+    server.handle("block", identifier);
 }
 
 function displayCompletionForAction(action, identifier) {
@@ -103,7 +103,7 @@ function displayCompletionForAction(action, identifier) {
 
 bookmarked = partial(displayCompletionForAction, "bookmark");
 deleted = partial(displayCompletionForAction, "delete");
-ignored = partial(displayCompletionForAction, "ignore");
+blocked = partial(displayCompletionForAction, "block");
 
 function doBookmark(identifier) {
     server.handle("bookmark", identifier);

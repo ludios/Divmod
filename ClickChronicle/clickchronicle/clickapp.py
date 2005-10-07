@@ -152,14 +152,14 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
         yield makeScriptTag("/static/js/MochiKit/MochiKit.js")
         yield makeScriptTag("/static/js/paged-table.js")
 
-    def handle_ignore(self, ctx, visitStoreID):
+    def handle_block(self, ctx, visitStoreID):
         store = self.original.store
         visit = store.getItemByID(int(visitStoreID))
         iclickchronicle.IClickRecorder(store).ignoreVisit(visit)
         # rewind to the first page, to reflect changes
-
-        yield (livepage.js.ignored(self.trimTitle(visit.url)), livepage.eol)
-        yield self.handle_updateTable(ctx, self.startPage)
+        # it's a toss-up whether it's best to rewind of stay on the current page
+        yield (livepage.js.blocked(self.trimTitle(visit.url)), livepage.eol)
+        yield self.handle_updateTable(ctx, self.startPage) 
 
     def handle_bookmark(self, ctx, visitStoreID):
         store = self.original.store
@@ -181,7 +181,7 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
         self.store.transact(_)
 
         yield (livepage.js.deleted(self.trimTitle(visit.url)), livepage.eol)
-        yield self.handle_updateTable(ctx, self.startPage)
+        yield self.handle_updateTable(ctx, self.currentPage)
 
     def visitInfo(self, visit):
         newest = visit.getLatest(count=1).next()
@@ -477,7 +477,21 @@ class DomainListFragment(CCPrivateSortablePagedTable):
             clickApp.deleteDomain(domain)
         self.store.transact(_)
         yield (livepage.js.deleted(domain.url), livepage.eol)
-        yield self.handle_updateTable(ctx, self.startPage)
+        yield self.handle_updateTable(ctx, self.currentPage)
+
+    def handle_block(self, ctx, visitStoreID):
+        store = self.original.store
+        domain = store.getItemByID(int(visitStoreID))
+        clickApp = iclickchronicle.IClickRecorder(store)
+        visit = store.findFirst(Visit, domain=domain)
+        def _():
+            if visit:
+                iclickchronicle.IClickRecorder(store).ignoreVisit(visit)
+            else:
+                domain.ignore = True
+        store.transact(_)
+        yield (livepage.js.blocked(self.trimTitle(domain.url)), livepage.eol)
+        yield self.handle_updateTable(ctx, self.currentPage)
 
     def visitInfo(self, visit):
         newest = visit.getLatest(count=1).next()

@@ -170,12 +170,12 @@ class FetchSourceTask(Item, PageFetchingTaskMixin):
         return d
 
     def _cbGotSource(self, (source, pageInfo)):
+        if self.storeFavicon:
+            self._enqueueFaviconTask(pageInfo)
         if self.indexIt:
             self._index(source, pageInfo)
         if self.cacheIt:
             self._cache(source, pageInfo)
-        if self.storeFavicon:
-            self._enqueueFaviconTask(pageInfo)
 
     def _index(self, source, pageInfo):
         self.indexer.index(makeDocument(self.visit, source, pageInfo))

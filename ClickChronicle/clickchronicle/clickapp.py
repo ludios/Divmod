@@ -1,3 +1,4 @@
+import collections
 from datetime import datetime, timedelta
 from zope.interface import implements
 
@@ -44,9 +45,11 @@ class ClickChroniclePublicPage(Item):
     installedOn = attributes.reference()
 
     clickListeners = attributes.inmemory()
+    recentClicks = attributes.inmemory()
 
     def activate(self):
         self.clickListeners = []
+        self.recentClicks = collections.deque()
 
     def installOn(self, other):
         assert self.installedOn is None, "Cannot install ClickChroniclePublicPage on more than one thing"
@@ -57,6 +60,10 @@ class ClickChroniclePublicPage(Item):
         return PublicPage(self)
 
     def observeClick(self, title, url):
+        self.recentClicks.append((title, url))
+        if len(self.recentClicks) > 10:
+            self.recentClicks.popleft()
+
         # XXX Desync this, it's gonna get slow.
         for listener in self.clickListeners:
             listener.observeClick(title, url)
@@ -80,6 +87,9 @@ class PublicPage(livepage.LivePage):
         self.client = client
         unlisten = self.original.listenClicks(self)
         client.notifyOnClose().addCallback(lambda ign: unlisten())
+        client.send([
+            (livepage.js.clickchronicle_addClick(t, u), livepage.eol)
+            for (t, u) in self.original.recentClicks])
 
     def child_(self, ctx):
         return self

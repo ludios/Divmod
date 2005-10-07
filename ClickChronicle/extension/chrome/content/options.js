@@ -1,24 +1,34 @@
-var gPrefs = null;
-const stringPrefs = ["clickRecorderURL"];
-const boolPrefs = ["enableOnStartup"];
+const gClickChronicleStringPrefs = ["clickRecorderURL"];
+const gClickChronicleBoolPrefs   = ["enableOnStartup"];
 
-function loadPrefs() {
-    gPrefs = Components.classes["@mozilla.org/preferences-service;1"]
-                .getService(Components.interfaces.nsIPrefService);
-    gPrefs = gPrefs.getBranch("extensions.ClickChronicle.");
+function clickchronicle_loadPrefs() {
+    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+                    .getService(Components.interfaces.nsIPrefService)
+                        .getBranch("extensions.ClickChronicle.");
 
-    for( var i in stringPrefs )
-        document.getElementById(stringPrefs[i]).value = gPrefs.getCharPref(stringPrefs[i]);
+    for(var i in gClickChronicleStringPrefs) {
+        var pref = gClickChronicleStringPrefs[i];
+        document.getElementById(pref).value = prefs.getCharPref(pref);
+    }
 
-    for( i in boolPrefs )
-        document.getElementById(boolPrefs[i]).checked = gPrefs.getBoolPref(boolPrefs[i]);
+    for(i in gClickChronicleBoolPrefs) {
+        pref = gClickChronicleBoolPrefs[i];
+        document.getElementById(pref).checked = prefs.getBoolPref(pref);
+    }
 }
 
-function savePrefs() {
-    for( var i in stringPrefs )
-        gPrefs.setCharPref(stringPrefs[i], document.getElementById(stringPrefs[i]).value);
+function clickchronicle_savePrefs() {
+    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+                    .getService(Components.interfaces.nsIPrefService)
+                        .getBranch("extensions.ClickChronicle.");
 
-    for( i in boolPrefs )
-        gPrefs.setBoolPref(boolPrefs[i], document.getElementById(boolPrefs[i]).checked);
-} 
+    for(var i in gClickChronicleStringPrefs) {
+        var pref = gClickChronicleStringPrefs[i];
+        prefs.setCharPref(pref, document.getElementById(pref).value);
+    }
 
+    for(i in gClickChronicleBoolPrefs) {
+        pref = gClickChronicleBoolPrefs[i];
+        prefs.setBoolPref(pref, document.getElementById(pref).checked);
+    }
+}

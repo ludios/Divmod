@@ -8,23 +8,23 @@
   <script src="mantissa_login.js" type="application/x-javascript"/>
   <script src="clickchronicle.js" type="application/x-javascript"/>
 
-<toolbarpalette id="BrowserToolbarPalette">
-  <toolbarbutton id="clickchronicle-record-button" 
-    image="chrome://clickchronicle/content/record.png" class="toolbarbutton-1"
-    label="Record"
-    chromedir="ltr" oncommand="gCCBrowserObserver.startRecording();"
-    tooltiptext="Start recording clicks"/>
+  <toolbarpalette id="BrowserToolbarPalette">
+    <toolbarbutton id="clickchronicle-record-button" 
+      image="chrome://clickchronicle/content/record.png" class="toolbarbutton-1"
+      label="Record"
+      chromedir="ltr" oncommand="gCCBrowserObserver.startRecording();"
+      tooltiptext="Start recording clicks"/>
 
-  <toolbarbutton id="clickchronicle-busy-button" 
-    image="chrome://clickchronicle/content/busy.png" class="toolbarbutton-1" 
-    label="Busy" chromedir="ltr"
-    tooltiptext="Busy..." disabled="true" hidden="true"/>
-  
-  <toolbarbutton id="clickchronicle-pause-button" 
-    image="chrome://clickchronicle/content/pause.png" class="toolbarbutton-1" 
-    label="Pause"
-    chromedir="ltr" oncommand="gCCBrowserObserver.stopRecording();"
-    tooltiptext="Stop recording clicks" hidden="true"/>
-</toolbarpalette>
+    <toolbarbutton id="clickchronicle-busy-button" 
+      image="chrome://clickchronicle/content/busy.png" class="toolbarbutton-1" 
+      label="Busy" chromedir="ltr"
+      tooltiptext="Busy..." disabled="true" hidden="true"/>
+
+    <toolbarbutton id="clickchronicle-pause-button" 
+      image="chrome://clickchronicle/content/pause.png" class="toolbarbutton-1" 
+      label="Pause"
+      chromedir="ltr" oncommand="gCCBrowserObserver.stopRecording();"
+      tooltiptext="Stop recording clicks" hidden="true"/>
+  </toolbarpalette>
 
 </overlay>

@@ -3,7 +3,7 @@
 <window id="clickchronicle-login" title="Login" orient="horizontal" 
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
   xmlns:html="http://www.w3.org/1999/xhtml" onload="document.getElementById('username').focus()"
-  onclose="windowClosed()"
+  onclose="clickchronicle_windowClosed()"
   style="padding: 5px;">
 
   <script src="chrome://clickchronicle/content/util.js"/>
@@ -15,7 +15,7 @@
         <column/>
         <column/>
       </columns>
-     
+
       <rows>
         <row>
           <vbox>
@@ -50,7 +50,7 @@
             <label style="font-weight: bold;" value="Remember Me"/>
             <checkbox align="start" name="rememberMe" formelement="true"/>
           </row>
-          
+
         </rows>
       </grid>
       <hbox align="right"><button label="Login" onclick="onClickLogin()" accesskey="L"/></hbox>

@@ -1,10 +1,10 @@
-function loginPrompt(mantissaURI, cbfunc) {
+function clickchronicle_loginPrompt(mantissaURI, cbfunc) {
     window.openDialog("chrome://clickchronicle/content/login_prompt.xul", -1,
                       "chrome,centerscreen,resizable=no", mantissaURI, cbfunc);
 }
 
-function loggedIn(mantissaURI, cbfunc) {
-    var iter = gCookieManager.enumerator;
+function clickchronicle_loggedIn(mantissaURI, cbfunc) {
+    var iter = gCookieManager2.enumerator;
     while(iter.hasMoreElements()) {
         var cookie = iter.getNext();
 
@@ -13,20 +13,20 @@ function loggedIn(mantissaURI, cbfunc) {
         } catch(e) { continue }
         if(cookie.rawHost == mantissaURI.host)
             if(cookie.isSession) {
-                var URI = new mutableURI(mantissaURI).child("private").URI;
-                responseCode(URI, function(status) {cbfunc(status != 404) });
+                var URI = new clickchronicle_mutableURI(mantissaURI).child("private").URI;
+                gClickChronicleUtils.responseCode(URI, function(status) {cbfunc(status != 404) });
                 return;
             } else { cbfunc(true); return }
     }
     cbfunc(false);
 }
 
-function login(mantissaURI, cbfunc) {
+function clickchronicle_login(mantissaURI, cbfunc) {
     function cbLoggedIn(result) {
         if(result)
             cbfunc(true);
         else
-            loginPrompt(mantissaURI, cbfunc);
+            clickchronicle_loginPrompt(mantissaURI, cbfunc);
     }
-    loggedIn(mantissaURI, cbLoggedIn);
+    clickchronicle_loggedIn(mantissaURI, cbLoggedIn);
 }

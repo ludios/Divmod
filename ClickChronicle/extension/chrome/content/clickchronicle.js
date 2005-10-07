@@ -1,19 +1,19 @@
-function substitute() {
-    var args = substitute.arguments;
+function clickchronicle_substitute() {
+    var args = clickchronicle_substitute.arguments;
     var str  = args[0];
     for( i = 1 ; i < args.length ; i++ )
         str = str.replace( /%s/, args[i] );
     return str;
 }
 
-function showToolbarButtons() {
+function clickchronicle_showToolbarButtons() {
     var buttons = ["clickchronicle-record-button", "clickchronicle-pause-button",
                    "clickchronicle-busy-button"];
 
     var navToolbar  = document.getElementById("nav-bar");
     var afterButton = document.getElementById("urlbar-container");
 
-    for(var i = 0; i < buttons.length; i++ )
+    for(var i = 0; i < buttons.length; i++)
         if (navToolbar.currentSet.indexOf(buttons[i]) == -1)
                 navToolbar.insertItem(buttons[i] , afterButton, null, false);
 }
@@ -41,21 +41,21 @@ var gCCBrowserObserver = {
     logToServer : function(document) {
         var req = new XMLHttpRequest();
         var targetURL = gCCPrefs.getCharPref("clickRecorderURL");
-        
-        targetURL += substitute("?url=%s&title=%s&ref=%s",
-                                encodeURIComponent(document.location.href),
-                                encodeURIComponent(document.title),
-                                encodeURIComponent(document.referrer));
-                            
+
+        targetURL += clickchronicle_substitute("?url=%s&title=%s&ref=%s",
+                                               encodeURIComponent(document.location.href),
+                                               encodeURIComponent(document.title),
+                                               encodeURIComponent(document.referrer));
+
         req.open("POST", targetURL, true);
         req.send(null);
     },
-    
+
     chromeLoaded : function(event) {
         function delayedLoad() {
             window.removeEventListener("load", this.chromeLoaded, false);
-            showToolbarButtons();
-            
+            clickchronicle_showToolbarButtons();
+
             var urgh = gCCBrowserObserver;
             urgh.recordButton = document.getElementById("clickchronicle-record-button");
             urgh.busyButton   = document.getElementById("clickchronicle-busy-button");
@@ -68,12 +68,12 @@ var gCCBrowserObserver = {
         }
         setTimeout(delayedLoad, 2);
     },
-        
+
     domContentLoaded : function(event) {
         var win = event.target.defaultView;
         if(win == win.top) {
             var URI = gIOSvc.newURI(win.location.href, null, null);
-            if(gCCBrowserObserver.recordableURI(URI)) 
+            if(gCCBrowserObserver.recordableURI(URI))
                 gCCBrowserObserver.logToServer(win.document);
         }
     },
@@ -92,7 +92,7 @@ var gCCBrowserObserver = {
                 self.recordButton.hidden = false;
         }
 
-        login(gIOSvc.newURI(gCCPrefs.getCharPref("clickRecorderURL"), null, null), cbLoggedIn);
+        clickchronicle_login(gIOSvc.newURI(gCCPrefs.getCharPref("clickRecorderURL"), null, null), cbLoggedIn);
     },
 
     stopRecording : function() {
@@ -101,5 +101,5 @@ var gCCBrowserObserver = {
         this.appContent.removeEventListener("DOMContentLoaded", this.domContentLoaded, false);
     }
 }
-         
+
 window.addEventListener("load", gCCBrowserObserver.chromeLoaded, false);

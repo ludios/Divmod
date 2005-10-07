@@ -6,13 +6,12 @@
   id="clickChronicleOptions"
   title="ClickChronicle Options"
   buttons="accept,cancel"
-  onload="loadPrefs();"
-  ondialogaccept="savePrefs();">
+  onload="clickchronicle_loadPrefs();"
+  ondialogaccept="clickchronicle_savePrefs();">
 
   <script src="options.js" type="application/x-javascript"/>
 
   <vbox>
-    
     <groupbox id="developmentOptions">
       <caption label="Development Options"/>
       <description>These options will not appear in a public release</description>

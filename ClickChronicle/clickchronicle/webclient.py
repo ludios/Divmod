@@ -7,9 +7,9 @@ do.
 from twisted.web import client
 from twisted.internet import reactor
 
-from twisted.names import client as dnsclient
-res = dnsclient.createResolver()
-reactor.installResolver(res)
+#from twisted.names import client as dnsclient
+#res = dnsclient.createResolver()
+#reactor.installResolver(res)
 
 def getPage(url, contextFactory=None, *args, **kwargs):
     """Download a web page as a string.

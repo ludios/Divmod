@@ -28,7 +28,9 @@ def addSiteDir(fsPath):
     if fsPath not in sys.path:
         sys.path.insert(0, fsPath)
         site.addsitedir(fsPath)
-    else:
+    elif 0:                     # We SHOULD emit a warning here, but all kinds
+                                # of tests set PYTHONPATH invalidly and cause
+                                # havoc.
         warnings.warn("Duplicate path entry %r" % (fsPath,),
                       UserWarning )
 

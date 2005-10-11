@@ -4,8 +4,8 @@
 <overlay id="clickchronicle_toolbarPaletteOverlay" 
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 
-  <script src="util.js" type="application/x-javascript"/>
   <script src="mantissa_login.js" type="application/x-javascript"/>
+  <script src="util.js" type="application/x-javascript"/>
   <script src="clickchronicle.js" type="application/x-javascript"/>
 
   <toolbarpalette id="BrowserToolbarPalette">

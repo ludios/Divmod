@@ -7,6 +7,7 @@
   style="padding: 5px;">
 
   <script src="chrome://clickchronicle/content/util.js"/>
+  <script src="chrome://clickchronicle/content/mantissa_login.js"/>
   <script src="chrome://clickchronicle/content/login_prompt.js"/>
 
   <vbox flex="1">

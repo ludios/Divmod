@@ -20,6 +20,6 @@ function onClickLogin() {
     if(mantissaURI.port != -1)
         port = mantissaURI.port;
     var toURI = new clickchronicle_mutableURI(mantissaURI).prePath().child("__login__");
-    gClickChronicleUtils.asyncFormPOST(toURI, formvars, cbfunc);
+    clickchronicle_formPost(toURI, formvars, cbfunc);
     window.close();
 }

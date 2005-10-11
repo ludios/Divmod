@@ -150,7 +150,7 @@ class TopPanel(Item):
         topPanelPattern = docFactory.patternGenerator("top-panel")
         (username, domain), = userbase.getAccountNames(self.installedOn)
         return [
-            tags.a(href='/static/js/clickchronicle.user.js')['Get Greasemonkey script'],
+            tags.a(href='/static/clickchronicle.xpi')['Get the Extension!'],
             topPanelPattern.fillSlots(
                 "form-action", translator.linkTo(self.storeID)
             ).fillSlots("username", '%s@%s' % (username, domain))]

@@ -114,7 +114,7 @@ if __name__ == '__main__':
         print fname, 
         source = open(fname, 'rb').read()
         if fname.endswith('.html'):
-            (text, meta) = tagstrip.cook(source)
+            text = tagstrip.cook(source)
         else:
             text = source
         

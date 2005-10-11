@@ -5,7 +5,7 @@ function clickchronicle_loginPrompt(mantissaURI, cbfunc) {
 
 function clickchronicle_loggedIn(mantissaURI, cbfunc) {
     /* append "/private" to the URL we were given */
-    var URI = new clickchronicle_mutableURI(mantissaURI).child("private").URI.spec;
+    var URL = gClickChronicleUtils.makePrivateURI(mantissaURI).spec;
     /* callback cbfunc with a boolean indicating whether the response code of
      * fetching "URI" wasn't null, and wasn't 404 */
     function cbResponseCode(status) {
@@ -14,7 +14,7 @@ function clickchronicle_loggedIn(mantissaURI, cbfunc) {
         else
             cbfunc(false);
     }
-    gClickChronicleUtils.responseCode(URI, cbResponseCode);
+    gClickChronicleUtils.responseCode(URL, cbResponseCode);
 }
 
 function clickchronicle_login(mantissaURI, cbfunc) {

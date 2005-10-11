@@ -19,7 +19,7 @@ function onClickLogin() {
     var port = 80;
     if(mantissaURI.port != -1)
         port = mantissaURI.port;
-    var toURL = new clickchronicle_mutableURI(mantissaURI).prePath().child("__login__").toString();
-    gClickChronicleUtils.asyncFormPOST(toURL, formvars, cbfunc);
+    var toURI = new clickchronicle_mutableURI(mantissaURI).prePath().child("__login__");
+    gClickChronicleUtils.asyncFormPOST(toURI, formvars, cbfunc);
     window.close();
 }

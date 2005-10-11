@@ -36,9 +36,11 @@ var gClickChronicleUtils = {
         req.open("GET", toURL, false);
         req.send(null);
     },
-
-    asyncFormPOST : function(toURL, formvars, cbfunc) {
-        /* POST formvars ({"key" : "value", ...}) to toURL, calling back
+    makePrivateURI : function(URI) {
+        return new clickchronicle_mutableURI(URI).prePath().child("private").URI;
+    },
+    asyncFormPOST : function(toURI, formvars, cbfunc) {
+        /* POST formvars ({"key" : "value", ...}) to toURI, calling back
         * cbfunc with the response's status code */
         var qargs = new Array();
         for(var i in formvars)
@@ -46,13 +48,16 @@ var gClickChronicleUtils = {
         qargs = qargs.join("&");
 
         var req = new XMLHttpRequest();
-        req.onload = req.onerror = function(event) {
-            var status = null;
-            try { status = event.target.status } catch(e) {cbfunc(false); return};
-            cbfunc(status.toString()[0] <= 3);
-        }
+        /* here is where the shitness of nevow.guard[1] and XMLHTTPRequest[2] converge 
+           [1] login successful?  301!  login failed?  302!!
+           [2] response is only available as a Document object if the content-type = text/xml 
 
-        req.open("POST", toURL, false);
+           the upshot of this is that we have no way to find out if we actually got logged in
+           or not, without making a second http request */
+
+        req.onerror = function(e) { cbfunc(false) };
+        req.onload  = function(e) { clickchronicle_loggedIn(toURI, cbfunc) };
+        req.open("POST", toURI.spec, false);
         req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
         req.send(qargs);
     },

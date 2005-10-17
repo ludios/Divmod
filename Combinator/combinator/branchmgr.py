@@ -147,7 +147,7 @@ class BranchManager:
         if rev is None:
             raise IOError("No revision found")
         trunkDir = self.projectBranchDir(projectName)
-        print 'Swaping to', trunkDir
+        print 'Swapping to', trunkDir
         os.chdir(trunkDir)
         work(popenl('svn', 'up'))
         work(popenl('svn', 'merge',

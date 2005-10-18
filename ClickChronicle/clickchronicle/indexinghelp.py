@@ -351,7 +351,7 @@ def _parseContentType(ctype):
             return parts[1].strip()
     return None
 
-def makeDocument(visit, pageSource, pageInfo):
+def makeDocument(visit, pageSource, pageInfo, summaryLength=400):
     encoding = pageInfo.charset
     title = visit.title
 
@@ -367,10 +367,23 @@ def makeDocument(visit, pageSource, pageInfo):
 
     text = tagstrip.cook(decodedSource)
 
+    for tag in pageInfo.metaTags:
+        if tag.get('name') == 'description':
+            summary = tag.get('content')
+            if summary is not None:
+                break
+    else:
+        summary = text
+
+    if summaryLength < len(summary):
+        summary = summary[:summaryLength] + '...'
+
     values = [
         Value('type', 'url'),
         Value('url', visit.url),
-        Value('title', title)]
+        Value('title', title),
+        Value('summary', summary)]
+
     terms = []
     #if meta:
     #    sa = StandardAnalyzer()

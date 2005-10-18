@@ -14,13 +14,16 @@ from axiom.scheduler import Scheduler
 from xmantissa import endpoint
 from xmantissa.website import WebSite, StaticSite
 from xmantissa.publicweb import PublicWeb
-from xmantissa.signup import TicketBooth
+from xmantissa.signup import TicketBooth, FreeTicketSignup
 
 import clickchronicle
-from clickchronicle.clickapp import ClickChronicleBenefactor, ClickChroniclePublicPage
-from clickchronicle.signup_hack import EmaillessTicketSignup, PrettyFreeTicketSignup
+from clickchronicle.clickapp import ClickChronicleBenefactor, ClickChroniclePublicPage, StaticShellContent
+from clickchronicle.signup_hack import EmaillessTicketSignup
 
-DEV = False
+if "CC_DEV" in os.environ:
+    DEV = True
+else:
+    DEV = False
 
 def installSite(siteStore):
     LoginSystem(store = siteStore).installOn(siteStore)
@@ -45,7 +48,7 @@ def installSite(siteStore):
     if DEV:
         cls = EmaillessTicketSignup
     else:
-        cls = PrettyFreeTicketSignup
+        cls = FreeTicketSignup
 
     cls(store = siteStore,
         benefactor = ccBenefactor,
@@ -53,6 +56,7 @@ def installSite(siteStore):
         booth = booth).installOn(siteStore)
 
     Scheduler(store = siteStore).installOn(siteStore)
+    StaticShellContent(store=siteStore).installOn(siteStore)
 
 def installClickChronicleUser(siteStore):
     ls = portal.IRealm(siteStore)
@@ -60,6 +64,7 @@ def installClickChronicleUser(siteStore):
     ccAvatar = ls.addAccount('clickchronicle', 'clickchronicle.com', None)
     ccAvatarStore = ccAvatar.avatars.open()
     ClickChroniclePublicPage(store=ccAvatarStore).installOn(ccAvatarStore)
+    StaticShellContent(store=ccAvatarStore).installOn(ccAvatarStore)
 
     PublicWeb(store=siteStore, prefixURL=u'', application=ccAvatar).installOn(siteStore)
 

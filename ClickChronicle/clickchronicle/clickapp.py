@@ -1,9 +1,9 @@
-import collections
+import collections, pytz
 from datetime import datetime, timedelta
 from zope.interface import implements
 
 from twisted.cred import portal
-from twisted.python import util, log
+from twisted.python import util
 from twisted.python.components import registerAdapter
 
 from nevow.url import URL
@@ -16,16 +16,17 @@ from axiom import userbase, scheduler, attributes
 
 from vertex import juice, q2q
 
-from xmantissa import ixmantissa, webnav, website, webapp
+from xmantissa import ixmantissa, webnav, website, webapp, prefs, search
 from xmantissa.webgestalt import AuthenticationApplication
 from xmantissa.publicresource import PublicLivePage, PublicPage
 
 from clickchronicle import iclickchronicle
 from clickchronicle import indexinghelp
-from clickchronicle.util import (PagedTableMixin,
-                                 SortablePagedTableMixin)
+from clickchronicle.util import PagedTableMixin, SortablePagedTableMixin
 from clickchronicle.visit import Visit, Domain, BookmarkVisit, Bookmark
 from clickchronicle.searchparser import parseSearchString
+
+from xapwrap.index import NoIndexValueFound
 
 flat.registerFlattener(lambda t, ign: t.asHumanly(), Time)
 
@@ -58,7 +59,7 @@ class ClickChroniclePublicPage(Item):
         self.installedOn = other
 
     def createResource(self):
-        return PublicIndexPage(self)
+        return PublicIndexPage(self, ixmantissa.IStaticShellContent(self.installedOn, None))
 
     def observeClick(self, title, url):
         self.recentClicks.append((title, url))
@@ -77,37 +78,34 @@ class ClickChroniclePublicPage(Item):
 staticTemplate = lambda fname: loaders.xmlfile(util.sibpath(__file__, "static/html/" + fname))
 
 class CCPublicPageMixin(object):
-    headerFragment = staticTemplate("header.html")
     navigationFragment = staticTemplate("static-nav.html")
     title = "ClickChronicle"
-    footer = flat.flatten((entities.copy, "Divmod 2005"))
 
     def render_head(self, ctx, data):
         yield super(CCPublicPageMixin, self).render_head(ctx, data)
         yield tags.title[self.title]
         yield tags.link(rel="stylesheet", type="text/css", href="/static/css/static-site.css")
 
-    def render_topPanel(self, ctx, data):
-        return ctx.tag[self.headerFragment]
-
     def render_navigation(self, ctx, data):
         return ctx.tag[self.navigationFragment]
 
-    def render_footer(self, ctx, data):
-        return ctx.tag[self.footer]
-
 class CCPublicPage(CCPublicPageMixin, PublicPage):
-    def __init__(self, original, fragment):
-        PublicPage.__init__(self, original, fragment)
-        self.docFactory = staticTemplate("static-shell.html")
+    pass
 
 class PublicIndexPage(CCPublicPageMixin, PublicLivePage):
-    def __init__(self, original):
-        PublicLivePage.__init__(self, original, staticTemplate("index.html"))
-        self.docFactory = staticTemplate("static-shell.html")
-        mkchild = lambda tmplname: CCPublicPage(original, staticTemplate(tmplname))
-        self.children =  {"privacy-policy" : mkchild("privacy-policy.html"),
-                          "faq" : mkchild("faq.html")}
+    title = 'ClickChronicle'
+
+    def __init__(self, original, staticContent):
+        super(PublicIndexPage, self).__init__(original, staticTemplate("index.html"), staticContent)
+
+        def mkchild(tmplname, title):
+            p = CCPublicPage(original, staticTemplate(tmplname), staticContent)
+            p.title = title
+            return p
+
+        self.children =  {"privacy-policy" : mkchild('privacy-policy.html',
+                                                     'ClickChronicle Privacy Policy'),
+                          "faq" : mkchild('faq.html', 'Clickchronicle FAQ')}
 
     def render_head(self, ctx, data):
         yield CCPublicPageMixin.render_head(self, ctx, data)
@@ -127,36 +125,8 @@ class PublicIndexPage(CCPublicPageMixin, PublicLivePage):
     def observeClick(self, title, url):
         self.client.send(livepage.js.clickchronicle_addClick(title, url))
 
-
 def makeScriptTag(src):
     return tags.script(type="application/x-javascript", src=src)
-
-class TopPanel(Item):
-    implements(ixmantissa.INavigableElement)
-    typeName = 'clickchronicle_toppanel'
-    schemaVersion = 1
-
-    searches = attributes.integer(default=0)
-    installedOn = attributes.reference()
-
-    def installOn(self, other):
-        assert self.installedOn is None, "Cannot install TopPanel on more than one thing"
-        other.powerUp(self, ixmantissa.INavigableElement)
-        self.installedOn = other
-
-    def topPanelContent(self):
-        translator = ixmantissa.IWebTranslator(self.installedOn, None)
-        docFactory = inevow.IQ(translator.getDocFactory("top-panel-fragment"))
-        topPanelPattern = docFactory.patternGenerator("top-panel")
-        (username, domain), = userbase.getAccountNames(self.installedOn)
-        return [
-            tags.a(href='/static/clickchronicle.xpi')['Get the Extension!'],
-            topPanelPattern.fillSlots(
-                "form-action", translator.linkTo(self.storeID)
-            ).fillSlots("username", '%s@%s' % (username, domain))]
-
-    def getTabs(self):
-        return []
 
 class CCPrivatePagedTableMixin(website.AxiomFragment):
     maxTitleLength = 60
@@ -168,8 +138,9 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
 
         self.translator = ixmantissa.IWebTranslator(original.installedOn)
         self.clickList = original.store.query(ClickList).next()
-        self.itemsPerPage = original.store.query(Preferences).next().itemsPerPage
         self.pagingPatterns = inevow.IQ(self.translator.getDocFactory("paging-patterns"))
+        prefAggregator = ixmantissa.IPreferenceAggregator(original.installedOn)
+        self.itemsPerPage = prefAggregator.getPreferenceValue('itemsPerPage')
         self.patterns = dict()
 
         pgen = self.pagingPatterns.patternGenerator
@@ -299,7 +270,59 @@ class ClickChronicleBenefactor(Item):
                             preferredTheme=u'cc-skin').installOn(avatar)
         avatar.findOrCreate(scheduler.SubScheduler).installOn(avatar)
         avatar.findOrCreate(ClickChronicleInitializer).installOn(avatar)
+        avatar.findOrCreate(StaticShellContent).installOn(avatar)
 
+class _ShareClicks(prefs.MultipleChoicePreference):
+    def __init__(self, value, collection, choices):
+        desc = 'If set to "Yes", your clicks will be aggregated anonymously'
+        super(_ShareClicks, self).__init__('shareClicks', value,
+                                           'Share Clicks (Anonymously)',
+                                           collection, desc,
+                                           dict((c, str(c)) for c in choices))
+
+class _TimezonePreference(prefs.Preference):
+    def __init__(self, value, collection):
+        super(_TimezonePreference, self).__init__('timezone', value, 'Timezone',
+                                                  collection, 'Your current timezone')
+
+    def choices(self):
+        return pytz.common_timezones
+
+    def displayToValue(self, display):
+        return unicode(display)
+
+    def valueToDisplay(self, value):
+        return str(value)
+
+class CCPreferenceCollection(Item):
+    implements(ixmantissa.IPreferenceCollection)
+
+    schemaVersion = 1
+    typeName = 'clickchronicle_preference_collection'
+    name = 'ClickChronicle Preferences'
+
+    installedOn = attributes.reference()
+    shareClicks = attributes.boolean(default=True)
+    timezone = attributes.text(default=u'US/Eastern')
+    _cachedPrefs = attributes.inmemory()
+
+    def installOn(self, other):
+        assert self.installedOn is None, 'cannot install CCPreferenceCollection on more than one thing!'
+        other.powerUp(self, ixmantissa.IPreferenceCollection)
+        self.installedOn = other
+
+    def activate(self):
+        self._cachedPrefs = {"shareClicks" : _ShareClicks(self.shareClicks, self, (True, False)),
+                             "timezone" : _TimezonePreference(self.timezone, self)}
+
+    def getPreferences(self):
+        return self._cachedPrefs
+
+    def setPreferenceValue(self, pref, value):
+        # see comment in xmantissa.prefs.DefaultPreferenceCollection
+        assert hasattr(self, pref.key)
+        setattr(pref, 'value', value)
+        self.store.transact(lambda: setattr(self, pref.key, value))
 
 class ClickChronicleInitializer(Item):
     """
@@ -323,9 +346,6 @@ class ClickChronicleInitializer(Item):
         # This won't ever actually show up
         return [webnav.Tab('Preferences', self.storeID, 1.0)]
 
-    def topPanelContent(self):
-        return None
-
     def setPassword(self, password):
         """
         Set the password for this user, install the ClickChronicle
@@ -341,9 +361,12 @@ class ClickChronicleInitializer(Item):
     def _reallyEndow(self):
         avatar = self.installedOn
 
-        for item in (ClickList, DomainList, Preferences,
-                     ClickRecorder, indexinghelp.SyncIndexer, BookmarkList,
-                     TopPanel, AuthenticationApplication, indexinghelp.CacheManager):
+        for item in (ClickList, DomainList, ClickRecorder, indexinghelp.SyncIndexer, BookmarkList,
+                     CCSearchProvider, AuthenticationApplication,
+                     indexinghelp.CacheManager, GetExtension, prefs.PreferenceAggregator,
+                     prefs.DefaultPreferenceCollection, CCPreferenceCollection,
+                     search.SearchAggregator):
+
             avatar.findOrCreate(item).installOn(avatar)
 
         avatar.powerDown(self, ixmantissa.INavigableElement)
@@ -353,8 +376,8 @@ class ClickChronicleInitializer(Item):
 class ClickChronicleInitializerPage(CCPublicPageMixin, PublicPage):
 
     def __init__(self, original):
-        PublicPage.__init__(self, original, staticTemplate("initialize.html"))
-        self.docFactory = staticTemplate("static-shell.html")
+        PublicPage.__init__(self, original, staticTemplate("initialize.html"),
+                            ixmantissa.IStaticShellContent(original.installedOn, None))
 
     def render_head(self, ctx, data):
         yield CCPublicPageMixin.render_head(self, ctx, data)
@@ -396,9 +419,6 @@ class ClickList(Item):
         """show a link to myself in the navbar"""
         return [webnav.Tab('Clicks', self.storeID, 0.2)]
 
-    def topPanelContent(self):
-        return None
-
 class DomainList(Item):
     """similar to Preferences, i am an implementor of INavigableElement,
        and PrivateApplication will find me when when it looks in the user's
@@ -420,15 +440,12 @@ class DomainList(Item):
         '''show a link to myself in the navbar'''
         return [webnav.Tab('Domains', self.storeID, 0.1)]
 
-    def topPanelContent(self):
-        return None
-
 class ClickListFragment(CCPrivateSortablePagedTable):
     '''i adapt ClickList to INavigableFragment'''
     implements(ixmantissa.INavigableFragment)
+    title = 'Click List'
 
     fragmentName = 'click-list-fragment'
-    title = ''
     live = True
 
     pagingItem = Visit
@@ -463,16 +480,13 @@ class BookmarkList(Item):
         '''show a link to myself in the navbar'''
         return [webnav.Tab('Bookmarks', self.storeID, 0.1)]
 
-    def topPanelContent(self):
-        return None
-
 class BookmarkListFragment(CCPrivateSortablePagedTable):
     '''i adapt BookmarkList to INavigableFragment'''
     implements(ixmantissa.INavigableFragment)
 
     fragmentName = 'bookmark-list-fragment'
-    title = ''
     live = True
+    title = 'Bookmark List'
 
     pagingItem = Bookmark
     sortDirection = 'descending'
@@ -499,8 +513,8 @@ class DomainListFragment(CCPrivateSortablePagedTable):
     implements(ixmantissa.INavigableFragment)
 
     fragmentName = 'domain-list-fragment'
-    title = ''
     live = True
+    title = 'Domain List'
 
     pagingItem = Domain
     sortDirection = 'descending'
@@ -543,69 +557,33 @@ registerAdapter(DomainListFragment,
                 DomainList,
                 ixmantissa.INavigableFragment)
 
-class Preferences(Item):
-    """I represent storeable, per-user preference information.
-       I implement INavigableElement, so PrivateApplication will
-       look for me in the user's store"""
+class GetExtension(Item):
     implements(ixmantissa.INavigableElement)
-    typeName = 'clickchronicle_preferences'
+    typeName = 'clickchronicle_get_extension'
     schemaVersion = 1
 
     installedOn = attributes.reference()
-    displayName = attributes.bytes(default='none set')
-    homepage = attributes.bytes(default='http://www.clickchronicle.com')
-    itemsPerPage = attributes.integer(default=20)
 
     def installOn(self, other):
-        assert self.installedOn is None, "cannot install Preferences on more than one thing!"
+        assert self.installedOn is None, "cannot install GetExtension on more than one thing!"
         other.powerUp(self, ixmantissa.INavigableElement)
         self.installedOn = other
 
     def getTabs(self):
-        return [webnav.Tab('Preferences', self.storeID, 0.0)]
+        return [webnav.Tab('Get Extension', self.storeID, 0.0)]
 
-    def topPanelContent(self):
-        return None
-
-class PreferencesFragment(rend.Fragment):
-    """I will get an adapter for Preferences instances, who
-       implements INavigableFragment"""
+class GetExtensionFragment(rend.Fragment):
     implements(ixmantissa.INavigableFragment)
 
-    fragmentName = 'preferences-fragment'
-    title = ''
-    live = True
-    changePasswordLink = None
-    itemsPerPageChoices = (10, 20, 50)
+    fragmentName = 'get-extension-fragment'
+    live = False
+    title = 'Get Extension'
 
     def head(self):
-        yield makeScriptTag("/static/js/MochiKit/MochiKit.js")
-        yield makeScriptTag("/static/js/editable-form.js")
+        return None
 
-    def data_changePasswordLink(self, ctx, data):
-        # XXX this is crap, i can't think of an nice way to modify
-        # AuthenticationApplication's getTabs(), so we hide subtabs
-        # in the navigation template (b/c we use horizontal navigation)
-        # and then link to AuthenticationApplication from the prefs template
-        if self.changePasswordLink is None:
-            avatar = self.original.installedOn
-            authApp = avatar.query(AuthenticationApplication).next()
-            translator = ixmantissa.IWebTranslator(avatar)
-            self.changePasswordLink = translator.linkTo(authApp.storeID)
-        return self.changePasswordLink
-
-    def data_preferences(self, ctx, data):
-        """
-        return a dict of my Preferences instance's columns,
-        as well as information about acceptable alternate values
-        """
-        return dict(displayName = self.original.displayName,
-                    homepage = self.original.homepage,
-                    itemsPerPage = self.original.itemsPerPage,
-                    itemsPerPageChoices = self.itemsPerPageChoices)
-
-registerAdapter(PreferencesFragment,
-                Preferences,
+registerAdapter(GetExtensionFragment,
+                GetExtension,
                 ixmantissa.INavigableFragment)
 
 def send(senderAvatar, toAddress, protocol, message):
@@ -641,6 +619,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
     maxCount = attributes.integer(default=1000)
     bookmarkVisit = attributes.inmemory()
     installedOn = attributes.reference()
+    prefAggregator = attributes.inmemory()
 
     def installOn(self, other):
         assert self.installedOn is None, "Cannot install ClickRecorder on more than one thing"
@@ -650,6 +629,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
 
     def activate(self):
         self.bookmarkVisit = self.store.findOrCreate(BookmarkVisit)
+        self.prefAggregator = None
 
     def createResource(self):
         return URLGrabber(self)
@@ -692,12 +672,15 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             referrer, indexIt=indexIt,
             storeFavicon=storeFavicon)
 
-        send(
-            self.installedOn,
-            q2q.Q2QAddress("clickchronicle.com", "clickchronicle"),
-            AGGREGATION_PROTOCOL,
-            AggregateClick(title=title, url=url))
+        if self.prefAggregator is None:
+            self.prefAggregator = ixmantissa.IPreferenceAggregator(self.installedOn)
 
+        if self.prefAggregator.getPreferenceValue("shareClicks"):
+            send(
+                self.installedOn,
+                q2q.Q2QAddress("clickchronicle.com", "clickchronicle"),
+                AGGREGATION_PROTOCOL,
+                AggregateClick(title=title, url=url))
 
     def findOrCreateVisit(self, url, title, referrer=None, indexIt=True, storeFavicon=True):
         """
@@ -819,74 +802,76 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             domain.deleteFromStore()
         self.store.transact(txn)
 
-class SearchClicks(CCPrivatePagedTable):
-    implements(ixmantissa.INavigableFragment)
+class StaticShellContent(Item):
+    implements(ixmantissa.IStaticShellContent)
+    installedOn = attributes.reference()
+    schemaVersion = 1
+    typeName = 'clickchronicle_static_shell_content'
 
-    fragmentName = 'search-fragment'
-    title = ''
-    live = True
+    def installOn(self, other):
+        assert self.installedOn is None, "cannot install StaticShellContent on more than one thing"
+        other.powerUp(self, ixmantissa.IStaticShellContent)
+        self.installedOn = other
 
-    discriminator = None
-    matchingClicks = 0
+    def getHeader(self):
+        return tags.img(src="/static/images/logo.png")
 
-    def __init__(self, orig, docFactory=None):
-        self.indexer = orig.store.query(indexinghelp.SyncIndexer).next()
-        self.searchbox = orig
-        CCPrivatePagedTable.__init__(self, orig, docFactory)
+    def getFooter(self):
+        return (entities.copy, "Divmod 2005")
 
-    def head(self):
-        yield makeScriptTag('/static/js/search.js')
-        yield CCPrivatePagedTable.head(self)
+class CCSearchProvider(Item):
+    implements(ixmantissa.ISearchProvider)
+    installedOn = attributes.reference()
+    schemaVersion = 1
+    typeName = 'clickchronicle_search_provider'
 
-    def setSearchState(self, ctx):
-        # this isn't great - make me a LivePage that somehow also shows tabs
-        qargs = dict(URL.fromContext(ctx).queryList())
-        # ignore duplicates & spurious variables
-        discrim = qargs.get('discriminator')
-        if discrim is None:
-            # do something meaningful
-            pass
-        self.incrementSearches()
+    indexer = attributes.inmemory()
 
-        discrim = ' '.join(parseSearchString(discrim))
-        (estimated, total) = self.indexer.count(discrim)
-        self.matchingClicks = estimated
-        self.discriminator = discrim
+    def installOn(self, other):
+        assert self.installedOn is None, "cannot install SearchProvider on more than one thing"
+        other.powerUp(self, ixmantissa.ISearchProvider)
+        self.installedOn = other
 
-    def data_searchTerm(self, ctx, data):
-        if self.discriminator is None:
-            self.setSearchState(ctx)
-        return self.discriminator
+    def activate(self):
+        self.indexer = None
 
-    def goingLive(self, ctx, client):
-        client.call('setSearchTerm', self.discriminator)
-        CCPrivatePagedTable.goingLive(self, ctx, client)
+    def _cachePowerups(self):
+        self.indexer = iclickchronicle.IIndexer(self.installedOn)
 
-    def countTotalItems(self, ctx):
-        if self.discriminator is None:
-            self.setSearchState(ctx)
-        return self.matchingClicks
+    def count(self, term):
+        if self.indexer is None:
+            self._cachePowerups()
 
-    def generateRowDicts(self, ctx, pageNumber):
-        if self.discriminator is None:
-            self.setSearchState(ctx)
-        offset = (pageNumber - 1) * self.itemsPerPage
-        specs = self.indexer.search(self.discriminator,
-                                    startingIndex = offset,
-                                    batchSize = self.itemsPerPage)
-        store = self.original.store
+        term = ' '.join(parseSearchString(term))
+        (estimated, total) = self.indexer.count(term)
+        return estimated
+
+    def search(self, term, count, offset):
+        if self.indexer is None:
+            self._cachePowerups()
+
+        term = ' '.join(parseSearchString(term))
+
+        doSearch = lambda **k: self.indexer.search(term, startingIndex=offset,
+                                                   batchSize=count, **k)
+
+        # this try/except is for compatability with indices created before
+        # we started storing a Value with the key "summary".  if a user
+        # with such a index does a search, and xapwrap explodes, we'll do
+        # the search again, and wont ask for the summary key.  this will
+        # be a non-issue once said user records a click
+
+        try:
+            specs = doSearch(valuesWanted=('summary',))
+        except NoIndexValueFound:
+            specs = doSearch()
+
         for spec in specs:
-            visit = store.getItemByID(spec['uid'])
-            yield self.prepareVisited(visit)
-
-    def incrementSearches(self):
-        def txn():
-            self.searchbox.searches += 1
-        self.original.store.transact(txn)
-
-registerAdapter(SearchClicks,
-                TopPanel,
-                ixmantissa.INavigableFragment)
+            visit = self.store.getItemByID(spec['uid'])
+            yield search.SearchResult(description=visit.title, url=visit.url,
+                                      summary=spec.get('values', dict()).get('summary', ''),
+                                      timestamp=visit.timestamp,
+                                      score=spec['score'] / 100.0)
 
 class URLGrabber(rend.Page):
     """I handle ClickRecorder's HTTP action.  i am not an Item

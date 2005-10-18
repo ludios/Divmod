@@ -28,11 +28,6 @@ class EmaillessSignerUpper(signup.FreeSignerUpper):
 # remove all this static-shell special case nonsense when CC's usage
 # of top panel content has been merged into mantissa (search, username display)
 
-class PrettyFreeSignerUpper(CCPublicPageMixin, signup.FreeSignerUpper):
-    def __init__(self, original):
-        signup.FreeSignerUpper.__init__(self, original)
-        self.docFactory = staticTemplate("static-shell.html")
-
 class EmaillessTicketSignup(Item, PrefixURLMixin):
     implements(ISiteRootPlugin)
 
@@ -45,16 +40,3 @@ class EmaillessTicketSignup(Item, PrefixURLMixin):
 
     def createResource(self):
         return EmaillessSignerUpper(self)
-
-class PrettyFreeTicketSignup(Item, PrefixURLMixin):
-    implements(ISiteRootPlugin)
-
-    typeName = 'pretty_free_ticket_signup'
-    schemaVersion = 1
-
-    prefixURL = text()
-    booth = reference()
-    benefactor = reference()
-
-    def createResource(self):
-        return PrettyFreeSignerUpper(self)

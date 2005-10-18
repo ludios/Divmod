@@ -51,7 +51,22 @@ a:visited { color: #7c7777; text-decoration: none }
 a:hover   { color: #575757; text-decoration: none }
 a:active  { color: #FFFFFF; text-decoration: underline }
 
-.navRow       { background: #C0C0C0; vertical-align: middle }
+.navRow { 
+    background-image: url(/static/images/header_bg.png);
+    background-repeat: repeat-x;
+    background-position: bottom;
+    vertical-align: middle;
+}
+
+.navColFirst {
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+#navTable { 
+    border: solid 1px #CACACA;
+    margin-top: 5px;
+}
 
 img.navIcon { 
 	border: none; 
@@ -73,15 +88,6 @@ img.navIcon {
 	  text-align: center;
 	  width: 100%;
 }
-
-ul {
-	padding:0;
-	margin:0;
-	white-space:nowrap;
-	list-style-type:none;
-}
-
-.tab { display: inline }
 
 #tableContainer { width: 100%; }
 

@@ -1,4 +1,18 @@
-from BeautifulSoup import BeautifulSoup
+import re
+
+from BeautifulSoup import BeautifulSoup, BeautifulStoneSoup
+
+def _massageMicrosoftBytes(match):
+    char = match.group(1)
+    if isinstance(char, unicode):
+        char = char.encode('charmap')
+    return '&' + BeautifulStoneSoup.MS_CHARS[char] + ';'
+
+BeautifulStoneSoup.PARSER_MASSAGE[-1] = (
+    re.compile("([\x80-\x9f])", re.M),
+    _massageMicrosoftBytes)
+    
+
 
 class Minestrone(BeautifulSoup):
     """

@@ -1,4 +1,4 @@
-adjacentNs = lambda s, n: (s[i:i+n] for i in xrange(len(s)-1))
+adjacentNs = lambda s, n: (s[i:i+n] for i in xrange(len(s)-n))
 
 def mchain(string, tokenizer=str.split, length=1):
     chains = dict()
@@ -15,7 +15,8 @@ def mchain(string, tokenizer=str.split, length=1):
     return chains
 
 if __name__ == '__main__':
-
+    print list(adjacentNs('we went to the shop blah blah'.split(), 4))
+    1/0
     chains = mchain("""we face a lot of issues with gibberish in this world i think it probably has a lot
                        to with the amount of noise words that you would find in a given piece of text
                        lots of and and the and he and she and these are the kinds of problems that we face

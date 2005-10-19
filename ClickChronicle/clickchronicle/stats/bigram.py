@@ -1,5 +1,6 @@
 from xapwrap.document import StandardAnalyzer
 from math import log
+import collections
 
 def buildCounts(text, stopList=(), filterDigits=True):
     sa = StandardAnalyzer()
@@ -9,7 +10,7 @@ def buildCounts(text, stopList=(), filterDigits=True):
     count = 0
 
     prev = None
-    
+
     for tok in toks:
         count+=1
         if tok not in stopList:
@@ -30,7 +31,7 @@ def buildCounts(text, stopList=(), filterDigits=True):
                         bigrams[bigram]=1
         prev = tok
     return count, unigrams, bigrams
-        
+
 def buildInfo(count, unigrams, bigrams, limit=0, buildMI=True):
     mutualInfo = []
     count=float(count)
@@ -60,7 +61,7 @@ def log_l(p, total, k, cols=2, m=4):
         elif k[j]>0:
             print 'error something is zero when it should not be'
     return fSum
-            
+
 def likelihoodRatio(count, mi):
     mi, fCount, sCount, pairCount, first, second = mi
     cTable = {}
@@ -72,7 +73,7 @@ def likelihoodRatio(count, mi):
     rowSum = [0.0, 0.0]
     colSum = [0.0, 0.0]
     total = 0.0
-    
+
     for i in range(2):
         rowSum[i]=0.0
         for j in range(2):
@@ -86,7 +87,66 @@ def likelihoodRatio(count, mi):
                        [cTable[(i,0)], cTable[(i,1)]]) -
                 log_l(colSum, total, [cTable[(i,0)], cTable[(i,1)]]))
     return fSum * 2.0
-        
+
+#------------
+# Holding pen
+#------------
+
+#s="""the quick brown fox jumped over the lazy dog again and again through
+#the woods and dales ran the doggy, oh yes he did""" * 500
+
+#SW = ['the', 'and', 'if', 'a', 'they']
+#SW = set(SW)
+#SW=[]
+
+def ngrams(str, n):
+    toks = collections.deque(s.split())
+    nGram = collections.deque()
+    result = collections.deque()
+    while toks:
+        next = toks.popleft()
+        if next in SW:
+            continue
+        nGram.append(next)
+        if len(nGram) == n:
+            result.append(tuple(nGram))
+            nGram.popleft()
+    return result
+
+def nGramCounts(nGrams):
+    d={}
+    for nGram in nGrams:
+        if nGram in d:
+            d[nGram]+=1
+        else:
+            d[nGram]=1
+    return d
+
+def rateOfChange(aList, n):
+    res=[]
+    for i in range(n, len(aList)):
+        now=aList[i]*1.0
+        then=aList[i-n]
+        roc=((now-then)/then)*100
+        res.append(roc)
+    return res
+
+def momentum(aList, n):
+    res=[]
+    for i in range(n, len(aList)):
+        now=aList[i]*1.0
+        then=aList[i-n]
+        mom=now-then
+        res.append(mom)
+    return res
+
+#print ngrams(s,2)
+#print nGramCounts(ngrams(s, 2))
+#closes=[4,8.00,10.00,11.00,11.50,11.75,11.88,11.00]
+#print momentum(closes, 3)
+#print rateOfChange(closes, 3)
+
+#------------------------------------------
 
 if __name__ == '__main__':
     from clickchronicle.stats.stoplist import stopwords
@@ -99,28 +159,28 @@ if __name__ == '__main__':
         count, unigrams, bigrams= buildCounts(str)
         res = buildInfo(count, unigrams, bigrams)
         final = [likelihoodRatio(count, r) for r in res]
-    
+
         zipped = zip(final, res)
         zipped.sort(lambda a,b: cmp(b[0], a[0]))
         for pair in zipped:
             print pair
-    
+
     import sys
     from clickchronicle import tagstrip
     fnames = sys.argv[1:]
 
     for fname in fnames:
         print '---'
-        print fname, 
+        print fname,
         source = open(fname, 'rb').read()
         if fname.endswith('.html'):
             text = tagstrip.cook(source)
         else:
             text = source
-        
+
         count, unigrams, bigrams= buildCounts(text, stopwords)
         print count
-                
+
         res = buildInfo(count, unigrams, bigrams, limit=2, buildMI=False)
         #for r in res:
         #    print r
@@ -132,10 +192,3 @@ if __name__ == '__main__':
             mi, fCount, sCount, pairCount, first, second = data
             if first not in stopwords and second not in stopwords:
                 print score, data
-            
-            
-    
-    
-
-        
-        

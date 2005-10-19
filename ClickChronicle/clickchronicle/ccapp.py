@@ -17,8 +17,7 @@ from xmantissa.publicweb import PublicWeb
 from xmantissa.signup import TicketBooth, FreeTicketSignup
 
 import clickchronicle
-from clickchronicle.clickapp import ClickChronicleBenefactor, StaticShellContent
-from clickchronicle.publicpage import ClickChroniclePublicPage
+from clickchronicle.clickapp import ClickChronicleBenefactor, ClickChroniclePublicPage, StaticShellContent
 from clickchronicle.signup_hack import EmaillessTicketSignup
 
 if "CC_DEV" in os.environ:

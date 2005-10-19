@@ -48,10 +48,12 @@ class ClickChroniclePublicPage(Item):
 
     clickListeners = attributes.inmemory()
     recentClicks = attributes.inmemory()
+    clickLogFile = attributes.inmemory()
 
     def activate(self):
         self.clickListeners = []
         self.recentClicks = collections.deque()
+        self.clickLogFile = self.store.newFilePath('clicks.log').open('a')
 
     def installOn(self, other):
         assert self.installedOn is None, "Cannot install ClickChroniclePublicPage on more than one thing"
@@ -62,6 +64,7 @@ class ClickChroniclePublicPage(Item):
         return PublicIndexPage(self, ixmantissa.IStaticShellContent(self.installedOn, None))
 
     def observeClick(self, title, url):
+        self.clickLogFile.write('%s %s\n' % (Time().asISO8601TimeAndDate(), url))
         self.recentClicks.append((title, url))
         if len(self.recentClicks) > 10:
             self.recentClicks.popleft()

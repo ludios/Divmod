@@ -3,11 +3,6 @@ adjacentNs = lambda s, n: (s[i:i+n] for i in xrange(len(s)-1))
 def mchain(string, tokenizer=str.split, length=1):
     chains = dict()
 
-    def incCount(parent, word):
-        if word not in parent:
-            parent[word] = 0
-        parent[word] += 1
-
     for portion in adjacentNs(tokenizer(string), length+1):
         parent = chains
         for (i, word) in enumerate(portion):
@@ -16,6 +11,7 @@ def mchain(string, tokenizer=str.split, length=1):
                 parent[word] += 1
             else:
                 parent = parent.setdefault(word, dict())
+
     return chains
 
 if __name__ == '__main__':

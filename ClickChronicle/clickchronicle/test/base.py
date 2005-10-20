@@ -47,9 +47,8 @@ class CCTestBase:
         self.clicklist = self.firstItem(self.substore, clickapp.ClickList)
 
     def makeVisit(self, url='http://some.where', title='Some Where', indexIt=True):
-
-        host = URL.fromString(url).netloc
-        for domain in self.substore.query(Domain, Domain.url==host):
+        rootUrl = str(URL.fromString(url).click('/'))
+        for domain in self.substore.query(Domain, Domain.url==rootUrl):
             domainCount = domain.visitCount
             break
         else:
@@ -61,27 +60,26 @@ class CCTestBase:
             break
 
         preClicks = self.recorder.visitCount
-        def postRecord():
-            if not seenURL:
-                self.assertEqual(self.recorder.visitCount, preClicks+1)
 
-            visit = self.substore.query(Visit, Visit.url==url).next()
-            self.assertEqual(visit.visitCount, visitCount+1)
+        self.recorder.recordClick(dict(url=url, title=title),
+                                  indexIt=indexIt,storeFavicon=False)
 
-            if seenURL:
-                self.assertEqual(self.substore.count(Visit, Visit.url==url), 1)
-                self.failUnless(prevTimestamp < visit.timestamp)
-            else:
-                self.assertEqual(visit.title, title)
+        if not seenURL:
+            self.assertEqual(self.recorder.visitCount, preClicks+1)
 
-            self.assertEqual(visit.domain.visitCount, domainCount+1)
-            self.assertEqual(visit.domain.url, host)
+        visit = self.substore.query(Visit, Visit.url==url).next()
+        self.assertEqual(visit.visitCount, visitCount+1)
 
-            return visit
+        if seenURL:
+            self.assertEqual(self.substore.count(Visit, Visit.url==url), 1)
+            self.failUnless(prevTimestamp < visit.timestamp)
+        else:
+            self.assertEqual(visit.title, title)
 
-        futureSuccess = self.recorder.recordClick(dict(url=url, title=title), indexIt=indexIt,
-                                                  storeFavicon=False)
-        return futureSuccess.addCallback(lambda v: postRecord())
+        self.assertEqual(visit.domain.visitCount, domainCount+1)
+        self.assertEqual(visit.domain.url, rootUrl)
+
+        return visit
 
     def assertNItems(self, store, item, count):
         self.assertEqual(self.itemCount(store, item), count)
@@ -93,14 +91,14 @@ class CCTestBase:
                 self.assertEqual(first, sorted(other))
 
     def randURL(self):
-        return '%s.com' % mktemp(dir='http://', suffix='/')
+        return mktemp(dir='http://') + '.com/'
 
     def ignore(self, visit):
         self.recorder.ignoreVisit(visit)
 
     def record(self, title, url, **k):
-        wait(self.recorder.recordClick(dict(url=url, title=title, **k),
-                                        indexIt=False, storeFavicon=False))
+        self.recorder.recordClick(dict(url=url, title=title, **k),
+                                       indexIt=False, storeFavicon=False)
         try:
             return self.substore.query(Visit, Visit.url==url).next()
         except StopIteration:
@@ -121,78 +119,3 @@ class CCTestBase:
         return cacheMan.tasks.notifyOnQuiescence()
 
 
-class DataServingTestBase(CCTestBase):
-    """
-        i start a website, serving three resources with the following contents:
-            'first'  - letters a-h
-            'second' - letters i-p
-            'both'   - letters a-p
-        e.g. GET /first will return a document containing "a b c d e f g h"
-        override getResourceMap if you want to change this
-    """
-
-    def listen(self, site):
-        return reactor.listenTCP(0, site, interface='127.0.0.1')
-
-    def getResourceMap(self):
-        (first, second) = ('a b c d e f g', 'i j k l m n o p')
-        data = dict(first=first, second=second, both=' '.join((first, second)))
-        return dict((k, static.Data(v, 'text/plain')) for (k, v) in data.iteritems())
-
-    def setUpWebServer(self):
-        self.resourceMap = self.getResourceMap()
-        root = resource.Resource()
-        for (resname, res) in self.resourceMap.iteritems():
-            root.putChild(resname, res)
-        # fix this:
-        root.putChild('favicon.ico', static.Data('', 'text/plain'))
-        site = server.Site(root, timeout=None)
-        self.port = self.listen(site)
-        reactor.iterate(); reactor.iterate()
-        self.portno = self.port.getHost().port
-        self.urls = dict((n, self.makeURL(n)) for n in self.resourceMap)
-
-    def tearDown(self):
-        http._logDateTimeStop()
-
-    def makeURL(self, path):
-        return 'http://127.0.0.1:%d/%s' % (self.portno, path)
-
-    def tearDownWebServer(self):
-        self.port.stopListening()
-        reactor.iterate(); reactor.iterate()
-        del self.port
-
-class MeanResource(resource.Resource):
-    def __init__(self, responseCode=http.BAD_REQUEST):
-        self.responseCode = responseCode
-
-    def render_GET(self, request):
-        request.setResponseCode(self.responseCode)
-        return ''
-
-class IndexAwareTestBase(DataServingTestBase):
-    def setUpWebIndexer(self):
-        self.setUpWebServer()
-        self.setUpStore()
-        self.indexer = self.firstPowerup(self.substore, IIndexer)
-
-    def setUpCaching(self):
-        self.cacheMan = self.firstPowerup(self.substore, ICache)
-        self.recorder.caching = True
-
-    def tearDownWebIndexer(self):
-        self.tearDownWebServer()
-
-    def itemsForTerm(self, term):
-        return (self.substore.getItemByID(d['uid']) for d in self.indexer.search(term))
-
-class MeanResourceTestBase(IndexAwareTestBase):
-    """
-    same as IndexAwareTestBase, but i add a resource
-    that always sets the response code to 400 BAD REQUEST
-    """
-    def getResourceMap(self):
-        rmap = DataServingTestBase.getResourceMap(self)
-        rmap['mean'] = MeanResource()
-        return rmap

@@ -641,7 +641,9 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         """
         Extract POST arguments and create a Visit object before indexing and caching.
         """
-        if self.visitCount > self.maxCount:
+        # if the recording of this visit is going to push us over the limit
+        # then delete the oldest visit
+        if self.maxCount < self.visitCount+1:
             self.forgetOldestVisit()
 
         url = qargs.get('url')

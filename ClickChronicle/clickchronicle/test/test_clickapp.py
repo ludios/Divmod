@@ -15,12 +15,15 @@ class ClickRecorderTestCase(CCTestBase, TestCase):
         self.setUpStore()
 
     def tearDown(self):
-        for visit in self.substore.query(Visit):
-            self.recorder.forgetVisit(visit)
+        def txn():
+            for visit in self.substore.query(Visit):
+                self.recorder.forgetVisit(visit)
 
-        for cls in (Domain, Bookmark):
-            for item in self.substore.query(cls):
-                item.deleteFromStore()
+            for cls in (Domain, Bookmark):
+                for item in self.substore.query(cls):
+                    item.deleteFromStore()
+
+        self.substore.transact(txn)
 
     def testRecord(self):
         self.assertNItems(self.substore, Visit, 0)
@@ -34,56 +37,43 @@ class ClickRecorderTestCase(CCTestBase, TestCase):
         # same URL, different title
         self.makeVisit(url=nextUrl, title=self.mktemp(), indexIt=False)
 
-    def _testBookmark(self):
-        ss = self.substore
+    def testBookmark(self):
+        visit = self.makeVisit(url=self.randURL(), title=self.mktemp(), indexIt=False)
 
-        self.assertNItems(ss, Visit, 0)
-        self.assertNItems(ss, Domain, 0)
-        self.assertNItems(ss, Bookmark, 0)
+        bookmark = visit.asBookmark()
 
-        url = self.randURL()
-        visit = self.makeVisit(url=url, title=self.mktemp(), indexIt=False)
-        def _():
-            return visit.asBookmark()
-        bm = ss.transact(_)
-        self.assertNItems(ss, Bookmark, 1)
-        self.assertEqual(visit.url, bm.url)
-        self.assertEqual(visit.domain, bm.domain)
+        self.assertNItems(self.substore, Bookmark, 1)
+
+        self.assertEqual(visit.url, bookmark.url)
+        self.assertEqual(visit.domain, bookmark.domain)
 
     def testReferrer(self):
         iterurls = self.urlsWithSameDomain()
         url = iterurls.next()
         visit = self.record(title=url, url=url)
-        # better way to do this comparison?
         self.assertEqual(visit.referrer.typeName, BookmarkVisit.typeName)
         refereeUrl = iterurls.next()
         refereeVisit = self.record(title=refereeUrl, url=refereeUrl, ref=url)
         self.assertEqual(refereeVisit.referrer.url, visit.url)
 
-    def _testDeletionOfOldestVisit(self, maxCount=5):
+    def testDeletionOfOldestVisit(self, maxCount=5):
         self.recorder.deleteFromStore()
-        del self.recorder # i _hate_ statements
+        del self.recorder
+
         self.recorder = ClickRecorder(store=self.substore, maxCount=maxCount)
         self.recorder.installOn(self.substore)
         urls = list(self.urlsWithSameDomain(count=maxCount+1))
 
-        def storeAndCheck(url, nth):
-            self.record(title=url, url=url)
-            self.assertNItems(self.substore, Visit, nth)
-            self.assertEqual(self.recorder.visitCount, nth)
+        limitUrls = urls[:-1]
+        for url in limitUrls:
+            self.record(url=url, title=self.mktemp(), indexIt=False)
+        self.assertNItems(self.substore, Visit, maxCount)
 
-        for i in xrange(maxCount):
-            storeAndCheck(urls[i], i+1)
+        visitsByAge = list(self.substore.query(Visit, sort=Visit.timestamp.ascending))
+        self.assertEqual(sorted(limitUrls), sorted(visit.url for visit in visitsByAge))
 
-        def orderedTitles():
-            return list(allTitles(self.substore.query(Visit,
-                            sort=Visit.timestamp.ascending)))
+        self.record(url=urls[-1], title=self.mktemp(), indexIt=False)
+        self.assertNItems(self.substore, Visit, maxCount)
 
-        allTitlesOrdered = orderedTitles()
-        urls = sorted(urls)
-        self.assertEqual(sorted(allTitlesOrdered), urls[:maxCount])
-        storeAndCheck(urls[-1], maxCount)
-        oldestTitle = allTitlesOrdered[0]
-        urls.remove(oldestTitle)
-        self.assertEqual(sorted(orderedTitles()), urls)
-
+        expectedUrls = list(v.url for v in visitsByAge[1:]) + urls[-1:]
+        self.assertEqual(sorted(expectedUrls), sorted(visit.url for visit in self.substore.query(Visit)))

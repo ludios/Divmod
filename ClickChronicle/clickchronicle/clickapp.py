@@ -489,7 +489,7 @@ registerAdapter(GetExtensionFragment,
                 GetExtension,
                 ixmantissa.INavigableFragment)
 
-def send(senderAvatar, toAddress, protocol, message):
+def sendToPublicPage(senderAvatar, toAddress, protocol, message):
     # Haha it is a message passing system
     assert toAddress.resource == "clickchronicle"
     assert toAddress.domain == "clickchronicle.com"
@@ -572,20 +572,22 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             # Most likely selected a bookmark/shortcut
             referrer = self.bookmarkVisit
 
-        self.findOrCreateVisit(
+        visit = self.findOrCreateVisit(
             url, title,
             referrer, indexIt=indexIt,
             storeFavicon=storeFavicon)
 
-        if self.prefAggregator is None:
-            self.prefAggregator = ixmantissa.IPreferenceAggregator(self.installedOn)
+        if visit is not None:
+            # Ignored domain
+            if self.prefAggregator is None:
+                self.prefAggregator = ixmantissa.IPreferenceAggregator(self.installedOn)
 
-        if self.prefAggregator.getPreferenceValue("shareClicks"):
-            send(
-                self.installedOn,
-                q2q.Q2QAddress("clickchronicle.com", "clickchronicle"),
-                AGGREGATION_PROTOCOL,
-                AggregateClick(title=title, url=url))
+            if self.prefAggregator.getPreferenceValue("shareClicks"):
+                sendToPublicPage(
+                    self.installedOn,
+                    q2q.Q2QAddress("clickchronicle.com", "clickchronicle"),
+                    AGGREGATION_PROTOCOL,
+                    AggregateClick(title=title, url=url))
 
     def findOrCreateVisit(self, url, title, referrer=None, indexIt=True, storeFavicon=True):
         """
@@ -596,7 +598,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         host = str(URL.fromString(url).click("/"))
         domain = self.store.findOrCreate(Domain, url=host)
         if domain.ignore:
-            return
+            return None
         # Defensive coding. Never allow visit.referrer to be None.
         # May need to be revisited
         if referrer is None:

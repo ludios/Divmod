@@ -22,7 +22,7 @@ class IntervalTests(unittest.TestCase):
 
 class ClickStatsTests(unittest.TestCase):
     def setUp(self):
-        self.store = store.Store()
+        self.store = store.Store(self.mktemp())
 
     def testClickRecording(self):
         click = publicpage.ClickStats(store=self.store,

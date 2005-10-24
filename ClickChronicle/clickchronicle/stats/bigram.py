@@ -127,7 +127,13 @@ def rateOfChange(aList, n):
     for i in range(n, len(aList)):
         now=aList[i]*1.0
         then=aList[i-n]
-        roc=((now-then)/then)*100
+        if then == 0:
+            if now:
+                roc = log(now)# * 100.0
+            else:
+                roc = 0.0
+        else:
+            roc=((now-then)/then) #*100
         res.append(roc)
     return res
 

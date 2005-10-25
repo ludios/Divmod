@@ -1,6 +1,5 @@
 
 import os
-import commands
 import glob
 import site
 import warnings
@@ -13,11 +12,15 @@ def _cmdLineQuote(s):
     if ' ' in s or '"' in s:
         return '"' + _cmdLineQuoteRe.sub(r'\1\1\\"', s) + '"'
     return s
-
+    
 def runcmd(*x):
     popenstr = ' '.join(map(_cmdLineQuote, x))
     print 'Executing:', popenstr
-    code, output = commands.getstatusoutput(popenstr)
+
+    pipe = os.popen(popenstr)
+    output = pipe.read()
+    code = pipe.close() or 0
+
     print 'C: ' + '\nC: '.join(output.splitlines())
     if os.WIFSIGNALED(code):
         raise ValueError("Command: %r exited with signal: %d" % (

@@ -1,5 +1,6 @@
 
 import os
+import commands
 import glob
 import site
 import warnings
@@ -16,10 +17,21 @@ def _cmdLineQuote(s):
 def runcmd(*x):
     popenstr = ' '.join(map(_cmdLineQuote, x))
     print 'Executing:', popenstr
-    code = os.system(popenstr)
-    if code:
-        raise ValueError("Command: %r exited with code: %d" %(
-                popenstr, code))
+    code, output = commands.getstatusoutput(popenstr)
+    print 'C: ' + '\nC: '.join(output.splitlines())
+    if os.WIFSIGNALED(code):
+        raise ValueError("Command: %r exited with signal: %d" % (
+            popenstr, os.WTERMSIG(code)))
+    elif os.WIFEXITED(code):
+        status = os.WEXITSTATUS(code)
+        if status:
+            raise ValueError("Command: %r exited with status: %d" % (
+                popenstr, status))
+        else:
+            return output
+    else:
+        raise ValueError("Command: %r exited with unexpected code: %d" % (
+            popenstr, code))
 
 from xml.dom.minidom import parse
 
@@ -188,7 +200,7 @@ class BranchManager:
                 runcmd("svn", "revert", ".", '-R')
                 # no really, revert
                 statusf = runcmd('svn','status')
-                for line in statusf.readlines():
+                for line in statusf.splitlines():
                     if line[0] == '?':
                         unknownFile = line[7:-1]
                         print 'removing unknown:', unknownFile

@@ -1,46 +1,52 @@
 # Copyright (c) 2005 Divmod Inc. See LICENSE file for details.
 
-import py.test, xapwrap.index, tempfile, shutil, os, time, signal
+from twisted.trial import unittest
+
+import xapwrap.index, tempfile, shutil, os, time, signal
 from xapwrap.document import Document, TextField, SortKey, Keyword, Value
 
-class TestExceptionTranslater:
-    def setup_method(self, method):
+# TODO - Make these test work with flint backend
+# Manipulating and checking the 'meta' file is quartz-specific
+# All the files in the directory have changed names betweem quartz and flint
+
+class ExceptionTranslatorTests(unittest.TestCase):
+    def setUp(self):
         self.dbDir = tempfile.mkdtemp()
         x = xapwrap.index.ExceptionTranslater.openIndex(
             False, self.dbDir, xapwrap.index.xapian.DB_CREATE)
         x.flush()
 
-    def teardown_method(self, method):
+    def xtearDown(self):
         shutil.rmtree(self.dbDir)
 
-    def test_openeingError(self):
+    def testOpeningError(self):
         os.remove(os.path.join(self.dbDir, 'meta'))
-        py.test.raises(xapwrap.index.DatabaseOpeningError,
+        self.assertRaises(xapwrap.index.DatabaseOpeningError,
                        xapwrap.index.ExceptionTranslater.openIndex,
                        True, self.dbDir)
 
-    def test_corruptionError(self):
+    def testCorruptionError(self):
         f = file(os.path.join(self.dbDir, 'meta'), 'w')
         f.write('1234567890'*100)
         f.close()
-        py.test.raises(xapwrap.index.DatabaseCorruptionError,
+        self.assertRaises(xapwrap.index.DatabaseCorruptionError,
                        xapwrap.index.ExceptionTranslater.openIndex,
                        True, self.dbDir)
 
-    def test_lockError(self):
+    def testLockError(self):
         x = xapwrap.index.ExceptionTranslater.openIndex(
             False, self.dbDir, xapwrap.index.xapian.DB_OPEN)
-        py.test.raises(xapwrap.index.DatabaseLockError,
+        self.assertRaises(xapwrap.index.DatabaseLockError,
                        xapwrap.index.ExceptionTranslater.openIndex,
                        False, self.dbDir, xapwrap.index.xapian.DB_OPEN)
 
     def test_docNotFoundError(self):
         idx = xapwrap.index.ExceptionTranslater.openIndex(True, self.dbDir)
-        py.test.raises(xapwrap.index.DocNotFoundError, idx.get_document, 1)
+        self.assertRaises(xapwrap.index.DocNotFoundError, idx.get_document, 1)
 
     def test_invalidArgError(self):
         idx = xapwrap.index.ExceptionTranslater.openIndex(True, self.dbDir)
-        py.test.raises(xapwrap.index.InvalidArgumentError, idx.get_document, 0)
+        self.assertRaises(xapwrap.index.InvalidArgumentError, idx.get_document, 0)
 
 
 doc = Document(uid = 45, textFields = TextField('text', 'hi there'))
@@ -59,7 +65,7 @@ class SimpleXapianHarness:
         for path in self.indexPaths:
             shutil.rmtree(path, True)
 
-class TestLocks(SimpleXapianHarness):
+class TestLocks(unittest.TestCase, SimpleXapianHarness):
     def checkLockFiles(self, path):
         xapLockFile = os.path.join(path, xapwrap.index.XAPIAN_LOCK_FILENAME)
         myLockFile = os.path.join(path, xapwrap.index.XAPWRAP_LOCK_FILENAME)
@@ -90,7 +96,7 @@ class TestLocks(SimpleXapianHarness):
         assert self.checkLockFiles(path)
 
         idx2 = xapwrap.index.Index(path, False)
-        py.test.raises(xapwrap.index.DatabaseLockError, idx2.index, doc)
+        self.assertRaises(xapwrap.index.DatabaseLockError, idx2.index, doc)
 
     def test_AfterMurder(self):
         # open a xapian index in another process, flush some data to the
@@ -147,18 +153,16 @@ class TestLocks(SimpleXapianHarness):
                     os.kill(childPid, signal.SIGKILL)
                     assert False, "Child process failed to write xapian index before running out of time."
                 idx2 = xapwrap.index.Index(path, True)
-                py.test.raises(xapwrap.index.DatabaseLockError, idx2.index, doc)
+                self.assertRaises(xapwrap.index.DatabaseLockError, idx2.index, doc)
             finally:
                 os.kill(childPid, signal.SIGKILL)
                 os.waitpid(childPid, 0)
 
-
-class TestSmartness(SimpleXapianHarness):
-
+class TestSmartness(unittest.TestCase, SimpleXapianHarness):
     def test_CatchUID1(self):
         path = self.mktemp()
         s = xapwrap.index.SmartIndex(path, True)
-        py.test.raises(xapwrap.index.InvalidArgumentError,
+        self.assertRaises(xapwrap.index.InvalidArgumentError,
                        s.index, Document(uid = 1))
 
     def test_SmartIndex(self):
@@ -191,11 +195,11 @@ class TestSmartness(SimpleXapianHarness):
         result = s.search('hi', 'size', sortAscending=True)
         for uid, res in zip([3,4,2], result):
             assert uid==res['uid']
-        
+
         result = s.search('hi', 'size', sortAscending=False)
         for uid, res in zip([2,4,3], result):
             assert uid==res['uid']
-        
+
     def test_Values(self):
         path = self.mktemp()
         s = xapwrap.index.SmartIndex(path, True)
@@ -220,7 +224,7 @@ class TestSmartness(SimpleXapianHarness):
                       {'thisvalue':'blue', 'thatvalue':''}]
         for vals, res in zip(expectedVals, result):
             assert res['values']==vals
-        
+
     def test_GoodOrdering(self):
         docs = [Document(uid = 2, sortFields = SortKey('date', 'foo')),
                 Document(uid = 3, sortFields = SortKey('issue', 3)),
@@ -236,7 +240,5 @@ class TestSmartness(SimpleXapianHarness):
             db2.index(docs[i])
         db2.close()
         assert db1.indexValueMap != db2.indexValueMap
-        py.test.raises(xapwrap.index.InconsistantIndexCombination,
+        self.assertRaises(xapwrap.index.InconsistantIndexCombination,
                        xapwrap.index.SmartReadOnlyIndex, path1, path2)
-
-

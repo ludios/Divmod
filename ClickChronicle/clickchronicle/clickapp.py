@@ -279,8 +279,13 @@ class ClickChronicleInitializer(Item):
 class ClickChronicleInitializerPage(CCPublicPageMixin, PublicPage):
 
     def __init__(self, original):
+        for (username, domain) in userbase.getAccountNames(original.installedOn):
+            break
+        else:
+            assert False, "This is a duplicate of some other assert False somewhere else (end of publicweb.py, refactor this code or something)"
         PublicPage.__init__(self, original, staticTemplate("initialize.html"),
-                            ixmantissa.IStaticShellContent(original.installedOn, None))
+                            ixmantissa.IStaticShellContent(original.installedOn, None),
+                            '%s@%s' % (username, domain))
 
     def render_head(self, ctx, data):
         yield CCPublicPageMixin.render_head(self, ctx, data)

@@ -4,7 +4,7 @@ from __future__ import division
 
 import time, struct, collections
 from epsilon import extime
-from xmantissa.publicresource import PublicLivePage, PublicPage
+from xmantissa.publicresource import PublicLivePage, PublicPage, GenericPublicPage
 from nevow import inevow, tags, livepage
 from clickchronicle.util import makeScriptTag, staticTemplate
 from axiom.item import Item
@@ -113,7 +113,7 @@ def nextInterval(now, interval):
 
 HISTORY_DEPTH = 25
 class ClickChroniclePublicPage(Item):
-    implements(ixmantissa.IPublicPage, inevow.IResource)
+    implements(ixmantissa.IPublicPage)
 
     typeName = 'clickchronicle_public_page'
     schemaVersion = 2
@@ -145,8 +145,11 @@ class ClickChroniclePublicPage(Item):
         other.powerUp(self, ixmantissa.IPublicPage)
         self.installedOn = other
 
-    def createResource(self):
-        return PublicIndexPage(self, ixmantissa.IStaticShellContent(self.installedOn, None))
+    def anonymousResource(self):
+        return self.getPublicPageFactory().resourceForUser(None)
+
+    def getPublicPageFactory(self):
+        return GenericPublicPage(PublicIndexPage, self, ixmantissa.IStaticShellContent(self.installedOn, None))
 
     def observeClick(self, title, url):
         self.clickLogFile.write('%s %s\n' % (extime.Time().asISO8601TimeAndDate(), url))
@@ -173,6 +176,7 @@ class ClickChroniclePublicPage(Item):
 
 class CCPublicPageMixin(object):
     navigationFragment = staticTemplate("static-nav.html")
+    loggedInNavigationFragment = staticTemplate("logged-in-static-nav.html")
     title = "ClickChronicle"
 
     def render_head(self, ctx, data):
@@ -181,7 +185,12 @@ class CCPublicPageMixin(object):
         yield tags.link(rel="stylesheet", type="text/css", href="/static/css/static-site.css")
 
     def render_navigation(self, ctx, data):
-        return ctx.tag[self.navigationFragment]
+        if self.username is None:
+            fragment = self.navigationFragment
+        else:
+            fragment = self.loggedInNavigationFragment
+
+        return ctx.tag[fragment]
 
 class CCPublicPage(CCPublicPageMixin, PublicPage):
     pass
@@ -189,11 +198,11 @@ class CCPublicPage(CCPublicPageMixin, PublicPage):
 class PublicIndexPage(CCPublicPageMixin, PublicLivePage):
     title = 'ClickChronicle'
 
-    def __init__(self, original, staticContent):
-        super(PublicIndexPage, self).__init__(original, staticTemplate("index.html"), staticContent)
+    def __init__(self, original, staticContent, forUser):
+        super(PublicIndexPage, self).__init__(original, staticTemplate("index.html"), staticContent, forUser)
 
         def mkchild(tmplname, title):
-            p = CCPublicPage(original, staticTemplate(tmplname), staticContent)
+            p = CCPublicPage(original, staticTemplate(tmplname), staticContent, forUser)
             p.title = title
             return p
 

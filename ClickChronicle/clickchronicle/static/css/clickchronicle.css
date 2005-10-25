@@ -20,6 +20,10 @@ form { margin-bottom: 4px; }
 #filterDialog { display: none }
 #filterDialog > form { margin-top: 4px; }
 
+.click-actions {
+    white-space: nowrap;
+}
+
 input.submit {
 	border: 3px double #999999;
 	border-top-color: #CCCCCC;

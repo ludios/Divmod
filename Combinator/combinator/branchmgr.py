@@ -13,10 +13,13 @@ def _cmdLineQuote(s):
         return '"' + _cmdLineQuoteRe.sub(r'\1\1\\"', s) + '"'
     return s
 
-def popenl(*x):
+def runcmd(*x):
     popenstr = ' '.join(map(_cmdLineQuote, x))
     print 'Executing:', popenstr
-    return os.popen(popenstr)
+    code = os.system(popenstr)
+    if code:
+        raise ValueError("Command: %r exited with code: %d" %(
+                popenstr, code))
 
 from xml.dom.minidom import parse
 
@@ -131,8 +134,8 @@ class BranchManager:
     def newProjectBranch(self, projectName, branchName):
         trunkURI = self.projectBranchURI(projectName, 'trunk')
         branchURI = self.projectBranchURI(projectName, branchName)
-        work(popenl('svn', 'cp', trunkURI, branchURI, '-m',
-                    'Branching to %r' % (branchName,)))
+        runcmd('svn', 'cp', trunkURI, branchURI, '-m',
+               'Branching to %r' % (branchName,))
         self.changeProjectBranch(projectName, branchName, revert=False)
 
     def mergeProjectBranch(self, projectName):
@@ -149,10 +152,10 @@ class BranchManager:
         trunkDir = self.projectBranchDir(projectName)
         print 'Swapping to', trunkDir
         os.chdir(trunkDir)
-        work(popenl('svn', 'up'))
-        work(popenl('svn', 'merge',
-                    branchDir + "/@" + rev,
-                    branchDir + "/@HEAD"))
+        runcmd('svn', 'up')
+        runcmd('svn', 'merge',
+               branchDir + "/@" + rev,
+               branchDir + "/@HEAD")
         self.changeProjectBranch(projectName, 'trunk')
 
     def changeProjectBranch(self, projectName, branchRelativePath,
@@ -167,7 +170,7 @@ class BranchManager:
             if branchURI is None:
                 raise IOError("You need to specify a URI as a 3rd argument to check out trunk")
             os.chdir(self.svnProjectsDir)
-            work(popenl("svn", "co", branchURI, trunkDirectory))
+            runcmd("svn", "co", branchURI, trunkDirectory)
         if not os.path.exists(branchDirectory):
             if branchURI is None:
                 branchURI = self.projectBranchURI(projectName, branchRelativePath)
@@ -182,9 +185,9 @@ class BranchManager:
             shutil.copytree(trunkDirectory, tempname)
             os.chdir(tempname)
             if revert:
-                work(popenl("svn", "revert", ".", '-R'))
+                runcmd("svn", "revert", ".", '-R')
                 # no really, revert
-                statusf = popenl('svn','status')
+                statusf = runcmd('svn','status')
                 for line in statusf.readlines():
                     if line[0] == '?':
                         unknownFile = line[7:-1]
@@ -193,7 +196,7 @@ class BranchManager:
                             shutil.rmtree(unknownFile)
                         else:
                             os.remove(unknownFile)
-            work(popenl("svn", "switch", branchURI))
+            runcmd("svn", "switch", branchURI)
             os.chdir('..')
             os.rename(tempname, branchDirectory)
 
@@ -219,16 +222,6 @@ class BranchManager:
                     else:
                         branchURI = '/'.join([uri, 'branches', branchRelativePath])
                     return branchURI
-
-def work(f):
-    x = 0
-    fred = f.readline()
-    # print 'S:', fred
-    while fred:
-        fred = f.readline()
-        if fred:
-            print 'Output:', fred.strip()
-cycle = '-\\|/*'
 
 theBranchManager = None
 

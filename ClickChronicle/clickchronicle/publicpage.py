@@ -211,7 +211,7 @@ class PublicIndexPage(CCPublicPageMixin, PublicLivePage):
                           "faq" : mkchild('faq.html', 'Clickchronicle FAQ')}
 
     def render_head(self, ctx, data):
-        yield CCPublicPageMixin.render_head(self, ctx, data)
+        yield super(PublicIndexPage, self).render_head(ctx, data)
         yield makeScriptTag("/static/js/live-clicks.js")
 
     def goingLive(self, ctx, client):

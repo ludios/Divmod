@@ -18,6 +18,7 @@ from vertex import q2q
 from xmantissa import ixmantissa, webnav, website, webapp, prefs, search
 from xmantissa.webgestalt import AuthenticationApplication
 from xmantissa.publicresource import PublicPage
+from xmantissa.myaccount import MyAccount
 
 from clickchronicle import iclickchronicle
 from clickchronicle import indexinghelp
@@ -176,12 +177,13 @@ class ClickChronicleBenefactor(Item):
         avatar.findOrCreate(StaticShellContent).installOn(avatar)
 
 class _ShareClicks(prefs.MultipleChoicePreference):
-    def __init__(self, value, collection, choices):
+    def __init__(self, value, collection):
+        valueToDisplay = {True:"Yes", False:"No"}
         desc = 'If set to "Yes", your clicks will be aggregated anonymously'
         super(_ShareClicks, self).__init__('shareClicks', value,
                                            'Share Clicks (Anonymously)',
                                            collection, desc,
-                                           dict((c, str(c)) for c in choices))
+                                           valueToDisplay)
 
 class _TimezonePreference(prefs.Preference):
     def __init__(self, value, collection):
@@ -215,7 +217,7 @@ class CCPreferenceCollection(Item):
         self.installedOn = other
 
     def activate(self):
-        self._cachedPrefs = {"shareClicks" : _ShareClicks(self.shareClicks, self, (True, False)),
+        self._cachedPrefs = {"shareClicks" : _ShareClicks(self.shareClicks, self),
                              "timezone" : _TimezonePreference(self.timezone, self)}
 
     def getPreferences(self):
@@ -264,11 +266,9 @@ class ClickChronicleInitializer(Item):
     def _reallyEndow(self):
         avatar = self.installedOn
 
-        for item in (ClickList, DomainList, ClickRecorder, indexinghelp.SyncIndexer, BookmarkList,
-                     CCSearchProvider, AuthenticationApplication,
-                     indexinghelp.CacheManager, GetExtension, prefs.PreferenceAggregator,
-                     prefs.DefaultPreferenceCollection, CCPreferenceCollection,
-                     search.SearchAggregator):
+        for item in (ClickList, DomainList, ClickRecorder, indexinghelp.SyncIndexer,
+                     BookmarkList, CCSearchProvider, indexinghelp.CacheManager,
+                     GetExtension, CCPreferenceCollection):
 
             avatar.findOrCreate(item).installOn(avatar)
 

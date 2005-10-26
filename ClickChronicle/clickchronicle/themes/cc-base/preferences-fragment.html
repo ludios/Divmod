@@ -7,8 +7,8 @@
       <tr>
         <td class="fancyRowHeader">Clicks Per Page:</td>
         <td class="fancyCell">
-          <span id="itemsPerPageLabel"><nevow:slot name="itemsPerPage"/></span>
-          <select style="display: none;" id="itemsPerPageController"/>
+          <span id="itemsPerPageLabel"><nevow:slot name="itemsPerPage" /></span>
+          <select style="display: none;" id="itemsPerPageController" />
         </td>
         <td class="editCell">
           <a id="itemsPerPageEdit" href="javascript:edit('itemsPerPage')">edit</a>
@@ -19,15 +19,15 @@
         <td class="fancyRowHeader">Share My Clicks (Anonymously):</td>
         <td class="fancyCell">
           <span id="shareClicksLabel" class="boolean-option">
-            <nevow:slot name="shareClicks"/>
+            <nevow:slot name="shareClicks" />
           </span>
           <form style="display: none;" id="shareClicksController">
             <label for="shareClicks_on">
-              <input id="shareClicks_on" type="radio" name="shareClicksGroup" value="1"/>
+              <input id="shareClicks_on" type="radio" name="shareClicksGroup" value="1" />
               Yes
             </label>
             <label for="shareClicks_off">
-              <input type="radio" name="shareClicksGroup" value="0"/>
+              <input type="radio" name="shareClicksGroup" value="0" />
               No
             </label>
           </form>
@@ -47,7 +47,7 @@
       <tr>
         <td class="fancyRowHeader" style="width: 10%">Password:</td>
         <td class="fancyCell">
-          <a><nevow:attr name="href" nevow:render="data" nevow:data="changePasswordLink"/>Change</a>
+          <a><nevow:attr name="href" nevow:render="data" nevow:data="changePasswordLink" />Change</a>
         </td>
       </tr>
     </table>

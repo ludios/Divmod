@@ -12,7 +12,7 @@ def _cmdLineQuote(s):
     if ' ' in s or '"' in s:
         return '"' + _cmdLineQuoteRe.sub(r'\1\1\\"', s) + '"'
     return s
-    
+
 def runcmd(*x):
     popenstr = ' '.join(map(_cmdLineQuote, x))
     print 'Executing:', popenstr

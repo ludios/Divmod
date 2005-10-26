@@ -774,12 +774,12 @@ class CCSearchProvider(Item):
         # be a non-issue once said user records a click
 
         try:
-            specs = doSearch(valuesWanted=('summary',))
+            specs = doSearch(valuesWanted=('summary','_STOREID'))
         except NoIndexValueFound:
             specs = doSearch()
 
         for spec in specs:
-            visit = self.store.getItemByID(spec['uid'])
+            visit = self.store.getItemByID(int(spec['values']['_STOREID']))
             yield search.SearchResult(description=visit.title, url=visit.url,
                                       summary=spec.get('values', dict()).get('summary', ''),
                                       timestamp=visit.timestamp,

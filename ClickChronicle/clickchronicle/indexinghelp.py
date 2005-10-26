@@ -87,6 +87,8 @@ class SyncIndexer(Item):
 from twisted.web import static
 from xmantissa import ixmantissa, website
 
+ICON_VALIDITY_TIME = 60 * 60 * 24
+
 class FavIcon(Item, website.PrefixURLMixin):
     implements(ixmantissa.ISiteRootPlugin)
 
@@ -98,7 +100,7 @@ class FavIcon(Item, website.PrefixURLMixin):
     typeName = 'favicon'
 
     def createResource(self):
-        return static.Data(self.data, self.contentType)
+        return static.Data(self.data, self.contentType, ICON_VALIDITY_TIME)
 
 class PageFetchingTaskMixin(object):
     def retryableFailure(self, f):

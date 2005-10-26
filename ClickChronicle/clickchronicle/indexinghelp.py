@@ -5,7 +5,7 @@ from axiom.item import Item
 from axiom import attributes
 from nevow.url import URL
 from xapwrap.index import SmartIndex, ParsedQuery, DocNotFoundError
-from xapwrap.document import Document, TextField, Value
+from xapwrap.document import Document, StandardAnalyzer, TextField, Value, Keyword
 from clickchronicle import tagstrip, webclient
 from clickchronicle.iclickchronicle import IIndexer, ICache
 from clickchronicle.pageinfo import getPageInfo
@@ -51,7 +51,7 @@ class SyncIndexer(Item):
         xapDir = self.store.newDirectory(XAPIAN_INDEX_DIR)
         xapIndex = SmartIndex(str(xapDir.path), True)
         try:
-            xapIndex.delete_document(item.storeID)
+            xapIndex.delete_document('_STOREID'+str(item.storeID))
         except DocNotFoundError:
             pass
         else:
@@ -63,7 +63,7 @@ class SyncIndexer(Item):
         xapIndex = SmartIndex(str(xapDir.path), True)
         for item in itemList:
             try:
-                xapIndex.delete_document(item.storeID)
+                xapIndex.delete_document('_STOREID'+str(item.storeID))
             except DocNotFoundError:
                 pass
         self.decrementIndexCount(len(itemList))
@@ -84,7 +84,7 @@ class SyncIndexer(Item):
         xapIndex.close()
         return count
 
-from twisted.web import static
+from nevow import static
 from xmantissa import ixmantissa, website
 
 ICON_VALIDITY_TIME = 60 * 60 * 24
@@ -357,15 +357,7 @@ def makeDocument(visit, pageSource, pageInfo, summaryLength=400):
     encoding = pageInfo.charset
     title = visit.title
 
-    # 2 Choices here: go with the title sent by the extension already decoded using utf-8
-    # or get title from pageInfo and decode it using the charset from pageInfo
-
-    #newTitle = pageInfo.title.decode(encoding, 'replace')
     decodedSource = pageSource.decode(encoding, 'replace')
-    #if newTitle == title:
-    #    print 'titles match'
-    #else:
-    #    print "*** titles don't match", len(title), len(newTitle)
 
     text = tagstrip.cook(decodedSource)
 
@@ -381,26 +373,24 @@ def makeDocument(visit, pageSource, pageInfo, summaryLength=400):
         summary = summary[:summaryLength] + '...'
 
     values = [
-        Value('type', 'url'),
+        Value('type', 'click'),
         Value('url', visit.url),
         Value('title', title),
-        Value('summary', summary)]
+        Value('summary', summary),
+        Value('_STOREID', visit.storeID),
+        ]
 
-    terms = []
-    #if meta:
-    #    sa = StandardAnalyzer()
-    #    for contents in meta.itervalues():
-    #        for value in contents:
-    #            for tok in sa.tokenize(value):
-    #                terms.append(Term(tok))
+    keywords = [
+        Keyword('_STOREID', str(visit.storeID)),
+        Keyword('_TYPE', 'click'),
+        ]
 
     # Add page text
     textFields = [TextField(text), TextField(title)]
     # Use storeID for simpler removal of visit from index at a later stage
-    doc = Document(uid=visit.storeID,
-                   textFields=textFields,
+    doc = Document(textFields=textFields,
                    values=values,
-                   terms=terms,
+                   keywords=keywords,
                    source=pageSource)
     return doc
 

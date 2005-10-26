@@ -95,6 +95,7 @@ class Queue(item.Item):
         self._reschedule()
 
     def _cbTask(self, ignored, task):
+        task.task.deleteFromStore()
         task.deleteFromStore()
 
     def _ebTask(self, err, task):
@@ -104,6 +105,7 @@ class Queue(item.Item):
 
         if task.retries > task.maxRetries or not task.task.retryableFailure(err):
             log.msg("Giving up on %r" % (task.task,))
+            task.task.deleteFromStore()
             task.deleteFromStore()
         else:
             task.retries += 1

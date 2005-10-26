@@ -484,7 +484,7 @@ class ReadOnlyIndex:
         # we hide the db so that methods always access it only through
         # this method since db objects can be silently reaped when not
         # in use. db objects consume 5 file descriptors.
-        
+
         if self.db is None:
             self._setupDB()
 
@@ -499,7 +499,7 @@ class ReadOnlyIndex:
             # we want query terms to be ANDed together by default
             self.qp.set_default_op(self.DEFAULT_QUERY_COMBINER_OP)
             self._configure()
-        
+
             log("Index %s contains %s documents" %
                 (self.names, self.get_doccount()))
 
@@ -562,7 +562,14 @@ class ReadOnlyIndex:
                sortIndex = None, sortAscending = True,
                sortByRelevence = False,
                valuesWanted=None):
+        """
+        Search an index.
 
+        @ivar valuesWanted: a list of Values that will be returned as part
+        of the result dictionary.
+        """
+
+        # TODO - allow a simple way to get Keywords out
         self.setupDB()
         if isinstance(query, str):
             query = ParsedQuery(query)
@@ -608,7 +615,7 @@ class ReadOnlyIndex:
                 # It seems that we have the opposite definition of sort ascending
                 # than Xapian so we invert the ascending flag!
                 enq.set_sort_by_value(sortIndex, not sortAscending)
-                
+
 
             self._searchSessions[qString] = (enq, sortIndex)
 

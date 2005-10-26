@@ -303,5 +303,3 @@ def checkKeyLen(s):
         # instead of an empty string because xapian doesn't like
         # getting empty strings added as terms
         return ' '
-
-

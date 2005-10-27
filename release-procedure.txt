@@ -23,16 +23,16 @@
 
 9. Export the release:
 
-    % svn export https://divmod.org/svn/Divmod/tags/releases/Epsilon-0.2.0
+    % svn export http://divmod.org/svn/Divmod/tags/releases/Epsilon-0.2.0
 
 10. Create tarball:
 
     % python setup.py sdist
 
-11. Copy dist/*.gz to website (provisional location)
+11. Upload dist/*.gz to appropriate trac page.
 
-12. Edit project website
-    12a. check in project website
-    12b. Make sure the website renders OK
+12. Enbloggen it
 
-13. Enbloggen it
+13. PyPI release: python setup.py register
+
+14. Freshmeat release: <xmlrpc thingy maybe>

@@ -22,6 +22,7 @@ function clickchronicle_fadeIn(node, period) {
 
 function clickchronicle_createClick(title, url) {
     var newClick = document.createElement('div');
+    newClick.setAttribute('id', 'click_' + clickchronicle_clickCount);
     var clickLink = document.createElement('a');
     var clickTitle = document.createTextNode(title);
 
@@ -49,7 +50,8 @@ function clickchronicle_addClick(title, url) {
     var clicks = document.getElementById('recent-clicks-container');
     clickchronicle_clickCount += 1;
     if (clickchronicle_clickCount > clickchronicle_clickLimit) {
-        clicks.removeChild(clicks.lastChild);
+        var oldest = document.getElementById('click_' + (clickchronicle_clickCount-clickchronicle_clickLimit));
+        clicks.removeChild(oldest);
     }
     clicks.insertBefore(clickchronicle_createClick(title, url), clicks.firstChild);
 }

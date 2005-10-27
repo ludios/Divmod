@@ -205,7 +205,7 @@ class BranchManager:
                 statusf = runcmd('svn','status')
                 for line in statusf.splitlines():
                     if line[0] == '?':
-                        unknownFile = line[7:-1]
+                        unknownFile = line[7:].strip()
                         print 'removing unknown:', unknownFile
                         if os.path.isdir(unknownFile):
                             shutil.rmtree(unknownFile)

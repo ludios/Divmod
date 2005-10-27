@@ -8,6 +8,8 @@ from epsilon import extime
 
 from axiom.upgrade import registerUpgrader
 
+# remember to set installedOn when you upgrade
+
 def publicPage1To2(oldpage):
     newpage = oldpage.upgradeVersion("clickchronicle_public_page", 1, 2)
     newpage.lastIntervalEnd = extime.Time()

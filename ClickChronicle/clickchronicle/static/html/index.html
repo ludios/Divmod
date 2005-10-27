@@ -1,6 +1,62 @@
 <div xmlns:nevow="http://nevow.com/ns/nevow/0.1">
-  <p>Welcome To ClickChronicle - the best way to store, search and share all the web pages that you visit.</p>
-  <p><a href="/signup">Sign up now</a> for a free account or <a href="/faq">learn more</a>.</p>
+  <div class="click-container" nevow:pattern="click-container" nevow:render="sequence">
+    <div nevow:pattern="item" nevow:render="mapping">
+      <a>
+        <nevow:attr name="href">
+          <nevow:slot nevow:render="data" name="url" />
+        </nevow:attr>
+        <nevow:slot name="title" nevow:render="data" />
+      </a>
+      <span class="click-count" nevow:render="data" nevow:data="clicks" />
+    </div>
+    <div nevow:pattern="empty" class="big-title">
+      No Clicks
+    </div>
+  </div>
 
-  <div id="click-list" />
+  <div>
+    <span class="title">Welcome to ClickChronicle</span>
+    <span id="clicks-chronicled-container">(clicks chronicled:
+      <span id="clicks-chronicled" nevow:render="totalClicks" />)
+    </span>
+  </div><br />
+
+  <center>
+
+    <table class="click-set-collection" cellspacing="5" cellpadding="0">
+      <thead>
+        <tr>
+          <td class="first-click-set">Recent Clicks</td>
+          <td class="last-click-set">Popular Clicks</td>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr valign="top">
+          <td>
+            <div class="click-container" id="recent-clicks-container">
+              <div class="big-title" id="no-live-clicks-dialog">
+                No Clicks
+              </div>
+            </div>
+          </td>
+          <td nevow:render="popularClicks" />
+        </tr>
+      </tbody>
+
+      <thead>
+        <tr>
+          <td class="first-click-set">Popular Searches</td>
+          <td class="last-click-set">Popular News Stories</td>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr valign="top">
+          <td nevow:render="popularSearches" />
+          <td nevow:render="popularNews" />
+        </tr>
+      </tbody>
+    </table>
+  </center>
 </div>

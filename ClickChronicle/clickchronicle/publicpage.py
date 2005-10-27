@@ -7,8 +7,10 @@ from epsilon import extime
 from xmantissa.publicresource import PublicLivePage, PublicPage, GenericPublicPage
 from nevow import inevow, tags, livepage
 from clickchronicle.util import makeScriptTag, staticTemplate
+from clickchronicle.urltagger import tagURL
 from axiom.item import Item
 from axiom import attributes
+from axiom.tags import Catalog, Tag
 from zope.interface import implements
 from xmantissa import ixmantissa
 from vertex import juice
@@ -116,12 +118,13 @@ class ClickChroniclePublicPage(Item):
     implements(ixmantissa.IPublicPage)
 
     typeName = 'clickchronicle_public_page'
-    schemaVersion = 2
+    schemaVersion = 3
 
     installedOn = attributes.reference()
 
     clickListeners = attributes.inmemory()
     recentClicks = attributes.inmemory()
+    totalClicks = attributes.integer(default=0)
 
     lastIntervalEnd = attributes.timestamp()
     interval = attributes.integer(default=STATS_INTERVAL) # seconds
@@ -152,6 +155,8 @@ class ClickChroniclePublicPage(Item):
         return GenericPublicPage(PublicIndexPage, self, ixmantissa.IStaticShellContent(self.installedOn, None))
 
     def observeClick(self, title, url):
+        self.totalClicks += 1
+
         self.clickLogFile.write('%s %s\n' % (extime.Time().asISO8601TimeAndDate(), url))
         self.recentClicks.append((title, url))
         if len(self.recentClicks) > HISTORY_DEPTH:
@@ -164,6 +169,14 @@ class ClickChroniclePublicPage(Item):
         clickStat = self.store.findOrCreate(ClickStats, statKeeper=self, url=url, interval=self.interval)
         clickStat.title = title
         clickStat.recordClick(self.lastIntervalEnd, self.time())
+
+        catalog = self.store.findOrCreate(Catalog)
+
+        for tag in catalog.tagsOf(clickStat):
+            break
+        else:
+            for tag in tagURL(url):
+                catalog.tag(clickStat, tag)
 
         now = int(self.time())
         if now > self.lastIntervalEnd.asPOSIXTimestamp():
@@ -197,9 +210,13 @@ class CCPublicPage(CCPublicPageMixin, PublicPage):
 
 class PublicIndexPage(CCPublicPageMixin, PublicLivePage):
     title = 'ClickChronicle'
+    maxTitleLength = 50
+    maxClickQueryResults = 10
 
     def __init__(self, original, staticContent, forUser):
-        super(PublicIndexPage, self).__init__(original, staticTemplate("index.html"), staticContent, forUser)
+        templateContent = staticTemplate("index.html")
+        super(PublicIndexPage, self).__init__(original, templateContent, staticContent, forUser)
+        self.clickContainerPattern = inevow.IQ(templateContent).patternGenerator('click-container')
 
         def mkchild(tmplname, title):
             p = CCPublicPage(original, staticTemplate(tmplname), staticContent, forUser)
@@ -208,7 +225,8 @@ class PublicIndexPage(CCPublicPageMixin, PublicLivePage):
 
         self.children =  {"privacy-policy" : mkchild('privacy-policy.html',
                                                      'ClickChronicle Privacy Policy'),
-                          "faq" : mkchild('faq.html', 'Clickchronicle FAQ')}
+                          "faq" : mkchild('faq.html', 'Clickchronicle FAQ'),
+                          "screenshots" : mkchild('screenshots.html', 'ClickChronicle Screenshots')}
 
     def render_head(self, ctx, data):
         yield super(PublicIndexPage, self).render_head(ctx, data)
@@ -219,14 +237,53 @@ class PublicIndexPage(CCPublicPageMixin, PublicLivePage):
         unlisten = self.original.listenClicks(self)
         client.notifyOnClose().addCallback(lambda ign: unlisten())
         client.send([
-            (livepage.js.clickchronicle_addClick(t, u), livepage.eol)
-            for (t, u) in self.original.recentClicks])
+            (livepage.js.clickchronicle_addClick(self.trimTitle(t), u), livepage.eol)
+                for (t, u) in self.original.recentClicks])
 
     def child_(self, ctx):
         return self
 
+    def trimTitle(self, title):
+        if self.maxTitleLength < len(title):
+            title = title[:self.maxTitleLength-3] + '...'
+        return title
+
+    def highestScoredByTag(self, tagName, limit=maxClickQueryResults):
+        return self.original.store.query(ClickStats,
+                attributes.AND(Tag.object == ClickStats.storeID,
+                               Tag.name == tagName),
+                sort=ClickStats.totalClicks.descending,
+                limit=limit)
+
+    def highestScored(self, limit=maxClickQueryResults):
+        store = self.original.store
+        return store.query(ClickStats,
+                           sort=ClickStats.totalClicks.descending,
+                           limit=limit)
+
+    def asDicts(self, clickStats):
+        for item in clickStats:
+            yield dict(title=self.trimTitle(item.title),
+                       url=item.url, clicks=item.totalClicks)
+
+    def render_totalClicks(self, ctx, data):
+        return ctx.tag[self.original.totalClicks]
+
+    def _renderClicks(self, ctx, clicks):
+        return ctx.tag[self.clickContainerPattern(data=self.asDicts(clicks))]
+
+    def render_popularSearches(self, ctx, data):
+        return self._renderClicks(ctx, self.highestScoredByTag(u'search'))
+
+    def render_popularNews(self, ctx, data):
+        return self._renderClicks(ctx, self.highestScoredByTag(u'news'))
+
+    def render_popularClicks(self, ctx, data):
+        return self._renderClicks(ctx, self.highestScored())
+
     def observeClick(self, title, url):
-        self.client.send(livepage.js.clickchronicle_addClick(title, url))
+        self.client.call('clickchronicle_addClick', self.trimTitle(title), url)
+        self.client.call('clickchronicle_incrementClickCounter')
 
 # doot doot
 from clickchronicle import upgraders

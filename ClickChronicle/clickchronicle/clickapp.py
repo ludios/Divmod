@@ -64,7 +64,7 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
         # rewind to the first page, to reflect changes
         # it's a toss-up whether it's best to rewind of stay on the current page
         yield (livepage.js.blocked(self.trimTitle(visit.url)), livepage.eol)
-        yield self.handle_updateTable(ctx, self.startPage) 
+        yield self.handle_updateTable(ctx, self.startPage)
 
     def handle_bookmark(self, ctx, visitStoreID):
         store = self.original.store

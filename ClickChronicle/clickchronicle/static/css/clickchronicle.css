@@ -5,6 +5,17 @@ body {
 
 .hidden { display: none; }
 
+.footer {
+    margin-top: 5px;
+    color: #999999;
+    font-size: .8em;
+}
+
+#clicks-chronicled-container {
+    color: #999999;
+    font-style: italic;
+}
+
 #toolTipBox {
     display: none;
     padding: 5;

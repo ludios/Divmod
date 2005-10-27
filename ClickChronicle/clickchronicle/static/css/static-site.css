@@ -7,15 +7,54 @@ body {
     font-family: "Trebuchet MS", Verdana, Arial, Helvetica, sans-serif;
 }
 
+.footer {
+    margin-top: 5px;
+    color: #999999;
+    font-size: .8em;
+}
+
 a:link    { color: #7c7777; text-decoration: none }
 a:visited { color: #7c7777; text-decoration: none }
 a:hover   { color: #575757; text-decoration: none }
 a:active  { color: #FFFFFF; text-decoration: underline }
 
-ul {
-    border: solid 1px #B0B0B0;
+.screenshot-thumbnail {
+    border: solid 1px #999999;
+}
+
+.title {
+    font-weight: bold;
+    font-size: 1.3em;
+    color: #999999;
+}
+
+.content-paragraph {
+    margin-left: 8px;
+}
+
+.big-title {
+    font-weight: bold;
+    font-size: 1.7em;
+    color: #999999;
+    text-align: center;
+}
+
+ul.static-nav {
     margin: 0;
+    padding: 0;
     white-space: nowrap;
+    list-style-type: none;
+}
+.click-count {
+    color: #999999;
+    font-style: italic;
+}
+
+ul.static-nav > li {
+    background-image: url(/static/images/header_bg.png);
+    margin: 6px;
+    padding: 4px;
+    border: solid 1px #999999;
 }
 
 input.submit {
@@ -39,4 +78,28 @@ input.text {
     color: #333333;
     font-size: 75%;
     font-weight: bold;
+}
+
+.click-container {
+    padding: 2px;
+    font-size: .8em;
+    vertical-align: top;
+}
+
+.click-container > div {
+    white-space: nowrap;
+}
+
+.click-set-collection {
+    width: 85%;
+}
+
+.click-set-collection > thead > tr > td {
+    width: 50%;
+    border: solid 1px #999999;
+    background-image: url(/static/images/header_bg.png);
+    background-color: #FFFFFF;
+    background-position: bottom left;
+    background-repeat: repeat-x;
+    text-align: center;
 }

@@ -36,8 +36,17 @@ function clickchronicle_createClick(title, url) {
     return newClick;
 }
 
+function clickchronicle_incrementClickCounter() {
+    var counter = document.getElementById('clicks-chronicled');
+    var count = parseInt(counter.firstChild.nodeValue);
+    counter.firstChild.nodeValue = count + 1;
+}
+
 function clickchronicle_addClick(title, url) {
-    var clicks = document.getElementById('click-list');
+    var nlc = document.getElementById('no-live-clicks-dialog');
+    nlc.style.display = 'none';
+
+    var clicks = document.getElementById('recent-clicks-container');
     clickchronicle_clickCount += 1;
     if (clickchronicle_clickCount > clickchronicle_clickLimit) {
         clicks.removeChild(clicks.lastChild);

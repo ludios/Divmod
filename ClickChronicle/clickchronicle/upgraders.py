@@ -15,6 +15,13 @@ def publicPage1To2(oldpage):
 
 registerUpgrader(publicPage1To2, "clickchronicle_public_page", 1, 2)
 
+def publicPage2To3(oldpage):
+    newpage = oldpage.upgradeVersion("clickchronicle_public_page", 2, 3)
+    newpage.totalClicks = 0
+    return newpage
+
+registerUpgrader(publicPage2To3, "clickchronicle_public_page", 2, 3)
+
 from axiom.store import Store
 from xapwrap.document import Document, Value, Keyword
 from xapwrap.index import SmartIndex, DocNotFoundError

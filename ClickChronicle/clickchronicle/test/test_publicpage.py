@@ -152,3 +152,14 @@ class ClickStatsTests(unittest.TestCase):
             self.assertEquals(stats[0].intervalClicks, 1)
         finally:
             publicpage.ClickChroniclePublicPage.time = orig_time
+
+    def testTagPopularity(self):
+        pp = publicpage.ClickChroniclePublicPage(store=self.store)
+        pp.installOn(self.store)
+        # just a simple sanity check until we add configurable
+        # tag-assigners
+        clicks = list(pp.highestScoredByTag(unicode(self.mktemp()), limit=1))
+        self.assertEqual(clicks, [])
+        pp.observeClick(u'http://www.google.com/search?q=hello+world', u'Google')
+        clicks = list(pp.highestScoredByTag(unicode(self.mktemp()), limit=1))
+        self.assertEqual(clicks, [])

@@ -9,7 +9,7 @@ from nevow import inevow, tags, livepage
 from clickchronicle.util import makeScriptTag, staticTemplate
 from clickchronicle.urltagger import tagURL
 from axiom.item import Item
-from axiom import attributes
+from axiom import attributes, errors
 from axiom.tags import Catalog, Tag
 from zope.interface import implements
 from xmantissa import ixmantissa
@@ -187,6 +187,23 @@ class ClickChroniclePublicPage(Item):
         return lambda: self.clickListeners.remove(who)
 
 
+    def highestScoredByTag(self, tagName, limit):
+        scored = self.store.query(ClickStats,
+                    attributes.AND(Tag.object == ClickStats.storeID,
+                                   Tag.name == tagName),
+                    sort=ClickStats.totalClicks.descending,
+                    limit=limit)
+        # take this out when axiom.test.test_reference passes
+        try:
+            return list(scored)
+        except errors.SQLError:
+            return list()
+
+    def highestScored(self, limit):
+        return self.store.query(ClickStats,
+                                sort=ClickStats.totalClicks.descending,
+                                limit=limit)
+
 class CCPublicPageMixin(object):
     navigationFragment = staticTemplate("static-nav.html")
     loggedInNavigationFragment = staticTemplate("logged-in-static-nav.html")
@@ -248,19 +265,6 @@ class PublicIndexPage(CCPublicPageMixin, PublicLivePage):
             title = title[:self.maxTitleLength-3] + '...'
         return title
 
-    def highestScoredByTag(self, tagName, limit=maxClickQueryResults):
-        return self.original.store.query(ClickStats,
-                attributes.AND(Tag.object == ClickStats.storeID,
-                               Tag.name == tagName),
-                sort=ClickStats.totalClicks.descending,
-                limit=limit)
-
-    def highestScored(self, limit=maxClickQueryResults):
-        store = self.original.store
-        return store.query(ClickStats,
-                           sort=ClickStats.totalClicks.descending,
-                           limit=limit)
-
     def asDicts(self, clickStats):
         for item in clickStats:
             yield dict(title=self.trimTitle(item.title),
@@ -273,13 +277,15 @@ class PublicIndexPage(CCPublicPageMixin, PublicLivePage):
         return ctx.tag[self.clickContainerPattern(data=self.asDicts(clicks))]
 
     def render_popularSearches(self, ctx, data):
-        return self._renderClicks(ctx, self.highestScoredByTag(u'search'))
+        return self._renderClicks(ctx, self.original.highestScoredByTag(u'search',
+                                  self.maxClickQueryResults))
 
     def render_popularNews(self, ctx, data):
-        return self._renderClicks(ctx, self.highestScoredByTag(u'news'))
+        return self._renderClicks(ctx, self.original.highestScoredByTag(u'news',
+                                  self.maxClickQueryResults))
 
     def render_popularClicks(self, ctx, data):
-        return self._renderClicks(ctx, self.highestScored())
+        return self._renderClicks(ctx, self.original.highestScored(self.maxClickQueryResults))
 
     def observeClick(self, title, url):
         self.client.call('clickchronicle_addClick', self.trimTitle(title), url)

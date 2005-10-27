@@ -1,4 +1,5 @@
 
+
 1. Verify that buildbot ( http://jade.code-bear.com:8010/ ) is ALL GREEN (for
    all platforms that it was green for on the last release). Currently: Linux.
 
@@ -7,7 +8,8 @@
 3. Bump version number in <Package>/<package>/__init__.py
 
 4. Write release notes. <Package>/NEWS.txt
-   4a.  set version number in NEWS.txt
+   4a.  set version number in NEWS.txt.
+   4b.  set date in NEWS.txt.
 
 5. Run unit tests locally.
 

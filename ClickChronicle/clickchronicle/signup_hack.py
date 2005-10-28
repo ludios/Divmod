@@ -5,7 +5,6 @@ from xmantissa.website import PrefixURLMixin
 from zope.interface import implements
 from xmantissa.ixmantissa import ISiteRootPlugin
 from xmantissa import signup
-from clickchronicle.clickapp import CCPublicPageMixin, staticTemplate
 
 class EmaillessSignerUpper(signup.FreeSignerUpper):
 

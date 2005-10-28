@@ -1,7 +1,5 @@
 # -*- test-case-name: clickchronicle.test.test_queue -*-
 
-import datetime
-
 from twisted.internet import defer
 from twisted.python import log
 

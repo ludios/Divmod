@@ -8,7 +8,7 @@ from xmantissa.publicresource import PublicLivePage, PublicPage, GenericPublicPa
 from nevow import inevow, tags, livepage
 from clickchronicle.util import makeScriptTag, staticTemplate
 from clickchronicle.urltagger import tagURL
-from axiom.item import Item
+from axiom.item import Item, InstallableMixin
 from axiom import attributes, errors
 from axiom.tags import Catalog, Tag
 from zope.interface import implements
@@ -114,7 +114,7 @@ def nextInterval(now, interval):
     return (now // interval * interval) + interval
 
 HISTORY_DEPTH = 25
-class ClickChroniclePublicPage(Item):
+class ClickChroniclePublicPage(Item, InstallableMixin):
     implements(ixmantissa.IPublicPage)
 
     typeName = 'clickchronicle_public_page'
@@ -144,9 +144,8 @@ class ClickChroniclePublicPage(Item):
         self.clickLogFile = self.store.newFilePath('clicks.log').open('a')
 
     def installOn(self, other):
-        assert self.installedOn is None, "Cannot install ClickChroniclePublicPage on more than one thing"
+        super(ClickChroniclePublicPage, self).installOn(other)
         other.powerUp(self, ixmantissa.IPublicPage)
-        self.installedOn = other
 
     def anonymousResource(self):
         return self.getPublicPageFactory().resourceForUser(None)

@@ -5,7 +5,7 @@ from axiom.item import Item
 from axiom import attributes
 from nevow.url import URL
 from xapwrap.index import SmartIndex, ParsedQuery, DocNotFoundError
-from xapwrap.document import Document, StandardAnalyzer, TextField, Value, Keyword
+from xapwrap.document import Document, TextField, Value, Keyword
 from clickchronicle import tagstrip, webclient
 from clickchronicle.iclickchronicle import IIndexer, ICache
 from clickchronicle.pageinfo import getPageInfo

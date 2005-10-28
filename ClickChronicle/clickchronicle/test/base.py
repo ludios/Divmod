@@ -1,10 +1,11 @@
 from twisted.trial.util import wait
 from twisted.internet import reactor, defer
-from clickchronicle import iclickchronicle, clickapp, ccapp
+from clickchronicle import iclickchronicle, clickapp
 from clickchronicle.visit import Visit, Domain
 from clickchronicle.indexinghelp import IIndexer, ICache
 from xmantissa import signup
 from axiom.store import Store
+from axiom.scripts import axiomatic
 from axiom.userbase import LoginSystem
 from nevow.url import URL
 from tempfile import mktemp
@@ -16,12 +17,15 @@ class CCTestBase:
     firstPowerup = lambda self, store, iface: store.powerupsFor(iface).next()
 
     def setUpStore(self):
-        """i set up a temporary store & substore  call me in setUp or setUpClass, depending
-           on your requirements (if you have lots of test methods that dont modify the store,
-           i won't need to be recreated before each one)"""
-
-        store = Store(self.mktemp())
-        store.transact(ccapp.installSite, store)
+        """
+        I set up a temporary store & substore  call me in setUp or
+        setUpClass, depending on your requirements (if you have lots of test
+        methods that dont modify the store, I won't need to be recreated
+        before each one).
+        """
+        dbpath = self.mktemp()
+        axiomatic.main(['-d', dbpath, 'click-chronicle-site', 'install'])
+        store = Store(dbpath)
 
         for booth in store.query(signup.TicketBooth):
             break

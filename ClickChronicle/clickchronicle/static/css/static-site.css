@@ -50,12 +50,6 @@ ul.static-nav {
     font-style: italic;
 }
 
-ul.static-nav > li {
-    background-image: url(/static/images/header_bg.png);
-    margin: 6px;
-    padding: 4px;
-    border: solid 1px #999999;
-}
 
 input.submit {
     border: 3px double #999999;

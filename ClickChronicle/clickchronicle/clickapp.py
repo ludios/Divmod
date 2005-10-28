@@ -726,7 +726,7 @@ class StaticShellContent(Item):
         self.installedOn = other
 
     def getHeader(self):
-        return tags.img(src="/static/images/logo.png")
+        return tags.a(href="/")[tags.img(border=0, src="/static/images/logo.png")]
 
     def getFooter(self):
         return (entities.copy, "Divmod 2005")

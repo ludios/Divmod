@@ -2132,3 +2132,9 @@ class Originator:
         # Call fromURL, wait for pickup, then call toURL and connect
         # them (reinvite?)
         pass
+
+class Terminator:
+
+    def start(self, transport):
+        self.transport = transport
+

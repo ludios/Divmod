@@ -1,8 +1,7 @@
-from twisted.trial import unittest
-from sign.test.test_sip import FakeClockTestCase, TestRealm
+from sign.test.test_sip import FakeClockTestCase, TestRealm, PermissiveChecker
 from sign import sip
 from twisted import cred
-from twisted.internet import defer,reactor
+from twisted.internet import reactor
 
 exampleInvite = """INVITE sip:bob@proxy2.org SIP/2.0\r
 Via: SIP/2.0/UDP client.com:5060;branch=z9hG4bK74bf9\r
@@ -92,7 +91,7 @@ class CallTerminateTest(FakeClockTestCase):
         r = TestRealm("server.com")
         p = cred.portal.Portal(r)
         p.registerChecker(PermissiveChecker())
-        self.uas = sip.Terminator(p)
+        self.uas = sip.Terminator()
         self.sent = []
         self.sip = sip.SIPTransport(self.uas, ["server.com"], 5060)
         self.sip.sendMessage = lambda dest, msg: self.sent.append((dest, msg))

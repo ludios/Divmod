@@ -10,15 +10,13 @@ from nevow import rend, inevow, tags, flat, livepage, entities
 
 from epsilon.extime import Time
 
-from axiom.item import Item
-from axiom import userbase, scheduler, attributes
+from axiom.item import Item, InstallableMixin
+from axiom import upgrade, userbase, scheduler, attributes
 
 from vertex import q2q
 
 from xmantissa import ixmantissa, webnav, website, webapp, prefs, search
-from xmantissa.webgestalt import AuthenticationApplication
 from xmantissa.publicresource import PublicPage
-from xmantissa.myaccount import MyAccount
 
 from clickchronicle import iclickchronicle
 from clickchronicle import indexinghelp
@@ -159,12 +157,17 @@ class CCPrivateSortablePagedTable(CCPrivatePagedTableMixin, SortablePagedTableMi
 class ClickChronicleBenefactor(Item):
     '''i am responsible for granting priveleges to avatars,
        which equates to installing stuff in their store'''
-
     implements(ixmantissa.IBenefactor)
-    typeName = 'clickchronicle_benefactor'
-    schemaVersion = 1
 
+    typeName = 'clickchronicle_benefactor'
+    schemaVersion = 2
+
+    # Number of users this benefactor has endowed
     endowed = attributes.integer(default = 0)
+
+    # Max number of clicks users endowed by this benefactor will be
+    # able to store.
+    maxClicks = attributes.integer(default=1000)
 
     def endow(self, ticket, avatar):
         self.endowed += 1
@@ -173,8 +176,18 @@ class ClickChronicleBenefactor(Item):
         avatar.findOrCreate(webapp.PrivateApplication,
                             preferredTheme=u'cc-skin').installOn(avatar)
         avatar.findOrCreate(scheduler.SubScheduler).installOn(avatar)
-        avatar.findOrCreate(ClickChronicleInitializer).installOn(avatar)
+        avatar.findOrCreate(ClickChronicleInitializer,
+                            maxClicks=self.maxClicks).installOn(avatar)
         avatar.findOrCreate(StaticShellContent).installOn(avatar)
+
+def benefactor1To2(oldBene):
+    newBene = oldBene.upgradeVersion(
+        'clickchronicle_benefactor', 1, 2,
+        endowed=oldBene.endowed,
+        maxClicks=1000)
+    return newBene
+upgrade.registerUpgrader(benefactor1To2, 'clickchronicle_benefactor', 1, 2)
+
 
 class _ShareClicks(prefs.MultipleChoicePreference):
     def __init__(self, value, collection):
@@ -238,9 +251,10 @@ class ClickChronicleInitializer(Item):
     implements(ixmantissa.INavigableElement)
 
     typeName = 'clickchronicle_password_initializer'
-    schemaVersion = 1
+    schemaVersion = 2
 
     installedOn = attributes.reference()
+    maxClicks = attributes.integer()
 
     def installOn(self, other):
         assert self.installedOn is None, "Cannot install ClickChronicleInitializer on more than one thing"
@@ -266,14 +280,25 @@ class ClickChronicleInitializer(Item):
     def _reallyEndow(self):
         avatar = self.installedOn
 
-        for item in (ClickList, DomainList, ClickRecorder, indexinghelp.SyncIndexer,
+        rec = avatar.findOrCreate(ClickRecorder)
+        rec.maxCount = self.maxClicks
+        rec.installOn(avatar)
+
+        for item in (ClickList, DomainList, indexinghelp.SyncIndexer,
                      BookmarkList, CCSearchProvider, indexinghelp.CacheManager,
                      GetExtension, CCPreferenceCollection):
-
             avatar.findOrCreate(item).installOn(avatar)
 
         avatar.powerDown(self, ixmantissa.INavigableElement)
         self.deleteFromStore()
+
+def initializer1To2(oldInit):
+    newInit = oldInit.upgradeVersion(
+        'clickchronicle_password_initializer', 1, 2,
+        installedOn=oldInit.installedOn,
+        maxClicks=oldInit.maxClicks)
+    return newInit
+upgrade.registerUpgrader(initializer1To2, 'clickchronicle_password_initializer', 1, 2)
 
 
 class ClickChronicleInitializerPage(CCPublicPageMixin, PublicPage):
@@ -355,6 +380,9 @@ class ClickListFragment(CCPrivateSortablePagedTable):
     pagingItem = Visit
     sortDirection = 'descending'
     sortColumn = 'timestamp'
+
+    def render_maxCount(self, ctx, data):
+        return ctx.tag[iclickchronicle.IClickRecorder(self.original.store).maxCount]
 
     def countTotalItems(self, ctx):
         return iclickchronicle.IClickRecorder(self.original.store).visitCount
@@ -503,6 +531,26 @@ def sendToPublicPage(senderAvatar, toAddress, protocol, message):
         ixmantissa.IPublicPage(recip).observeClick(message.structured['title'], message.structured['url'])
 
 
+class ChangeClickLimit(Item):
+    typeName = 'clickchronicle_click_changer'
+    schemaVersion = 1
+
+    byWhat = attributes.integer()
+    recorder = attributes.reference()
+
+    def schedule(self, howLong):
+        """
+        Set this Item's run method to be run in C{howLong} seconds
+        from now.
+        """
+        scheduler.IScheduler(self.store).schedule(
+            self,
+            Time() + timedelta(seconds=howLong))
+
+    def run(self):
+        self.recorder.maxCount += self.byWhat
+        self.deleteFromStore()
+
 class ClickRecorder(Item, website.PrefixURLMixin):
     """
     I exist independently of the rest of the application and accept
@@ -537,6 +585,10 @@ class ClickRecorder(Item, website.PrefixURLMixin):
 
     def createResource(self):
         return URLGrabber(self)
+
+    def raiseClickLimitForDuration(self, byWhat, howLong):
+        ChangeClickLimit(store=self.store, recorder=self, byWhat=-byWhat).schedule(howLong)
+        self.maxCount += byWhat
 
     def recordClick(self, qargs, indexIt=True, storeFavicon=True):
         """
@@ -710,22 +762,31 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             domain.deleteFromStore()
         self.store.transact(txn)
 
-class StaticShellContent(Item):
+class StaticShellContent(Item, InstallableMixin):
     implements(ixmantissa.IStaticShellContent)
-    installedOn = attributes.reference()
-    schemaVersion = 1
+
+    schemaVersion = 2
     typeName = 'clickchronicle_static_shell_content'
 
+    installedOn = attributes.reference()
+
     def installOn(self, other):
-        assert self.installedOn is None, "cannot install StaticShellContent on more than one thing"
+        super(StaticShellContent, self).installOn(other)
         other.powerUp(self, ixmantissa.IStaticShellContent)
-        self.installedOn = other
 
     def getHeader(self):
         return tags.a(href="/")[tags.img(border=0, src="/static/images/logo.png")]
 
     def getFooter(self):
         return (entities.copy, "Divmod 2005")
+
+def staticShellContent1To2(oldShell):
+    newShell = oldShell.upgradeVersion(
+        'clickchronicle_static_shell_content', 1, 2,
+        installedOn=oldShell.store)
+    return newShell
+upgrade.registerUpgrader(staticShellContent1To2, 'clickchronicle_static_shell_content', 1, 2)
+
 
 class CCSearchProvider(Item):
     implements(ixmantissa.ISearchProvider)

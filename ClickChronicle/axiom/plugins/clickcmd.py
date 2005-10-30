@@ -103,7 +103,7 @@ class Install(usage.Options, axiomatic.AxiomaticSubCommandMixin):
             pweb.application = ccAvatar
             break
         else:
-            pweb = publicweb.PublicWeb(store=s, prefixURL=publicURL, application=ccAvatar)
+            pweb = publicweb.PublicWeb(store=s, sessioned=True, prefixURL=publicURL, application=ccAvatar)
         pweb.installOn(s)
 
 

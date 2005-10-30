@@ -4,7 +4,7 @@ from __future__ import division
 
 import time, struct, collections
 from epsilon import extime
-from xmantissa.publicresource import PublicLivePage, PublicPage, GenericPublicPage
+from xmantissa.publicresource import PublicLivePage, PublicPage
 from nevow import inevow, tags, livepage
 from clickchronicle.util import makeScriptTag, staticTemplate
 from clickchronicle.urltagger import tagURL
@@ -147,11 +147,8 @@ class ClickChroniclePublicPage(Item, InstallableMixin):
         super(ClickChroniclePublicPage, self).installOn(other)
         other.powerUp(self, ixmantissa.IPublicPage)
 
-    def anonymousResource(self):
-        return self.getPublicPageFactory().resourceForUser(None)
-
-    def getPublicPageFactory(self):
-        return GenericPublicPage(PublicIndexPage, self, ixmantissa.IStaticShellContent(self.installedOn, None))
+    def getResource(self):
+        return PublicIndexPage(self, ixmantissa.IStaticShellContent(self.installedOn, None))
 
     def observeClick(self, title, url):
         self.totalClicks += 1
@@ -225,11 +222,13 @@ class CCPublicPage(CCPublicPageMixin, PublicPage):
     pass
 
 class PublicIndexPage(CCPublicPageMixin, PublicLivePage):
+    implements(ixmantissa.ICustomizable)
+
     title = 'ClickChronicle'
     maxTitleLength = 50
     maxClickQueryResults = 10
 
-    def __init__(self, original, staticContent, forUser):
+    def __init__(self, original, staticContent, forUser=None):
         templateContent = staticTemplate("index.html")
         super(PublicIndexPage, self).__init__(original, templateContent, staticContent, forUser)
         self.clickContainerPattern = inevow.IQ(templateContent).patternGenerator('click-container')
@@ -243,6 +242,9 @@ class PublicIndexPage(CCPublicPageMixin, PublicLivePage):
                                                      'ClickChronicle Privacy Policy'),
                           "faq" : mkchild('faq.html', 'Clickchronicle FAQ'),
                           "screenshots" : mkchild('screenshots.html', 'ClickChronicle Screenshots')}
+
+    def customizeFor(self, forUser):
+        return self.__class__(self.original, self.staticContent, forUser)
 
     def render_head(self, ctx, data):
         yield super(PublicIndexPage, self).render_head(ctx, data)

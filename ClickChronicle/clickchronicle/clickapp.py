@@ -566,7 +566,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
     visitCount = attributes.integer(default = 0)
     prefixURL = 'private/record'
     # Caching needs to be provisioned/bestowed
-    caching = attributes.boolean(default=True)
+    caching = attributes.boolean(default=False)
     # Number of MRU visits to keep
     maxCount = attributes.integer(default=1000)
     bookmarkVisit = attributes.inmemory()

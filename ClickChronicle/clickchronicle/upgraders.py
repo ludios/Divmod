@@ -24,6 +24,32 @@ def publicPage2To3(oldpage):
 
 registerUpgrader(publicPage2To3, "clickchronicle_public_page", 2, 3)
 
+def publicPage3To4(oldpage):
+    newpage = oldpage.upgradeVersion("clickchronicle_public_page", 3, 4)
+    newpage.totalClicks = oldpage.totalClicks
+    newpage.installedOn = oldpage.installedOn
+    newpage.interval = 60 * 60
+    newpage.activate()
+    return newpage
+
+registerUpgrader(publicPage3To4, "clickchronicle_public_page", 3, 4)
+
+
+def clickStat1to2(oldstat):
+    from clickchronicle.publicpage import _saveHistory
+    newstat = oldstat.upgradeVersion("click_stats", 1, 2, url=oldstat.url)
+    newstat.score = 0
+    newstat.history = _saveHistory([])
+    newstat.title = oldstat.title
+    newstat.totalClicks = oldstat.totalClicks
+    newstat.intervalClicks = 0
+    newstat.depth = oldstat.depth
+    newstat.lastClickInterval = 0 # this iVar was added
+    newstat.statKeeper = oldstat.statKeeper
+
+registerUpgrader(clickStat1to2, "click_stats", 1, 2)
+
+
 from axiom.store import Store
 from xapwrap.document import Document, Value, Keyword
 from xapwrap.index import SmartIndex, DocNotFoundError

@@ -16,7 +16,7 @@ from xmantissa import ixmantissa
 from vertex import juice
 
 AGGREGATION_PROTOCOL = 'clickchronicle-click-aggregation-protocol'
-STATS_INTERVAL = 60 * 60 * 3 # seconds
+STATS_INTERVAL = 60 * 60 # seconds
 
 def _loadHistory(bytes):
     # Note: this is not necessarily good.
@@ -28,6 +28,15 @@ def _loadHistory(bytes):
 def _saveHistory(clicks):
     fmt = '!' + ('I' * len(clicks))
     return struct.pack(fmt, *clicks)
+
+from math import log
+def _expDecay(aList):
+    z=len(aList)
+    res = []
+    for i in range(z):
+        res.append(1/log(z-i+1) * aList[i])
+    return res
+
 
 class ClickStats(Item):
     """
@@ -56,7 +65,7 @@ class ClickStats(Item):
     """
 
     typeName = "click_stats"
-    schemaVersion = 1
+    schemaVersion = 2
 
     score = attributes.integer(default=0) # stores a real. multiply and divide by 1000 as needed
     history = attributes.bytes(allowNone=True) # stores a pickled list
@@ -66,42 +75,45 @@ class ClickStats(Item):
 
     totalClicks = attributes.integer(default=0)
     intervalClicks = attributes.integer(default=0)
-    interval = attributes.integer(default=STATS_INTERVAL) # seconds
     depth = attributes.integer(default=30)
-    delta = attributes.integer(default=5)
+    lastClickInterval = attributes.integer(default=0)
     statKeeper = attributes.reference()
 
-    def recordClick(self, lastInterval, now):
+    def _whichInterval(self, when):
+        return int(when.asPOSIXTimestamp() // self.statKeeper.interval)
+
+    def recordClick(self):
+        thisInterval = self._whichInterval(extime.Time())
+        if thisInterval != self.lastClickInterval:
+            self.updateInterval(thisInterval)
         self.intervalClicks += 1
         self.totalClicks += 1
 
-        lastEnd = lastInterval.asPOSIXTimestamp()
-        if now - lastEnd > self.interval:
-            missedIntervals = int((now - lastEnd) / self.interval)
-            hist = self.recordHistory(missedIntervals - 1)
-            self.updateScore(hist)
+    def updateInterval(self, newInterval):
+        intervalDifference = newInterval - self.lastClickInterval
+        self.lastClickInterval = newInterval
+        history = self.recordHistory(intervalDifference)
+        self.updateScore(history)
 
-    def recordHistory(self, pad):
+    def recordHistory(self, change):
+        pad = change - 1
         hist = _loadHistory(self.history)
         hist.extend([0] * min(pad, self.depth))
         hist.append(self.intervalClicks)
-        self.intervalClicks = 1
+        self.intervalClicks = 0
         if len(hist) > self.depth:
             del hist[:-self.depth]
         self.history = _saveHistory(hist)
         return hist
 
     def updateScore(self, history):
-        if len(history) >= self.delta:
-            now = history[-1]
-            then = history[-self.delta]
-            if then:
-                rateOfChange = ((now - then) / then) * 100
-            elif now:
-                rateOfChange =  1 / now
-            else:
-                rateOfChange = 0.0
-            self.score = int(rateOfChange * 1000)
+        """
+        This is a pretty unscientific algorithm.  We do an exponential
+        decay on the number of clicks so that older clicks are less
+        relevant.  Then we add them all up to get a score.
+        """
+        history = _expDecay(history)
+        self.score = sum(history)
 
 
 class AggregateClick(juice.Command):
@@ -118,7 +130,7 @@ class ClickChroniclePublicPage(Item, InstallableMixin):
     implements(ixmantissa.IPublicPage)
 
     typeName = 'clickchronicle_public_page'
-    schemaVersion = 3
+    schemaVersion = 4
 
     installedOn = attributes.reference()
 
@@ -126,14 +138,9 @@ class ClickChroniclePublicPage(Item, InstallableMixin):
     recentClicks = attributes.inmemory()
     totalClicks = attributes.integer(default=0)
 
-    lastIntervalEnd = attributes.timestamp()
     interval = attributes.integer(default=STATS_INTERVAL) # seconds
 
     clickLogFile = attributes.inmemory()
-
-    def __init__(self, **kw):
-        super(ClickChroniclePublicPage, self).__init__(**kw)
-        self.lastIntervalEnd = extime.Time.fromPOSIXTimestamp(nextInterval(self.time(), self.interval))
 
     def time(self):
         return time.time()
@@ -162,9 +169,9 @@ class ClickChroniclePublicPage(Item, InstallableMixin):
         for listener in self.clickListeners:
             listener.observeClick(title, url)
 
-        clickStat = self.store.findOrCreate(ClickStats, statKeeper=self, url=url, interval=self.interval)
+        clickStat = self.store.findOrCreate(ClickStats, statKeeper=self, url=url)
         clickStat.title = title
-        clickStat.recordClick(self.lastIntervalEnd, self.time())
+        clickStat.recordClick()
 
         catalog = self.store.findOrCreate(Catalog)
 
@@ -174,9 +181,6 @@ class ClickChroniclePublicPage(Item, InstallableMixin):
             for tag in tagURL(url):
                 catalog.tag(clickStat, tag)
 
-        now = int(self.time())
-        if now > self.lastIntervalEnd.asPOSIXTimestamp():
-            self.lastIntervalEnd = extime.Time.fromPOSIXTimestamp(nextInterval(now, self.interval))
 
     def listenClicks(self, who):
         self.clickListeners.append(who)
@@ -187,7 +191,7 @@ class ClickChroniclePublicPage(Item, InstallableMixin):
         scored = self.store.query(ClickStats,
                     attributes.AND(Tag.object == ClickStats.storeID,
                                    Tag.name == tagName),
-                    sort=ClickStats.totalClicks.descending,
+                    sort=ClickStats.score.descending,
                     limit=limit)
         # take this out when axiom.test.test_reference passes
         try:
@@ -197,7 +201,7 @@ class ClickChroniclePublicPage(Item, InstallableMixin):
 
     def highestScored(self, limit):
         return self.store.query(ClickStats,
-                                sort=ClickStats.totalClicks.descending,
+                                sort=ClickStats.score.descending,
                                 limit=limit)
 
 class CCPublicPageMixin(object):

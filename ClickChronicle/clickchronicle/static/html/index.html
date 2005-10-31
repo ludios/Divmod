@@ -7,7 +7,6 @@
         </nevow:attr>
         <nevow:slot name="title" nevow:render="data" />
       </a>
-      <span class="click-count" nevow:render="data" nevow:data="clicks" />
     </div>
     <div nevow:pattern="empty" class="big-title">
       No Clicks
@@ -15,7 +14,7 @@
   </div>
 
   <div>
-    <span class="title">Welcome to ClickChronicle</span>
+    <div style="font-size: 1.2em">The best way to store, search and share all the web pages that you visit</div>
     <span id="clicks-chronicled-container">(clicks chronicled:
       <span id="clicks-chronicled" nevow:render="totalClicks" />)
     </span>

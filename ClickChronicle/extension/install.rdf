@@ -4,14 +4,14 @@
    xmlns:em="http://www.mozilla.org/2004/em-rdf#">
 
   <RDF:Description about="urn:mozilla:install-manifest">
-    <em:id>{90d40199-0d84-4816-a076-d85c2a612e7f}</em:id>
+    <em:id>clickchronicle@clickchronicle.com</em:id>
     <em:name>ClickChronicle</em:name>
-    <em:version>0.2</em:version>
+    <em:version>0.3</em:version>
     <em:creator>Divmod, Inc</em:creator>
-    <em:description>Something Interesting</em:description>
+    <em:description>Click/Visit Recorder</em:description>
     <em:homepageURL>http://www.clickchronicle.com</em:homepageURL>
-    <em:optionsURL>chrome://clickchronicle/content/options.xul</em:optionsURL>
-    <em:iconURL>chrome://clickchronicle/content/logo_small.png</em:iconURL>
+    <em:optionsURL>chrome://clickchronicle/content/xul/options.xul</em:optionsURL>
+    <em:iconURL>chrome://clickchronicle/content/images/logo_small.png</em:iconURL>
 
     <em:file>
       <RDF:Description about="urn:mozilla:extension:file:content.jar">
@@ -19,12 +19,21 @@
       </RDF:Description>
     </em:file>
 
+    <!-- firefox -->
     <em:targetApplication>
       <RDF:Description>
         <em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
         <em:minVersion>1.0</em:minVersion>
         <em:maxVersion>1.0</em:maxVersion>
       </RDF:Description>
+    </em:targetApplication>
+    <!-- flock -->
+    <em:targetApplication>
+      <RDF:description>
+        <em:id>{a463f10c-3994-11da-9945-000d60ca027b}</em:id>
+        <em:minVersion>0.2</em:minVersion>
+        <em:maxVersion>6.02</em:maxVersion>
+      </RDF:description>
     </em:targetApplication>
   </RDF:Description>
 

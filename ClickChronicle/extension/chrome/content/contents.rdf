@@ -1,24 +1,20 @@
 <?xml version="1.0"?>
 
 <RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-     xmlns:chrome="http://www.mozilla.org/rdf/chrome#">
-
+     xmlns:c="http://www.mozilla.org/rdf/chrome#">
   <Seq about="urn:mozilla:package:root">
-    <li resource="urn:mozilla:package:clickchronicle"/>
+    <li>
+      <Description about="urn:mozilla:package:clickchronicle" c:name="clickchronicle"/>
+    </li>
   </Seq>
 
   <Seq about="urn:mozilla:overlays">
-    <li resource="chrome://browser/content/browser.xul"/>
+    <li>
+      <Seq about="chrome://browser/content/browser.xul">
+        <li>chrome://clickchronicle/content/xul/toolbar-palette-overlay.xul</li>
+      </Seq>
+    </li>
   </Seq>
 
-  <Seq about="chrome://browser/content/browser.xul">
-    <li>chrome://clickchronicle/content/toolbarPaletteOverlay.xul</li>
-  </Seq>
-
-  <Description about="urn:mozilla:package:clickchronicle"
-    chrome:displayName="ClickChronicle"
-    chrome:author="Divmod, Inc"
-    chrome:name="clickchronicle"
-    chrome:extension="true"/>
-  
 </RDF>
+

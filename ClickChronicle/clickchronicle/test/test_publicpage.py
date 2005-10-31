@@ -160,6 +160,6 @@ class ClickStatsTests(unittest.TestCase):
         # tag-assigners
         clicks = list(pp.highestScoredByTag(unicode(self.mktemp()), limit=1))
         self.assertEqual(clicks, [])
-        pp.observeClick(u'http://www.google.com/search?q=hello+world', u'Google')
+        pp.observeClick(u'Google', 'http://www.google.com/search?q=hello+world')
         clicks = list(pp.highestScoredByTag(unicode(self.mktemp()), limit=1))
         self.assertEqual(clicks, [])

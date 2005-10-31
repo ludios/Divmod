@@ -13,9 +13,13 @@ def _cmdLineQuote(s):
         return '"' + _cmdLineQuoteRe.sub(r'\1\1\\"', s) + '"'
     return s
 
+def prompt(s):
+    p = os.getcwd().replace(os.path.expanduser('~'), '~')
+    return p + '$ ' + s
+
 def runcmd(*x):
     popenstr = ' '.join(map(_cmdLineQuote, x))
-    print 'Executing:', popenstr
+    print prompt(popenstr)
 
     pipe = os.popen(popenstr)
     output = pipe.read()
@@ -202,9 +206,9 @@ class BranchManager:
             if revert:
                 runcmd("svn", "revert", ".", '-R')
                 # no really, revert
-                statusf = runcmd('svn','status')
+                statusf = runcmd('svn','status','--no-ignore')
                 for line in statusf.splitlines():
-                    if line[0] == '?':
+                    if line[0] == '?' or line[0] == 'I':
                         unknownFile = line[7:].strip()
                         print 'removing unknown:', unknownFile
                         if os.path.isdir(unknownFile):

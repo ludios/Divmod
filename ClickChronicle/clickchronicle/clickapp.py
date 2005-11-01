@@ -617,7 +617,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             # off chance that we didn't record the click when the user
             # was viewing the referrer page, we don't have much else
             # meaningful to use
-            referrer = self.findOrCreateVisit(ref,
+            referrer, created = self.findOrCreateVisit(ref,
                                               unicode(ref),
                                               indexIt=indexIt,
                                               storeFavicon=storeFavicon)
@@ -625,12 +625,12 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             # Most likely selected a bookmark/shortcut
             referrer = self.bookmarkVisit
 
-        visit = self.findOrCreateVisit(
+        visit, created = self.findOrCreateVisit(
             url, title,
             referrer, indexIt=indexIt,
             storeFavicon=storeFavicon)
 
-        if visit is not None:
+        if visit is not None and created is True:
             # Ignored domain
             if self.prefAggregator is None:
                 self.prefAggregator = ixmantissa.IPreferenceAggregator(self.installedOn)
@@ -647,11 +647,14 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         Try to find a visit to the same url TODAY.
         If found update the timestamp and return it.
         Otherwise create a new Visit.
+        Return a tuple of visit, created
+        Visit can be a new visit, an existing visit or None.
+        created is True of False depending on whether or not a visit was created.
         """
         host = str(URL.fromString(url).click("/"))
         domain = self.store.findOrCreate(Domain, url=host)
         if domain.ignore:
-            return None
+            return None, False
         # Defensive coding. Never allow visit.referrer to be None.
         # May need to be revisited
         if referrer is None:
@@ -670,7 +673,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                 existingVisit.domain.visitCount += 1
                 existingVisit.referrer = referrer
                 return existingVisit
-            return self.store.transact(_)
+            return self.store.transact(_), False
 
         # New visit today
         def _():
@@ -696,7 +699,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                                cacheIt=self.caching,
                                indexIt=indexIt,
                                storeFavicon=storeFavicon)
-        return visit
+        return visit, True
 
 
     def findVisitForToday(self, url):

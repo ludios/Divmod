@@ -34,8 +34,10 @@ distobj = setup(
             'static/clickchronicle.xpi',
             'static/html/*',
             'static/css/*',
-            'static/js/*',
-            'static/images/*',
+            'static/js/*.js',
+            'static/js/MochiKit/*.js',
+            'static/images/*.png',
+            'static/images/screenshots/*.png',
             'themes/cc-base/*',
             ]})
 

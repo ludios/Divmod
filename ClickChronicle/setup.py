@@ -24,8 +24,20 @@ distobj = setup(
 
     packages=[
         'clickchronicle',
+        'clickchronicle.stats',
+
         'axiom.plugins',
-        'xmantissa.plugins'])
+        'xmantissa.plugins'],
+
+    package_data={
+        'clickchronicle': [
+            'static/*',
+            'static/html/*',
+            'static/css/*',
+            'static/js/*',
+            'static/images/*',
+            'themes/cc-base/*',
+            ]})
 
 from epsilon.setuphelper import regeneratePluginCache
 regeneratePluginCache(distobj)

@@ -1,14 +1,16 @@
 from distutils.core import setup
 
+from xapwrap import version
+
 distobj = setup(
     name="Xapwrap",
-    version="0.3",
+    version=version.short(),
     maintainer="Divmod, Inc.",
     maintainer_email="support@divmod.org",
-    url="http://divmod.org/projects/xapwrap",
+    url="http://divmod.org/trac/DivmodXapwrap",
     license="MIT",
     platforms=["any"],
-    description="Improved interfaceto the Xapian text indexing library",
+    description="Improved interface to the Xapian text indexing library",
     classifiers=[
         "Intended Audience :: Developers",
         "Programming Language :: Python",

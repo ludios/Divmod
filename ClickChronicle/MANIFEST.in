@@ -1,1 +1,3 @@
 include DEPS.txt
+include README.txt
+include NEWS.txt

@@ -12,9 +12,9 @@ from tempfile import mktemp
 from twisted.web import server, resource, static, http
 
 class CCTestBase:
-    itemCount = lambda self, store, item: len(list(store.query(item)))
-    firstItem = lambda self, store, item: store.query(item).next()
-    firstPowerup = lambda self, store, iface: store.powerupsFor(iface).next()
+    itemCount = lambda self, store, item: store.count(item)
+    firstItem = lambda self, store, item: store.findFirst(item)
+    firstPowerup = lambda self, store, iface: iter(store.powerupsFor(iface)).next()
 
     def setUpStore(self):
         """
@@ -43,7 +43,7 @@ class CCTestBase:
         self.superstore = store
         self.substore = ticket.avatar.avatars.substore
 
-        init = self.substore.query(clickapp.ClickChronicleInitializer).next()
+        init = self.substore.findFirst(clickapp.ClickChronicleInitializer)
         init.setPassword('123pass456')
 
         self.recorder = self.firstItem(self.substore, clickapp.ClickRecorder)
@@ -71,7 +71,7 @@ class CCTestBase:
         if not seenURL:
             self.assertEqual(self.recorder.visitCount, preClicks+1)
 
-        visit = self.substore.query(Visit, Visit.url==url).next()
+        visit = self.substore.findFirst(Visit, url=url)
         self.assertEqual(visit.visitCount, visitCount+1)
 
         if seenURL:
@@ -103,10 +103,8 @@ class CCTestBase:
     def record(self, title, url, **k):
         self.recorder.recordClick(dict(url=url, title=title, **k),
                                        indexIt=False, storeFavicon=False)
-        try:
-            return self.substore.query(Visit, Visit.url==url).next()
-        except StopIteration:
-            return
+        
+        return self.substore.findFirst(Visit, url=url)
 
     def urlsWithSameDomain(self, count=10):
         base = URL.fromString(self.randURL())

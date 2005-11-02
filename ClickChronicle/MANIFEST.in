@@ -1,3 +1,5 @@
 include DEPS.txt
 include README.txt
 include NEWS.txt
+recursive-include clickchronicle/static/ *.html
+recursive-include clickchronicle/themes/ *.html

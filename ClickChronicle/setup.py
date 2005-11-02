@@ -22,19 +22,10 @@ distobj = setup(
         "Topic :: Internet :: WWW/HTTP :: Browsers",
         ],
 
-    packages=['clickchronicle',
-
-              'axiom.plugins',
-              'xmantissa.plugins'],
-
-    package_data={'clickchronicle': [
-            'clickchronicle.xpi',
-            'static/*',
-            'static/html/*',
-            'static/css/*',
-            'static/js/*',
-            'static/images/*',
-            'themes/cc-base/*']})
+    packages=[
+        'clickchronicle',
+        'axiom.plugins',
+        'xmantissa.plugins'])
 
 from epsilon.setuphelper import regeneratePluginCache
 regeneratePluginCache(distobj)

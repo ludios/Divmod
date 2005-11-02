@@ -31,7 +31,7 @@ distobj = setup(
 
     package_data={
         'clickchronicle': [
-            'static/*',
+            'static/clickchronicle.xpi',
             'static/html/*',
             'static/css/*',
             'static/js/*',

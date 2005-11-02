@@ -25,53 +25,102 @@ class ClickStatsTests(unittest.TestCase):
         self.store = store.Store(self.mktemp())
 
     def testClickRecording(self):
-        click = publicpage.ClickStats(store=self.store,
-                                      url='http://example.com/test',
-                                      interval=10,
-                                      delta=2)
+        orig_getInterval = publicpage.ClickStats._getInterval
+        try:
+            publicpage.ClickStats._getInterval = lambda self: 10
+            click = publicpage.ClickStats(store=self.store,
+                                          url='http://example.com/test')
 
-        lastInterval = extime.Time()
-        now = lastInterval.asPOSIXTimestamp()
+            now = extime.Time.fromPOSIXTimestamp(11)
+            def future(n):
+                return now + datetime.timedelta(seconds=n)
 
-        self.assertEquals(len(publicpage._loadHistory(click.history)), 0)
+            self.assertEquals(len(publicpage._loadHistory(click.history)), 0)
 
-        click.recordClick(lastInterval, now + 2)
-        click.recordClick(lastInterval, now + 8)
+            click.recordClick(future(2))
+            click.recordClick(future(8))
 
-        self.assertEquals(len(publicpage._loadHistory(click.history)), 0)
+            self.assertEquals(len(publicpage._loadHistory(click.history)), 1)
 
-        self.assertEquals(click.intervalClicks, 2)
-        self.assertEquals(click.totalClicks, 2)
-        self.assertEquals(click.score, 0)
+            self.assertEquals(click.intervalClicks, 2)
+            self.assertEquals(click.totalClicks, 2)
+            #self.assertEquals(click.score, 0)
 
-        # Jumping into another interval
-        click.recordClick(lastInterval, now + 12)
+            # Jumping into another interval
+            click.recordClick(future(12))
 
-        self.assertEquals(len(publicpage._loadHistory(click.history)), 1)
+            self.assertEquals(len(publicpage._loadHistory(click.history)), 2)
 
-        self.assertEquals(click.intervalClicks, 1)
-        self.assertEquals(click.totalClicks, 3)
-        self.assertEquals(click.score, 0)
+            self.assertEquals(click.intervalClicks, 1)
+            self.assertEquals(click.totalClicks, 3)
+            #self.assertEquals(click.score, 0)
 
-        # a value like now + 12 will only be passed to recordClick
-        # immediately before lastInterval is updated.  So, we'll
-        # update lastInterval here.  It advances by 10 seconds, since
-        # 10 is what was passed to ClickStats' interval argument
-        # above.
-        lastInterval += datetime.timedelta(seconds=10)
+            # And yet another interval - this time we should end up
+            # with score
+            click.recordClick(future(23))
 
-        # And yet another interval - this time we should end up with a
-        # score
-        click.recordClick(lastInterval, now + 48)
+            self.assertEquals(click.intervalClicks, 1)
+            self.assertEquals(click.totalClicks, 4)
 
-        self.assertEquals(click.intervalClicks, 1)
-        self.assertEquals(click.totalClicks, 4)
+            self.assertEquals(len(publicpage._loadHistory(click.history)), 3)
 
-        self.assertEquals(len(publicpage._loadHistory(click.history)), 4)
+            # This value depends upon an internal scheme - it may change
+            # as we come up with better ideas.
+            #self.assertEquals(click.score, -33333)
+        finally:
+            publicpage.ClickStats._getInterval = orig_getInterval
 
-        # This value depends upon an internal scheme - it may change
-        # as we come up with better ideas.
-        #self.assertEquals(click.score, -33333)
+
+    def testClickIntervalTracking(self):
+        click1 = publicpage.ClickStats(store=self.store,
+                                       url='http://example.com/one',
+                                       depth=5)
+
+        click2 = publicpage.ClickStats(store=self.store,
+                                       url='http://example.com/two',
+                                       depth=5)
+
+        orig_getInterval = publicpage.ClickStats._getInterval
+        try:
+            publicpage.ClickStats._getInterval = lambda self: 10
+
+            now = extime.Time.fromPOSIXTimestamp(11)
+            def future(n):
+                return now + datetime.timedelta(seconds=n)
+
+            click1.recordClick(future(0))       # C1
+            click2.recordClick(future(5))       # C2
+            click2.recordClick(future(15))      # C3
+            click2.recordClick(future(16))      # C4
+            click2.recordClick(future(25))      # C5
+            click1.recordClick(future(35))      # C6
+            click2.recordClick(future(35))      # C7
+
+            h1 = publicpage._loadHistory(click1.history)
+            h2 = publicpage._loadHistory(click2.history)
+
+            self.assertEquals(
+                h1,
+                [0,
+                 1, # C1
+                 0, # C3
+                 0, # C5
+                 ])
+
+            self.assertEquals(click1.intervalClicks, 1)
+
+            self.assertEquals(
+                h2,
+                [0,
+                 1, # C2
+                 2, # C3, C4
+                 1, # C5
+                 ])
+
+            self.assertEquals(click2.intervalClicks, 1)
+
+        finally:
+            publicpage.ClickStats._getInterval = orig_getInterval
 
     def testClickObserving(self):
         now = 100.0
@@ -92,10 +141,12 @@ class ClickStatsTests(unittest.TestCase):
             unobserve = pp.listenClicks(clickObserver)
 
             pp.observeClick(u'The Internet', 'http://internet/')
+            pp.observeClick(u'The Internet2', 'http://internet2/')
 
             self.assertEquals(
                 L,
-                [(u'The Internet', 'http://internet/')])
+                [(u'The Internet', 'http://internet/'),
+                 (u'The Internet2', 'http://internet2/'),])
             # Clean up for next time
             L = []
 
@@ -103,8 +154,9 @@ class ClickStatsTests(unittest.TestCase):
                 publicpage.ClickStats,
                 publicpage.ClickStats.statKeeper == pp))
 
-            self.assertEquals(len(stats), 1)
+            self.assertEquals(len(stats), 2)
             self.assertEquals(stats[0].url, 'http://internet/')
+            self.assertEquals(stats[1].url, 'http://internet2/')
             self.assertEquals(stats[0].title, u'The Internet')
             self.assertEquals(stats[0].totalClicks, 1)
             self.assertEquals(stats[0].intervalClicks, 1)
@@ -126,7 +178,7 @@ class ClickStatsTests(unittest.TestCase):
                 publicpage.ClickStats,
                 publicpage.ClickStats.statKeeper == pp))
 
-            self.assertEquals(len(stats), 1)
+            self.assertEquals(len(stats), 2)
             self.assertEquals(stats[0].url, 'http://internet/')
             self.assertEquals(stats[0].title, u'Internet v2.0')
             self.assertEquals(stats[0].totalClicks, 2)
@@ -145,15 +197,21 @@ class ClickStatsTests(unittest.TestCase):
                 publicpage.ClickStats,
                 publicpage.ClickStats.statKeeper == pp))
 
-            self.assertEquals(len(stats), 1)
+            self.assertEquals(len(stats), 2)
             self.assertEquals(stats[0].url, 'http://internet/')
             self.assertEquals(stats[0].title, u'Internet v2.0')
             self.assertEquals(stats[0].totalClicks, 3)
             self.assertEquals(stats[0].intervalClicks, 1)
+
+            stats = list(self.store.query(
+                publicpage.ClickStats,
+                publicpage.ClickStats.statKeeper == pp,
+                sort=publicpage.ClickStats.score.descending,))
+            self.assertEquals(len(stats),2)
+            self.assertEquals(stats[0].url, 'http://internet/')
+            self.assertEquals(stats[1].url, 'http://internet2/')
         finally:
             publicpage.ClickChroniclePublicPage.time = orig_time
-
-    testClickObserving.todo = testClickRecording.todo = 'reinstate last interval argument to recordClick, see ticket #292'
 
     def testTagPopularity(self):
         pp = publicpage.ClickChroniclePublicPage(store=self.store)

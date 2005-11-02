@@ -8,6 +8,8 @@ from epsilon import extime
 
 from axiom.upgrade import registerUpgrader
 
+from clickchronicle.publicpage import _saveHistory
+
 # remember to set installedOn when you upgrade
 
 def publicPage1To2(oldpage):
@@ -29,14 +31,12 @@ def publicPage3To4(oldpage):
     newpage.totalClicks = oldpage.totalClicks
     newpage.installedOn = oldpage.installedOn
     newpage.interval = 60 * 60
-    newpage.activate()
     return newpage
 
 registerUpgrader(publicPage3To4, "clickchronicle_public_page", 3, 4)
 
 
 def clickStat1to2(oldstat):
-    from clickchronicle.publicpage import _saveHistory
     newstat = oldstat.upgradeVersion("click_stats", 1, 2, url=oldstat.url)
     newstat.score = 0
     newstat.history = _saveHistory([])

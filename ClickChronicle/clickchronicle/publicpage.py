@@ -79,11 +79,14 @@ class ClickStats(Item):
     lastClickInterval = attributes.integer(default=0)
     statKeeper = attributes.reference()
 
-    def _whichInterval(self, when):
-        return int(when.asPOSIXTimestamp() // self.statKeeper.interval)
+    def _getInterval(self):
+        return self.statKeeper.interval
 
-    def recordClick(self):
-        thisInterval = self._whichInterval(extime.Time())
+    def _whichInterval(self, when):
+        return int(when.asPOSIXTimestamp() // self._getInterval())
+
+    def recordClick(self, now):
+        thisInterval = self._whichInterval(now)
         if thisInterval != self.lastClickInterval:
             self.updateInterval(thisInterval)
         self.intervalClicks += 1
@@ -98,9 +101,9 @@ class ClickStats(Item):
     def recordHistory(self, change):
         pad = change - 1
         hist = _loadHistory(self.history)
-        hist.extend([0] * min(pad, self.depth))
         hist.append(self.intervalClicks)
         self.intervalClicks = 0
+        hist.extend([0] * min(pad, self.depth))
         if len(hist) > self.depth:
             del hist[:-self.depth]
         self.history = _saveHistory(hist)
@@ -171,7 +174,7 @@ class ClickChroniclePublicPage(Item, InstallableMixin):
 
         clickStat = self.store.findOrCreate(ClickStats, statKeeper=self, url=url)
         clickStat.title = title
-        clickStat.recordClick()
+        clickStat.recordClick(extime.Time.fromPOSIXTimestamp(self.time()))
 
         catalog = self.store.findOrCreate(Catalog)
 

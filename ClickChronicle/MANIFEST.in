@@ -1,5 +1,4 @@
 include DEPS.txt
 include README.txt
 include NEWS.txt
-graft clickchronicle/static
-graft clickchronicle/themes
+graft clickchronicle

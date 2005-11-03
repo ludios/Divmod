@@ -2,6 +2,7 @@ import pytz
 from datetime import datetime, timedelta
 from zope.interface import implements
 
+from twisted.web.util import redirectTo
 from twisted.cred import portal
 from twisted.python.components import registerAdapter
 
@@ -39,7 +40,7 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
         website.AxiomFragment.__init__(self, original, docFactory)
 
         self.translator = ixmantissa.IWebTranslator(original.installedOn)
-        self.clickList = original.store.query(ClickList).next()
+        self.clickList = original.store.findFirst(ClickList)
         self.pagingPatterns = inevow.IQ(self.translator.getDocFactory("paging-patterns"))
         prefAggregator = ixmantissa.IPreferenceAggregator(original.installedOn)
         self.itemsPerPage = prefAggregator.getPreferenceValue('itemsPerPage')
@@ -87,7 +88,7 @@ class CCPrivatePagedTableMixin(website.AxiomFragment):
         yield self.handle_updateTable(ctx, self.currentPage)
 
     def visitInfo(self, visit):
-        newest = visit.getLatest(count=1).next()
+        newest = iter(visit.getLatest(count=1)).next()
 
         return (("URL", tags.a(href=visit.url)[self.trimTitle(visit.url)]),
                 ("Referrer", visit.referrer.title),
@@ -477,7 +478,7 @@ class DomainListFragment(CCPrivateSortablePagedTable):
         yield self.handle_updateTable(ctx, self.currentPage)
 
     def visitInfo(self, visit):
-        newest = visit.getLatest(count=1).next()
+        newest = iter(visit.getLatest(count=1)).next()
 
         return (("URL", tags.a(href=visit.url)[self.trimTitle(visit.url)]),
                 ("Last Visited", newest.timestamp))
@@ -551,6 +552,7 @@ class ChangeClickLimit(Item):
         self.recorder.maxCount += self.byWhat
         self.deleteFromStore()
 
+
 class ClickRecorder(Item, website.PrefixURLMixin):
     """
     I exist independently of the rest of the application and accept
@@ -590,6 +592,23 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         ChangeClickLimit(store=self.store, recorder=self, byWhat=-byWhat).schedule(howLong)
         self.maxCount += byWhat
 
+    def recordBookmark(self, title, url, indexIt=True, storeFavicon=True):
+        host = str(URL.fromString(url).click("/"))
+        domain = self.store.findOrCreate(Domain, url=host)
+
+        bookmark = self.store.findOrCreate(Bookmark,
+                                           title=title,
+                                           url=url,
+                                           domain=domain,
+                                           referrer=self.bookmarkVisit,
+                                           timestamp=Time())
+
+        cacheMan = iclickchronicle.ICache(self.store)
+        cacheMan.rememberVisit(bookmark,
+                               cacheIt=self.caching,
+                               indexIt=indexIt,
+                               storeFavicon=storeFavicon)
+
     def recordClick(self, qargs, indexIt=True, storeFavicon=True):
         """
         Extract POST arguments and create a Visit object before indexing and caching.
@@ -610,6 +629,9 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         title = title.decode('utf-8')
 
         ref = qargs.get('ref')
+        if qargs.get('bookmark') is not None:
+            self.recordBookmark(title, url, indexIt=indexIt, storeFavicon=storeFavicon)
+            return
 
         if ref:
             # we got some value for "ref".  pass the referrer url to
@@ -632,15 +654,18 @@ class ClickRecorder(Item, website.PrefixURLMixin):
 
         if visit is not None and created is True:
             # Ignored domain
-            if self.prefAggregator is None:
-                self.prefAggregator = ixmantissa.IPreferenceAggregator(self.installedOn)
+            self.publicize(title, url)
 
-            if self.prefAggregator.getPreferenceValue("shareClicks"):
-                sendToPublicPage(
-                    self.installedOn,
-                    q2q.Q2QAddress("clickchronicle.com", "clickchronicle"),
-                    AGGREGATION_PROTOCOL,
-                    AggregateClick(title=title, url=url))
+    def publicize(self, title, url):
+        if self.prefAggregator is None:
+            self.prefAggregator = ixmantissa.IPreferenceAggregator(self.installedOn)
+
+        if self.prefAggregator.getPreferenceValue("shareClicks"):
+            sendToPublicPage(
+                self.installedOn,
+                q2q.Q2QAddress("clickchronicle.com", "clickchronicle"),
+                AGGREGATION_PROTOCOL,
+                AggregateClick(title=title, url=url))
 
     def findOrCreateVisit(self, url, title, referrer=None, indexIt=True, storeFavicon=True):
         """
@@ -685,7 +710,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                           domain = domain,
                           referrer = referrer)
             self.visitCount += 1
-            domainList = self.store.query(DomainList).next()
+            domainList = self.store.findFirst(DomainList)
             domainList.clicks += 1
             self.clickCount += 1
             visit.visitCount += 1
@@ -746,7 +771,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         # XXX - This needs to be more sophisticated since there is a known race
         # condition for a Visit being deleted from the index before the page has
         # been fetched and indexed/cahced
-        visit = self.store.query(Visit, sort=Visit.timestamp.ascending).next()
+        visit = iter(self.store.query(Visit, sort=Visit.timestamp.ascending)).next()
         self.forgetVisit(visit)
 
     def ignoreVisit(self, visit):
@@ -846,7 +871,7 @@ class CCSearchProvider(Item):
                                       score=spec['score'] / 100.0)
 
 class URLGrabber(rend.Page):
-    """I handle ClickRecorder's HTTP action.  i am not an Item
+    """I handle Bookmarker/ClickRecorder's HTTP action.  i am not an Item
        because i have a lot of attributes inherited from rend.Page"""
     def __init__(self, recorder):
         self.recorder = recorder
@@ -856,4 +881,9 @@ class URLGrabber(rend.Page):
         urlpath = inevow.IRequest(ctx).URLPath()
         qargs = dict(urlpath.queryList())
         self.recorder.recordClick(qargs)
+        request = inevow.IRequest(ctx)
+        referrer = request.getHeader('referer')
+
+        if referrer:
+            return redirectTo(referrer, request)
         return ''

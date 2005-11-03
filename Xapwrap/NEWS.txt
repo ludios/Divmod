@@ -1,3 +1,5 @@
+x.x.x (yyyy-mm-dd):
+
 0.3.1 (2005-11-02):
   - Use Epsilon Version
   - Switch to Twisted Trial for unit tests

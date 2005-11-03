@@ -1,8 +1,8 @@
-from distutils.core import setup
+from epsilon.setuphelper import autosetup
 
 from clickchronicle import version
 
-distobj = setup(
+autosetup(
     name="ClickChronicle",
     version=version.short(),
     maintainer="Divmod, Inc.",
@@ -21,25 +21,4 @@ distobj = setup(
         "Programming Language :: JavaScript",
         "Topic :: Internet :: WWW/HTTP :: Browsers",
         ],
-
-    packages=[
-        'clickchronicle',
-        'clickchronicle.stats',
-
-        'axiom.plugins',
-        'xmantissa.plugins'],
-
-    package_data={
-        'clickchronicle': [
-            'static/clickchronicle.xpi',
-            'static/html/*',
-            'static/css/*',
-            'static/js/*.js',
-            'static/js/MochiKit/*.js',
-            'static/images/*.png',
-            'static/images/screenshots/*.png',
-            'themes/cc-base/*',
-            ]})
-
-from epsilon.setuphelper import regeneratePluginCache
-regeneratePluginCache(distobj)
+    )

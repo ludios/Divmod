@@ -196,7 +196,7 @@ function setPageState() {
     } else {
         hideElement("noClicksDialog");
         showElement("tableContainer");
-        setDisplayForElement("positionDescription", "table-cell");
+        setDisplayForElement("table-cell", "positionDescription");
     }
 }
 

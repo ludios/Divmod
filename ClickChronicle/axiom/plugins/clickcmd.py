@@ -1,11 +1,13 @@
 
-import decimal
+import decimal, os
 
 from zope.interface import classProvides
 
 from twisted.python import usage, util
 from twisted.cred import portal
 from twisted import plugin
+
+from vertex.scripts import certcreate
 
 from axiom import iaxiom, errors as eaxiom, scheduler, userbase
 from axiom.scripts import axiomatic
@@ -55,7 +57,18 @@ class Install(usage.Options, axiomatic.AxiomaticSubCommandMixin):
 
         s.findOrCreate(scheduler.Scheduler).installOn(s)
         s.findOrCreate(userbase.LoginSystem).installOn(s)
-        s.findOrCreate(website.WebSite).installOn(s)
+
+        for ws in s.query(website.WebSite):
+            break
+        else:
+            website.WebSite(
+                store=s,
+                portNumber=8080,
+                securePortNumber=8443,
+                certificateFile='server.pem').installOn(s)
+            if not os.path.exists('server.pem'):
+                certcreate.main([])
+
         s.findOrCreate(
             website.StaticSite,
             prefixURL=u'static',

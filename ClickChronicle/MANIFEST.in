@@ -2,3 +2,5 @@ include DEPS.txt
 include README.txt
 include NEWS.txt
 graft clickchronicle
+graft axiom
+graft xmantissa

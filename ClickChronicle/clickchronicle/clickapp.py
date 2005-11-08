@@ -551,21 +551,30 @@ class ClickRecorder(Item, website.PrefixURLMixin):
     I exist independently of the rest of the application and accept
     HTTP requests at private/record, which i farm off to URLGrabber.
     """
-    schemaVersion = 1
     implements(ixmantissa.ISiteRootPlugin, iclickchronicle.IClickRecorder)
+
     typeName = 'clickchronicle_clickrecorder'
+    schemaVersion = 1
+
+    sessioned = True
+    prefixURL = 'private/record'
+
     # Total number of clicks we have ever received
     clickCount = attributes.integer(default = 0)
+
     # Total number of visits currently in store. An optimization for
     # forgetting/maxCount.
     visitCount = attributes.integer(default = 0)
-    prefixURL = 'private/record'
+
     # Caching needs to be provisioned/bestowed
     caching = attributes.boolean(default=False)
+
     # Number of MRU visits to keep
     maxCount = attributes.integer(default=1000)
-    bookmarkVisit = attributes.inmemory()
+
     installedOn = attributes.reference()
+
+    bookmarkVisit = attributes.inmemory()
     prefAggregator = attributes.inmemory()
 
     def installOn(self, other):

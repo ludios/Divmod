@@ -1,15 +1,10 @@
-from twisted.trial.util import wait
-from twisted.internet import reactor, defer
 from clickchronicle import iclickchronicle, clickapp
 from clickchronicle.visit import Visit, Domain
-from clickchronicle.indexinghelp import IIndexer, ICache
 from xmantissa import signup
 from axiom.store import Store
 from axiom.scripts import axiomatic
-from axiom.userbase import LoginSystem
 from nevow.url import URL
 from tempfile import mktemp
-from twisted.web import server, resource, static, http
 
 class CCTestBase:
     itemCount = lambda self, store, item: store.count(item)

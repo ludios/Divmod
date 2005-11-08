@@ -1,9 +1,5 @@
-from twisted.application.service import IService
 from twisted.trial.unittest import TestCase
-from twisted.trial.util import wait
-from twisted.web.error import Error
 from nevow.url import URL
-from clickchronicle import iclickchronicle
 from clickchronicle.clickapp import ClickRecorder
 from clickchronicle.visit import Visit, Domain, BookmarkVisit, Bookmark
 from clickchronicle.test.base import CCTestBase

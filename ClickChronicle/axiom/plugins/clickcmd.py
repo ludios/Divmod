@@ -14,7 +14,7 @@ from axiom.scripts import axiomatic
 
 from xmantissa import signup, website, publicweb
 
-from clickchronicle import clickapp, publicpage, signup_hack
+from clickchronicle import clickapp, publicpage
 
 class ChronicleOptionsMixin:
     optParameters = [
@@ -45,14 +45,10 @@ class Install(usage.Options, axiomatic.AxiomaticSubCommandMixin):
         ('signup-url', 's', 'signup', 'URL at which to offer free ticketted signup'),
         ]
 
-    optFlags = [
-        ('devel', 'd', 'Flip some random switches to make the application friendlier to development.'),
-        ]
-
     def log(self, message):
         print message
 
-    def installClickChronicle(self, signupURL, dev=False):
+    def installClickChronicle(self, signupURL):
         s = self.parent.getStore()
 
         s.findOrCreate(scheduler.Scheduler).installOn(s)
@@ -82,13 +78,8 @@ class Install(usage.Options, axiomatic.AxiomaticSubCommandMixin):
         benefactor = s.findOrCreate(
             clickapp.ClickChronicleBenefactor)
 
-        if dev:
-            cls = signup_hack.EmaillessTicketSignup
-        else:
-            cls = signup.FreeTicketSignup
-
         ticketSignup = s.findOrCreate(
-            cls,
+            signup.FreeTicketSignup,
             benefactor=benefactor,
             booth=booth)
         if ticketSignup.prefixURL is None:
@@ -125,7 +116,7 @@ class Install(usage.Options, axiomatic.AxiomaticSubCommandMixin):
             raise usage.UsageError("--system-user must be specified")
         username, domain = self.decodeCommandLine(self['system-user']).split('@')
 
-        self.installClickChronicle(self.decodeCommandLine(self['signup-url']), self['devel'])
+        self.installClickChronicle(self.decodeCommandLine(self['signup-url']))
         self.installChronicleUser(username, domain, self.decodeCommandLine(self['public-url']))
 
 

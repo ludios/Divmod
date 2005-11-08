@@ -213,7 +213,7 @@ class _TimezonePreference(prefs.Preference):
     def valueToDisplay(self, value):
         return str(value)
 
-class CCPreferenceCollection(Item):
+class CCPreferenceCollection(Item, InstallableMixin):
     implements(ixmantissa.IPreferenceCollection)
 
     schemaVersion = 1
@@ -226,9 +226,8 @@ class CCPreferenceCollection(Item):
     _cachedPrefs = attributes.inmemory()
 
     def installOn(self, other):
-        assert self.installedOn is None, 'cannot install CCPreferenceCollection on more than one thing!'
+        super(CCPreferenceCollection, self).installOn(other)
         other.powerUp(self, ixmantissa.IPreferenceCollection)
-        self.installedOn = other
 
     def activate(self):
         self._cachedPrefs = {"shareClicks" : _ShareClicks(self.shareClicks, self),
@@ -243,7 +242,7 @@ class CCPreferenceCollection(Item):
         setattr(pref, 'value', value)
         self.store.transact(lambda: setattr(self, pref.key, value))
 
-class ClickChronicleInitializer(Item):
+class ClickChronicleInitializer(Item, InstallableMixin):
     """
     Installed by the Click Chronicle benefactor, this Item presents
     itself as a page for initializing your password.  Once done, the
@@ -258,9 +257,8 @@ class ClickChronicleInitializer(Item):
     maxClicks = attributes.integer()
 
     def installOn(self, other):
-        assert self.installedOn is None, "Cannot install ClickChronicleInitializer on more than one thing"
+        super(ClickChronicleInitializer, self).installOn(other)
         other.powerUp(self, ixmantissa.INavigableElement)
-        self.installedOn = other
 
     def getTabs(self):
         # This won't ever actually show up
@@ -327,7 +325,7 @@ registerAdapter(ClickChronicleInitializerPage,
                 ClickChronicleInitializer,
                 inevow.IResource)
 
-class ClickList(Item):
+class ClickList(Item, InstallableMixin):
     """similar to Preferences, i am an implementor of INavigableElement,
        and PrivateApplication will find me when when it looks in the user's
        store"""
@@ -339,17 +337,15 @@ class ClickList(Item):
     installedOn = attributes.reference()
     clicks = attributes.integer(default = 0)
 
-
     def installOn(self, other):
-        assert self.installedOn is None, "Cannot install ClickList on more than one thing"
+        super(ClickList, self).installOn(other)
         other.powerUp(self, ixmantissa.INavigableElement)
-        self.installedOn = other
 
     def getTabs(self):
         """show a link to myself in the navbar"""
         return [webnav.Tab('Clicks', self.storeID, 0.2)]
 
-class DomainList(Item):
+class DomainList(Item, InstallableMixin):
     """similar to Preferences, i am an implementor of INavigableElement,
        and PrivateApplication will find me when when it looks in the user's
        store"""
@@ -362,9 +358,8 @@ class DomainList(Item):
     clicks = attributes.integer(default = 0)
 
     def installOn(self, other):
-        assert self.installedOn is None, "Cannot install DomainList on more than one thing"
+        super(DomainList, self).installOn(other)
         other.powerUp(self, ixmantissa.INavigableElement)
-        self.installedOn = other
 
     def getTabs(self):
         '''show a link to myself in the navbar'''
@@ -392,7 +387,7 @@ registerAdapter(ClickListFragment,
                 ClickList,
                 ixmantissa.INavigableFragment)
 
-class BookmarkList(Item):
+class BookmarkList(Item, InstallableMixin):
     """similar to Preferences, i am an implementor of INavigableElement,
        and PrivateApplication will find me when when it looks in the user's
        store"""
@@ -405,9 +400,8 @@ class BookmarkList(Item):
     clicks = attributes.integer(default = 0)
 
     def installOn(self, other):
-        assert self.installedOn is None, "Cannot install BookmarkList on more than one thing"
+        super(BookmarkList, self).installOn(other)
         other.powerUp(self, ixmantissa.INavigableElement)
-        self.installedOn = other
 
     def getTabs(self):
         '''show a link to myself in the navbar'''
@@ -490,7 +484,7 @@ registerAdapter(DomainListFragment,
                 DomainList,
                 ixmantissa.INavigableFragment)
 
-class GetExtension(Item):
+class GetExtension(Item, InstallableMixin):
     implements(ixmantissa.INavigableElement)
     typeName = 'clickchronicle_get_extension'
     schemaVersion = 1
@@ -498,9 +492,8 @@ class GetExtension(Item):
     installedOn = attributes.reference()
 
     def installOn(self, other):
-        assert self.installedOn is None, "cannot install GetExtension on more than one thing!"
+        super(GetExtension, self).installOn(other)
         other.powerUp(self, ixmantissa.INavigableElement)
-        self.installedOn = other
 
     def getTabs(self):
         return [webnav.Tab('Get Extension', self.storeID, 0.0)]
@@ -576,10 +569,8 @@ class ClickRecorder(Item, website.PrefixURLMixin):
     prefAggregator = attributes.inmemory()
 
     def installOn(self, other):
-        assert self.installedOn is None, "Cannot install ClickRecorder on more than one thing"
         super(ClickRecorder, self).installOn(other)
         other.powerUp(self, iclickchronicle.IClickRecorder)
-        self.installedOn = other
 
     def activate(self):
         self.bookmarkVisit = self.store.findOrCreate(BookmarkVisit)
@@ -816,7 +807,7 @@ def staticShellContent1To2(oldShell):
 upgrade.registerUpgrader(staticShellContent1To2, 'clickchronicle_static_shell_content', 1, 2)
 
 
-class CCSearchProvider(Item):
+class CCSearchProvider(Item, InstallableMixin):
     implements(ixmantissa.ISearchProvider)
     installedOn = attributes.reference()
     schemaVersion = 1
@@ -825,9 +816,8 @@ class CCSearchProvider(Item):
     indexer = attributes.inmemory()
 
     def installOn(self, other):
-        assert self.installedOn is None, "cannot install SearchProvider on more than one thing"
+        super(CCSearchProvider, self).installOn(other)
         other.powerUp(self, ixmantissa.ISearchProvider)
-        self.installedOn = other
 
     def activate(self):
         self.indexer = None

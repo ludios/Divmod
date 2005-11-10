@@ -108,15 +108,22 @@ class Visit(Item, VisitMixin, DisplayableVisitMixin):
     schemaVersion = 1
     typeName = 'visit'
 
+    def getBookmark(self):
+        return self.store.findFirst(Bookmark, url=self.url)
+
     def asBookmark(self):
         dt = Time.fromDatetime(datetime.now())
-        bookmark = self.store.findOrCreate(Bookmark,
-                                           url=self.url,
-                                           title=self.title,
-                                           domain=self.domain,
-                                           referrer=self.referrer,
-                                           timestamp=dt)
-        return bookmark
+        bookmark = self.getBookmark()
+        if bookmark is not None:
+            return bookmark
+
+        return Bookmark(store=self.store,
+                        url=self.url,
+                        title=self.title,
+                        domain=self.domain,
+                        referrer=self.referrer,
+                        timestamp=dt,
+                        visitCount=self.visitCount)
 
     def asIcon(self):
         return self.domain.favIcon

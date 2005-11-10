@@ -697,6 +697,9 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                 existingVisit.visitCount += 1
                 existingVisit.domain.visitCount += 1
                 existingVisit.referrer = referrer
+                bookmark = existingVisit.getBookmark()
+                if bookmark:
+                    bookmark.visitCount += 1
                 return existingVisit
             return self.store.transact(_), False
 
@@ -709,6 +712,9 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                           title = title,
                           domain = domain,
                           referrer = referrer)
+            bookmark = visit.getBookmark()
+            if bookmark:
+                bookmark.visitCount += 1
             self.visitCount += 1
             domainList = self.store.findFirst(DomainList)
             domainList.clicks += 1

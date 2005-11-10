@@ -40,6 +40,7 @@ class ClickRecorderTestCase(CCTestBase, TestCase):
 
         self.assertNItems(self.substore, Bookmark, 1)
 
+        self.assertEqual(bookmark.visitCount, visit.visitCount)
         self.assertEqual(visit.url, bookmark.url)
         self.assertEqual(visit.domain, bookmark.domain)
 

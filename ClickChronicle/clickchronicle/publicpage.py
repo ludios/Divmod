@@ -16,6 +16,7 @@ from xmantissa import ixmantissa
 from vertex import juice
 
 AGGREGATION_PROTOCOL = 'clickchronicle-click-aggregation-protocol'
+ONLY_INCREMENT = '_ONLY_INCREMENT__'
 STATS_INTERVAL = 60 * 60 # seconds
 
 def _loadHistory(bytes):
@@ -85,12 +86,13 @@ class ClickStats(Item):
     def _whichInterval(self, when):
         return int(when.asPOSIXTimestamp() // self._getInterval())
 
-    def recordClick(self, now):
+    def recordClick(self, now, increment=True):
         thisInterval = self._whichInterval(now)
         if thisInterval != self.lastClickInterval:
             self.updateInterval(thisInterval)
-        self.intervalClicks += 1
-        self.totalClicks += 1
+        if increment is True:
+            self.intervalClicks += 1
+            self.totalClicks += 1
 
     def updateInterval(self, newInterval):
         intervalDifference = newInterval - self.lastClickInterval
@@ -109,12 +111,14 @@ class ClickStats(Item):
         self.history = _saveHistory(hist)
         return hist
 
-    def updateScore(self, history):
+    def updateScore(self, history=None):
         """
         This is a pretty unscientific algorithm.  We do an exponential
         decay on the number of clicks so that older clicks are less
         relevant.  Then we add them all up to get a score.
         """
+        if history is None:
+            history = _loadHistory(self.history)
         history = _expDecay(history)
         self.score = sum(history)
 
@@ -139,6 +143,7 @@ class ClickChroniclePublicPage(Item, InstallableMixin):
 
     clickListeners = attributes.inmemory()
     recentClicks = attributes.inmemory()
+    lowestPopularScore = attributes.inmemory()
     totalClicks = attributes.integer(default=0)
 
     interval = attributes.integer(default=STATS_INTERVAL) # seconds
@@ -152,6 +157,7 @@ class ClickChroniclePublicPage(Item, InstallableMixin):
         self.clickListeners = []
         self.recentClicks = collections.deque()
         self.clickLogFile = self.store.newFilePath('clicks.log').open('a')
+        self.updateLowsetPopularScore()
 
     def installOn(self, other):
         super(ClickChroniclePublicPage, self).installOn(other)
@@ -163,6 +169,8 @@ class ClickChroniclePublicPage(Item, InstallableMixin):
     def observeClick(self, title, url):
         self.totalClicks += 1
 
+        if url == ONLY_INCREMENT:
+            return
         self.clickLogFile.write('%s %s\n' % (extime.Time().asISO8601TimeAndDate(), url))
         self.recentClicks.append((title, url))
         if len(self.recentClicks) > HISTORY_DEPTH:
@@ -174,7 +182,11 @@ class ClickChroniclePublicPage(Item, InstallableMixin):
 
         clickStat = self.store.findOrCreate(ClickStats, statKeeper=self, url=url)
         clickStat.title = title
+        oldScore = clickStat.score
         clickStat.recordClick(extime.Time.fromPOSIXTimestamp(self.time()))
+        newScore = clickStat.score
+        if oldScore != newScore and newScore >= self.lowestPopularScore:
+            self.refreshScores()
 
         catalog = self.store.findOrCreate(Catalog)
 
@@ -184,11 +196,21 @@ class ClickChroniclePublicPage(Item, InstallableMixin):
             for tag in tagURL(url):
                 catalog.tag(clickStat, tag)
 
+    def updateLowsetPopularScore(self):
+        mostPopular = list(self.highestScored(HISTORY_DEPTH))
+        if mostPopular:
+            self.lowestPopularScore = mostPopular[-1].score
+        else:
+            self.lowestPopularScore = 0
+
+    def refreshScores(self):
+        for stat in self.highestScored(HISTORY_DEPTH):
+            stat.recordClick(extime.Time.fromPOSIXTimestamp(self.time()), increment=False)
+        self.updateLowsetPopularScore()
 
     def listenClicks(self, who):
         self.clickListeners.append(who)
         return lambda: self.clickListeners.remove(who)
-
 
     def highestScoredByTag(self, tagName, limit):
         scored = self.store.query(ClickStats,

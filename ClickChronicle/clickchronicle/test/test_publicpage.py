@@ -53,6 +53,15 @@ class ClickStatsTests(unittest.TestCase):
 
             self.assertEquals(click.intervalClicks, 1)
             self.assertEquals(click.totalClicks, 3)
+
+            # Make sure no numbers change
+            click.recordClick(future(12), increment=False)
+
+            self.assertEquals(len(publicpage._loadHistory(click.history)), 2)
+
+            self.assertEquals(click.intervalClicks, 1)
+            self.assertEquals(click.totalClicks, 3)
+
             #self.assertEquals(click.score, 0)
 
             # And yet another interval - this time we should end up
@@ -132,7 +141,7 @@ class ClickStatsTests(unittest.TestCase):
             pp = publicpage.ClickChroniclePublicPage(
                 store=self.store,
                 interval=10)
-
+            self.assertEquals(pp.lowestPopularScore, 0)
             L = []
             class clickObserver:
                 def observeClick(title, url):
@@ -202,6 +211,11 @@ class ClickStatsTests(unittest.TestCase):
             self.assertEquals(stats[0].title, u'Internet v2.0')
             self.assertEquals(stats[0].totalClicks, 3)
             self.assertEquals(stats[0].intervalClicks, 1)
+            # Adding the latest click should trigger recalculation of
+            # scores for top 25 clicks. Make sure they both have a
+            # non-zero score
+            for stat in stats:
+                self.assertNotEqual(stat.score, 0)
 
             stats = list(self.store.query(
                 publicpage.ClickStats,

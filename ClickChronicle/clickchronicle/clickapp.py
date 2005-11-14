@@ -25,7 +25,8 @@ from clickchronicle.util import PagedTableMixin, SortablePagedTableMixin
 from clickchronicle.util import staticTemplate, makeScriptTag
 from clickchronicle.visit import Visit, Domain, BookmarkVisit, Bookmark
 from clickchronicle.searchparser import parseSearchString
-from clickchronicle.publicpage import AGGREGATION_PROTOCOL, AggregateClick, CCPublicPageMixin
+from clickchronicle.publicpage import AGGREGATION_PROTOCOL, ONLY_INCREMENT
+from clickchronicle.publicpage import AggregateClick, CCPublicPageMixin
 
 from xapwrap.index import NoIndexValueFound
 
@@ -655,17 +656,20 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         if visit is not None and created is True:
             # Ignored domain
             self.publicize(title, url)
+        else:
+            self.publicize(u'', ONLY_INCREMENT)
 
     def publicize(self, title, url):
         if self.prefAggregator is None:
             self.prefAggregator = ixmantissa.IPreferenceAggregator(self.installedOn)
 
-        if self.prefAggregator.getPreferenceValue("shareClicks"):
-            sendToPublicPage(
-                self.installedOn,
-                q2q.Q2QAddress("clickchronicle.com", "clickchronicle"),
-                AGGREGATION_PROTOCOL,
-                AggregateClick(title=title, url=url))
+        if not self.prefAggregator.getPreferenceValue("shareClicks"):
+            url = ONLY_INCREMENT
+        sendToPublicPage(
+            self.installedOn,
+            q2q.Q2QAddress("clickchronicle.com", "clickchronicle"),
+            AGGREGATION_PROTOCOL,
+            AggregateClick(title=title, url=url))
 
     def findOrCreateVisit(self, url, title, referrer=None, indexIt=True, storeFavicon=True):
         """

@@ -4,9 +4,17 @@
 
 <window id="clickchronicle-login" title="Login" orient="horizontal" 
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
-  xmlns:html="http://www.w3.org/1999/xhtml" onload="document.getElementById('username').focus()"
+  xmlns:html="http://www.w3.org/1999/xhtml"
+  onload="gClickChronicleLoginPrompt.onLoadWindow()"
   onclose="gClickChronicleLoginPrompt.onCloseWindow()"
   style="padding: 5px;">
+
+  <keyset>
+    <key id="close_cmd" keycode="VK_ESCAPE"
+      oncommand="gClickChronicleLoginPrompt.onCloseWindow(); window.close();"/>
+    <key id="ok_cmd" keycode="VK_RETURN"
+      oncommand="gClickChronicleLoginPrompt.onClickLogin();"/>
+  </keyset>
 
   <script src="chrome://clickchronicle/content/js/login-prompt.js" type="application/x-javascript"/>
 
@@ -20,10 +28,13 @@
       <rows>
         <row>
           <vbox>
-            <label style="font-size: 1.2em; font-weight: bold" value="Login"/>
+            <hbox style="padding: 0" align="center">
+              <label style="font-size: 1.2em; font-weight: bold" value="Login"/>
+              <label id="hostname"/>
+            </hbox>
             <label value="Please enter your ClickChronicle login details"/>
           </vbox>
-          <html:img src="logo_small.png" width="43" height="39"/>
+          <html:img src="../images/logo_small.png" width="43" height="39"/>
         </row>
       </rows>
     </grid>
@@ -56,9 +67,15 @@
       </grid>
 
       <hbox align="right">
+
+        <button label="Cancel" 
+          oncommand="gClickChronicleLoginPrompt.onCloseWindow(); window.close()"
+          accesskey="C"/>
+
         <button label="Login" 
           oncommand="gClickChronicleLoginPrompt.onClickLogin();"
           accesskey="L"/>
+
       </hbox>
 
   </vbox>

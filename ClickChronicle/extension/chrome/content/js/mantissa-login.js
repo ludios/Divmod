@@ -83,7 +83,7 @@ var gClickChronicleMantissaLogin = {
 
         window.openDialog("chrome://clickchronicle/content/xul/login-prompt.xul", -1,
                           "chrome,centerscreen,resizable=no", 
-                          cbClickedLogin)
+                          cbClickedLogin, gClickChronicleMantissaLogin.mantissaURI.host);
     },
 
     responseCode : function(cbfunc) {

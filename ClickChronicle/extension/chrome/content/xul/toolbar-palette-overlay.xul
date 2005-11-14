@@ -11,7 +11,7 @@
     <toolbarbutton id="clickchronicle-record-button" 
       image="chrome://clickchronicle/content/images/record.png" class="toolbarbutton-1"
       label="Record"
-      chromedir="ltr" oncommand="gClickChronicleObs.startRecording();"
+      chromedir="ltr" oncommand="gClickChronicleObs.startRecording(true);"
       tooltiptext="Start recording clicks"/>
 
     <toolbarbutton id="clickchronicle-busy-button" 
@@ -22,7 +22,7 @@
     <toolbarbutton id="clickchronicle-pause-button" 
       image="chrome://clickchronicle/content/images/pause.png" class="toolbarbutton-1" 
       label="Pause"
-      chromedir="ltr" oncommand="gClickChronicleObs.stopRecording();"
+      chromedir="ltr" oncommand="gClickChronicleObs.stopRecording(true);"
       tooltiptext="Stop recording clicks" hidden="true"/>
   </toolbarpalette>
 

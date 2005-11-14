@@ -1,4 +1,6 @@
 var gClickChronicleObs = {
+    state : null,
+
     recordButton : null,
     busyButton   : null,
     pauseButton  : null,
@@ -38,8 +40,37 @@ var gClickChronicleObs = {
 
         for(var i = 0; i < buttons.length; i++) {
             var bname = "clickchronicle-" + buttons[i] + "-button";
+            if(document.getElementById(bname))
+                return;
             if (navToolbar.currentSet.indexOf(bname) == -1)
                     navToolbar.insertItem(bname , afterButton, null, false);
+        }
+    },
+
+    setBusyButtonState : function() {
+        with(gClickChronicleObs) {
+            if(recordButton) {
+                pauseButton.hidden = recordButton.hidden = true;
+                busyButton.hidden = false;
+            }
+        }
+    },
+
+    setUnpausedButtonState : function() {
+        with(gClickChronicleObs) {
+            if(recordButton) {
+                busyButton.hidden = recordButton.hidden = true;
+                pauseButton.hidden = false;
+            }
+        }
+    },
+
+    setPausedButtonState : function() {
+        with(gClickChronicleObs) {
+            if(recordButton) {
+                pauseButton.hidden = busyButton.hidden = true;
+                recordButton.hidden = false;
+            }
         }
     },
 
@@ -67,57 +98,44 @@ var gClickChronicleObs = {
                                      encodeURIComponent(document.title),
                                      encodeURIComponent(document.referrer));
 
-        gClickChronicleObs.printDebug(
-            gClickChronicleObs.substitute("logToServer(%s) - %s", 
-                                          document, targetURL));
-
         try {
             var req = new XMLHttpRequest();
             req.open("POST", targetURL, true);
             req.send(null);
-        } catch(e) {
-            gClickChronicleObs.printDebug("caught exception " + e);
-        }
+        } catch(e) {}
     },
 
     chromeLoaded : function(event) {
-        //if(!gClickChronicleObs.CCPrefs.getBoolPref("everLoaded")) {
-        //    
-        //    gClickChronicleObs.CCPrefs.setBoolPref("everLoaded", true);
-        //}
-
-        gClickChronicleObs.showToolbarButtons();
-
-        gClickChronicleObs.printDebug(
-            gClickChronicleObs.substitute(
-                "entered chromeLoaded(%s)", event));
+        var me = gClickChronicleObs;
+        window.removeEventListener("load", me.chromeLoaded, false);
+        me.showToolbarButtons();
 
         function delayedLoad() {
-            gClickChronicleObs.printDebug("entered delayedLoad()");
-            window.removeEventListener("load", gClickChronicleObs.chromeLoaded, false);
-
-
-            var recordButton = document.getElementById("clickchronicle-record-button");
+            var recordButton = document.getElementById(
+                                "clickchronicle-record-button");
             if(recordButton) {
-                gClickChronicleObs.recordButton = recordButton;
-                gClickChronicleObs.busyButton = document.getElementById("clickchronicle-busy-button");
-                gClickChronicleObs.pauseButton = document.getElementById("clickchronicle-pause-button");
+                me.recordButton = recordButton;
+                me.busyButton = document.getElementById(
+                                    "clickchronicle-busy-button");
+                me.pauseButton = document.getElementById(
+                                    "clickchronicle-pause-button");
             }
 
-            gClickChronicleObs.appContent = document.getElementById("appcontent");
-            gClickChronicleObs.tabBrowser = document.getElementById("content");
+            me.appContent = document.getElementById("appcontent");
+            me.tabBrowser = document.getElementById("content");
 
-            if(gClickChronicleObs.CCPrefs.getBoolPref("enableOnStartup")) {
-                gClickChronicleObs.printDebug("enableOnStartup is true, starting to record");
-                gClickChronicleObs.startRecording();
-            } else
-                gClickChronicleObs.printDebug("enableOnStartup is false, doing nothing");
+            function cbGotState(state) {
+                if(state == "unpaused" || (state == null && 
+                        me.CCPrefs.getBoolPref("enableOnStartup"))) {
+                    me.startRecording(false);
+                }
+            }
+            gClickChronicleStateChangeSentinel.pollStates(cbGotState);
         }
         setTimeout(delayedLoad, 2);
     },
 
     DOMContentLoaded : function(event) {
-        gClickChronicleObs.printDebug(gClickChronicleObs.substitute("DOMContentLoaded(%s)", event));
         var win = event.target.defaultView;
         if(win == win.top) {
             var URI = gClickChronicleObs.IOService.newURI(win.location.href, null, null);
@@ -126,54 +144,223 @@ var gClickChronicleObs = {
         }
     },
 
-    startRecording : function() {
-        gClickChronicleObs.printDebug("entered startRecording()");
-
-        if(gClickChronicleObs.recordButton) {
-            gClickChronicleObs.recordButton.hidden = true;
-            gClickChronicleObs.busyButton.hidden = false;
-        }
+    startRecording : function(notify) {
+        var me = gClickChronicleObs;
+        me.setBusyButtonState();
 
         function cbLoggedIn(result) {
-            gClickChronicleObs.printDebug("entered cbLoggedIn(...)");
-
-            var buttonsVisible = gClickChronicleObs.recordButton;
-
-            if(buttonsVisible)
-                gClickChronicleObs.busyButton.hidden = true;
-
-            if(result) {
-                if(buttonsVisible)
-                    gClickChronicleObs.pauseButton.hidden = false;
-
-                gClickChronicleObs.appContent.addEventListener(
-                    "DOMContentLoaded", gClickChronicleObs.DOMContentLoaded, false);
-
-            } else {
-                gClickChronicleObs.stopRecording();
-
-                if(buttonsVisible)
-                    gClickChronicleObs.recordButton.hidden = false;
-            }
+            if(!result)
+                return me.stopRecording(notify);
+            me.state = "unpaused";
+            me.setUnpausedButtonState();
+            me.appContent.addEventListener("DOMContentLoaded", me.DOMContentLoaded, false);
+            if(notify)
+                gClickChronicleStateChangeSentinel.notify(
+                    "clickchronicle-state-changed", "unpaused");
         }
-
-        var recorderURL = gClickChronicleObs.CCPrefs.getCharPref("clickRecorderURL");
-        var recorderURI = gClickChronicleObs.IOService.newURI(recorderURL, null, null);
-
-        gClickChronicleObs.printDebug(
-            gClickChronicleObs.substitute(
-                "calling gClickChronicleMantissaLogin.login(%s, ...)",
-                recorderURL));
-
+        var recorderURL = me.CCPrefs.getCharPref("clickRecorderURL");
+        var recorderURI = me.IOService.newURI(recorderURL, null, null);
         gClickChronicleMantissaLogin.login(recorderURI, cbLoggedIn);
     },
 
-    stopRecording : function() {
-        gClickChronicleObs.recordButton.hidden = false;
-        gClickChronicleObs.pauseButton.hidden  = true;
+    stopRecording : function(notify) {
+        gClickChronicleObs.state = "paused";
+        if(notify)
+            gClickChronicleStateChangeSentinel.notify(
+                "clickchronicle-state-changed", "paused");
+        gClickChronicleObs.setPausedButtonState();
         gClickChronicleObs.appContent.removeEventListener("DOMContentLoaded", 
             gClickChronicleObs.DOMContentLoaded, false);
+    },
+
+    quitting : function() {},
+
+    stateChanged : function(newstate) {
+        if(newstate == "paused")
+            gClickChronicleObs.stopRecording(false);
+        else
+            gClickChronicleObs.startRecording(false);
     }
 }
 
+var gClickChronicleStateChangeSentinel = {
+
+    magicId : Math.random().toString(),
+    pollStateCallback : null,
+
+    ObserverService : Components.classes["@mozilla.org/observer-service;1"]
+                        .getService(Components.interfaces.nsIObserverService),
+
+    QueryInterface : function(iid) {
+        if(iid.equals(Components.interfaces.nsIObserver)
+            || iid.equals(Components.interfaces.nsISupports))
+            return gClickChronicleStateChangeSentinel;
+        throw Components.results.NS_NOINTERFACE;
+    },
+
+    handleStateChanged : function(messageData) {
+        dump("cc: handleStateChanged\n");
+        if(messageData[0] != gClickChronicleStateChangeSentinel.magicId)
+            gClickChronicleObs.stateChanged(messageData[1]);
+    },
+
+    handleStateQuery : function(messageData) {
+        dump("cc: handleStateQuery\n");
+        if(messageData[0] != gClickChronicleStateChangeSentinel.magicId)
+            gClickChronicleStateChangeSentinel.notify(
+                "clickchronicle-state-notification", 
+                gClickChronicleStateChangeSentinel.getState());
+    },
+
+    handleStateNotification : function(messageData) {
+        dump("cc: handleStateNotification\n");
+        var gccscs = gClickChronicleStateChangeSentinel;
+
+        if(messageData[0] != gccscs.magicId && gccscs.pollStateCallback) {
+            gccscs.pollStateCallback(messageData[1]);
+            gccscs.pollStateCallback = null;
+        }
+    },
+
+    observe : function(subject, topic, data) {
+        /* notify the gClickChronicleObs local to this module
+           that some other version of itself changed recording
+           state */
+
+        var unpacked = data.split(/,/);
+        var gccscs = gClickChronicleStateChangeSentinel;
+        var f = null;
+
+        switch(topic) {
+            case "clickchronicle-state-changed":
+                f = gccscs.handleStateChanged;
+                break;
+            case "clickchronicle-state-query":
+                f = gccscs.handleStateQuery;
+                break;
+            case "clickchronicle-state-notification":
+                f = gccscs.handleStateNotification;
+                break;
+            default:
+                dump("gClickChronicleStateChangeSentinel.observe got "
+                     + " topic: " + topic + "\n");
+                return;
+        }
+
+        f(unpacked);
+    },
+
+    notify : function(topic, data) {
+       gClickChronicleStateChangeSentinel.ObserverService.notifyObservers(
+            null, topic,
+            [gClickChronicleStateChangeSentinel.magicId, data]);
+    },
+
+    latch : function() {
+        var topics = ["clickchronicle-state-changed",
+                      "clickchronicle-state-query",
+                      "clickchronicle-state-notification"];
+
+        for(var i = 0; i < topics.length; i++)
+            gClickChronicleStateChangeSentinel
+                .ObserverService
+                    .addObserver(
+                        gClickChronicleStateChangeSentinel,
+                        topics[i], false);
+    },
+
+    getState : function() {
+        return gClickChronicleObs.state;
+    },
+
+    canQI : function(thing, _interface) {
+        try {
+            thing.QueryInterface(_interface)
+        } catch(e) { return false }
+        return true
+    },
+
+    observerCount : function(topic) {
+        var oenum = gClickChronicleStateChangeSentinel
+                        .ObserverService.enumerateObservers(topic);
+        var count = 0;
+        while(oenum.hasMoreElements())
+            if(gClickChronicleStateChangeSentinel.canQI(oenum.getNext(),
+                    Components.interfaces.nsIObserver))
+                count++;
+
+        return count
+    },
+
+    pollStates : function(cbfunc) {
+        dump("cc: gClickChronicleStateChangeSentinel.pollStates(...)\n");
+
+        var gccscs = gClickChronicleStateChangeSentinel;
+        var topic = "clickchronicle-state-query";
+        var observers = gccscs.observerCount(topic) - 1;
+
+        dump("cc: ---> pollStates: got this many observers " + observers + "\n");
+
+        if(0 < observers) {
+            dump("cc: ---> pollStates: notifying observers\n");
+            gccscs.pollStateCallback = cbfunc;
+            gccscs.notify(topic, null);
+        } else {
+            dump("cc: ---> pollStates: calling back now with null\n");
+            cbfunc(null);
+        }
+    }
+}
+
+var gClickChronicleQuitObserver = {
+    isClickChronicle : true,
+
+    ObserverService : Components.classes["@mozilla.org/observer-service;1"]
+                        .getService(Components.interfaces.nsIObserverService),
+
+    QueryInterface : function(iid) {
+        if(iid.equals(Components.interfaces.nsIObserver)
+            || iid.equals(Components.interfaces.nsISupports))
+            return gClickChronicleQuitObserver;
+        throw Components.results.NS_NOINTERFACE;
+    },
+
+    observe : function(subject, topic, data) {
+        if(topic == "quit-application")
+            gClickChronicleObs.quitting()
+    },
+
+    latch : function() {
+        /* maybe i was loaded in another window, check to ensure no other
+           observer claiming to be clickchronicle is registered for this topic */
+
+        /* this code may not work - for some reason we cannot seem to access
+         * non-standard attributes of the objects in the observers' enumerator,
+         * even though we override QueryInterface to return ourself unmodified
+         * for nsIObserver/nsISupports adaptation */
+
+        var oenum = gClickChronicleQuitObserver.ObserverService.enumerateObservers("quit-application");
+
+        while(oenum.hasMoreElements()) {
+            var thing = oenum.getNext();
+            if(thing) {
+                try {
+                    thing = thing.QueryInterface(Components.interfaces.nsIObserver)
+                } catch(e) { continue }
+                if(thing.isClickChronicle)
+                    return;
+            }
+        }
+
+        gClickChronicleQuitObserver.ObserverService.addObserver(
+            gClickChronicleQuitObserver, "quit-application", false);
+    }
+}
+
+/* get gClickChronicleQuitObserver to look for quit attempts */
+gClickChronicleQuitObserver.latch();
+/* get gClickChronicleStateChangeSentinel to look for state changes */
+gClickChronicleStateChangeSentinel.latch();
+/* this javascript file will get loaded each time a new window is opened,
+   and then window loads, gClickChronicleObs.chromeLoaded will get called */
 window.addEventListener("load", gClickChronicleObs.chromeLoaded, false);

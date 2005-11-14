@@ -101,7 +101,7 @@ var gClickChronicleMantissaLogin = {
                 msg("onerror handler called in responseCode");
                 cbfunc(null)
             }
-            req.open("GET", gClickChronicleMantissaLogin.privateURI.spec, true);
+            req.open("GET", gClickChronicleMantissaLogin.privateURI.spec, false);
             req.send(null)
         } catch(e) {
             msg("exception raised in responseCode");
@@ -125,7 +125,7 @@ var gClickChronicleMantissaLogin = {
         }
 
         try {
-            req.open("POST", gClickChronicleMantissaLogin.loginURI.spec, true);
+            req.open("POST", gClickChronicleMantissaLogin.loginURI.spec, false);
             req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
             req.send(qargs);
         } catch(e) { cbfunc(null) }

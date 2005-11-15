@@ -1,4 +1,7 @@
+# -*- test-case-name: clickchronicle.test.test_clickapp -*-
+
 import pytz
+
 from datetime import datetime, timedelta
 from zope.interface import implements
 

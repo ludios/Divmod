@@ -1,11 +1,9 @@
 var gClickChronicleObs = {
     state : null,
 
-    recordButton : null,
-    busyButton   : null,
-    pauseButton  : null,
-    appContent   : null,
-    tabBrowser   : null,
+    button : null,
+    appContent : null,
+    tabBrowser : null,
 
     IOService : Components.classes["@mozilla.org/network/io-service;1"]
                      .getService(Components.interfaces.nsIIOService),
@@ -30,48 +28,26 @@ var gClickChronicleObs = {
     },
 
     showToolbarButtons : function() {
-        var buttons = ["record", "busy", "pause"];
-
         var navToolbar  = document.getElementById("nav-bar");
         var afterButton = document.getElementById("urlbar-container");
-
-        if(!(navToolbar && afterButton))
-            return;
-
-        for(var i = 0; i < buttons.length; i++) {
-            var bname = "clickchronicle-" + buttons[i] + "-button";
-            if(document.getElementById(bname))
-                return;
-            if (navToolbar.currentSet.indexOf(bname) == -1)
-                    navToolbar.insertItem(bname , afterButton, null, false);
-        }
+        navToolbar.insertItem("clickchronicle-button" , afterButton, null, false);
     },
 
     setBusyButtonState : function() {
-        with(gClickChronicleObs) {
-            if(recordButton) {
-                pauseButton.hidden = recordButton.hidden = true;
-                busyButton.hidden = false;
-            }
-        }
+        gClickChronicleObs.button.image = "chrome://clickchronicle/content/images/busy.png";
+        gClickChronicleObs.button.disabled = true;
     },
 
     setUnpausedButtonState : function() {
-        with(gClickChronicleObs) {
-            if(recordButton) {
-                busyButton.hidden = recordButton.hidden = true;
-                pauseButton.hidden = false;
-            }
-        }
+        gClickChronicleObs.button.image = "chrome://clickchronicle/content/images/pause.png";
+        gClickChronicleObs.button.disabled = false;
+        gClickChronicleObs.button.onclick = new Function("ignore", "gClickChronicleObs.stopRecording(true)");
     },
 
     setPausedButtonState : function() {
-        with(gClickChronicleObs) {
-            if(recordButton) {
-                pauseButton.hidden = busyButton.hidden = true;
-                recordButton.hidden = false;
-            }
-        }
+        gClickChronicleObs.button.image = "chrome://clickchronicle/content/images/record.png";
+        gClickChronicleObs.button.disabled = false;
+        gClickChronicleObs.button.onclick = new Function("ignore", "gClickChronicleObs.startRecording(true)");
     },
 
     substitute : function() {
@@ -111,16 +87,7 @@ var gClickChronicleObs = {
         me.showToolbarButtons();
 
         function delayedLoad() {
-            var recordButton = document.getElementById(
-                                "clickchronicle-record-button");
-            if(recordButton) {
-                me.recordButton = recordButton;
-                me.busyButton = document.getElementById(
-                                    "clickchronicle-busy-button");
-                me.pauseButton = document.getElementById(
-                                    "clickchronicle-pause-button");
-            }
-
+            me.button = document.getElementById("clickchronicle-button");
             me.appContent = document.getElementById("appcontent");
             me.tabBrowser = document.getElementById("content");
 
@@ -128,6 +95,8 @@ var gClickChronicleObs = {
                 if(state == "unpaused" || (state == null && 
                         me.CCPrefs.getBoolPref("enableOnStartup"))) {
                     me.startRecording(false);
+                } else {
+                    me.stopRecording(false);
                 }
             }
             gClickChronicleStateChangeSentinel.pollStates(cbGotState);
@@ -151,6 +120,7 @@ var gClickChronicleObs = {
         function cbLoggedIn(result) {
             if(!result)
                 return me.stopRecording(notify);
+
             me.state = "unpaused";
             me.setUnpausedButtonState();
             me.appContent.addEventListener("DOMContentLoaded", me.DOMContentLoaded, false);

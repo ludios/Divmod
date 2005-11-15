@@ -322,7 +322,10 @@ class ClickChronicleInitializerPage(CCPublicPageMixin, PublicPage):
         if password is None:
             return rend.Page.renderHTTP(self, ctx)
 
-        self.original.store.transact(self.original.setPassword, password)
+        self.original.store.transact(self.original.setPassword,
+                                     unicode(password)) # XXX TODO: select
+                                                        # proper decoding
+                                                        # strategy.
         return URL.fromString('/')
 
 registerAdapter(ClickChronicleInitializerPage,

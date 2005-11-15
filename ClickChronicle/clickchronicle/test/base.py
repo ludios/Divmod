@@ -39,7 +39,7 @@ class CCTestBase:
         self.substore = ticket.avatar.avatars.substore
 
         init = self.substore.findFirst(clickapp.ClickChronicleInitializer)
-        init.setPassword('123pass456')
+        init.setPassword(u'123pass456')
 
         self.recorder = self.firstItem(self.substore, clickapp.ClickRecorder)
         self.recorder.caching = False

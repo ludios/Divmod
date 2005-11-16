@@ -91,7 +91,7 @@ input.text {
 .click-set-collection > thead > tr > td {
     width: 50%;
     border: solid 1px #999999;
-    background-image: url(/static/images/header_bg.png);
+    background-image: url(/static/mantissa/images/header_bg.png);
     background-color: #FFFFFF;
     background-position: bottom left;
     background-repeat: repeat-x;

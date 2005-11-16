@@ -10,7 +10,7 @@ from twisted.cred import portal
 from twisted.python.components import registerAdapter
 
 from nevow.url import URL
-from nevow import rend, inevow, tags, flat, livepage, entities
+from nevow import rend, inevow, tags, flat, entities
 
 from epsilon.extime import Time
 
@@ -19,12 +19,10 @@ from axiom import upgrade, userbase, scheduler, attributes
 
 from vertex import q2q
 
-from xmantissa import ixmantissa, webnav, website, webapp, prefs, search
+from xmantissa import ixmantissa, webnav, website, webapp, prefs, search, tdbview
 from xmantissa.publicresource import PublicPage
 
-from clickchronicle import iclickchronicle
-from clickchronicle import indexinghelp
-from clickchronicle.util import PagedTableMixin, SortablePagedTableMixin
+from clickchronicle import iclickchronicle, indexinghelp, clickbrowser
 from clickchronicle.util import staticTemplate, makeScriptTag
 from clickchronicle.visit import Visit, Domain, BookmarkVisit, Bookmark
 from clickchronicle.searchparser import parseSearchString
@@ -35,129 +33,6 @@ from xapwrap.index import NoIndexValueFound
 
 flat.registerFlattener(lambda t, ign: t.asHumanly(), Time)
 
-class CCPrivatePagedTableMixin(website.AxiomFragment):
-    maxTitleLength = 60
-    defaultFavIconPath = "/static/images/favicon.png"
-
-    def __init__(self, original, docFactory=None):
-        self.store = original.store
-        website.AxiomFragment.__init__(self, original, docFactory)
-
-        self.translator = ixmantissa.IWebTranslator(original.installedOn)
-        self.clickList = original.store.findFirst(ClickList)
-        self.pagingPatterns = inevow.IQ(self.translator.getDocFactory("paging-patterns"))
-        prefAggregator = ixmantissa.IPreferenceAggregator(original.installedOn)
-        self.itemsPerPage = prefAggregator.getPreferenceValue('itemsPerPage')
-        self.patterns = dict()
-
-        pgen = self.pagingPatterns.patternGenerator
-        for pname in ("clickTable", "pagingWidget", "navBar", "visitInfo", "clickActions",
-                      "visitRow", "bookmarkedVisitRow", "bookmarkActions", "clickInfoRow"):
-            self.patterns[pname] = pgen(pname)
-
-    def head(self):
-        yield makeScriptTag("/static/js/fadomatic.js")
-        yield makeScriptTag("/static/js/MochiKit/MochiKit.js")
-        yield makeScriptTag("/static/js/paged-table.js")
-
-    def handle_block(self, ctx, visitStoreID):
-        store = self.original.store
-        visit = store.getItemByID(int(visitStoreID))
-        iclickchronicle.IClickRecorder(store).ignoreVisit(visit)
-        # rewind to the first page, to reflect changes
-        # it's a toss-up whether it's best to rewind of stay on the current page
-        yield (livepage.js.blocked(self.trimTitle(visit.url)), livepage.eol)
-        yield self.handle_updateTable(ctx, self.startPage)
-
-    def handle_bookmark(self, ctx, visitStoreID):
-        store = self.original.store
-        visit = store.getItemByID(int(visitStoreID))
-        def _():
-            bookmark=visit.asBookmark()
-            return bookmark
-        bm = self.store.transact(_)
-
-        yield (livepage.js.bookmarked(self.trimTitle(visit.url)), livepage.eol)
-        yield self.handle_updateTable(ctx, self.currentPage)
-
-    def handle_delete(self, ctx, visitStoreID):
-        store = self.original.store
-        visit = store.getItemByID(int(visitStoreID))
-        clickApp = iclickchronicle.IClickRecorder(store)
-        def _():
-            clickApp.forgetVisit(visit)
-        self.store.transact(_)
-
-        yield (livepage.js.deleted(self.trimTitle(visit.url)), livepage.eol)
-        yield self.handle_updateTable(ctx, self.currentPage)
-
-    def visitInfo(self, visit):
-        newest = iter(visit.getLatest(count=1)).next()
-
-        return (("URL", tags.a(href=visit.url)[self.trimTitle(visit.url)]),
-                ("Referrer", visit.referrer.title),
-                ("Last Visited", newest.timestamp))
-
-    def handle_info(self, ctx, visitStoreID):
-        store = self.original.store
-        visit = store.getItemByID(int(visitStoreID))
-        visit = iclickchronicle.IDisplayableVisit(visit)
-
-        data = self.visitInfo(visit)
-        return (livepage.js.gotInfo(visitStoreID, self.patterns["visitInfo"](data=data)), livepage.eol)
-
-    def trimTitle(self, title):
-        if self.maxTitleLength < len(title):
-            title = "%s..." % title[:self.maxTitleLength - 3]
-        return title
-
-    def prepareVisited(self, visited):
-        visited = iclickchronicle.IDisplayableVisit(visited)
-        (desc, icon) = (visited.asDict(), visited.asIcon())
-
-        if icon is None:
-            iconPath = self.defaultFavIconPath
-        else:
-            iconPath = '/' + icon.prefixURL
-
-        desc.update(icon=iconPath, title=self.trimTitle(desc["title"]))
-        return desc
-
-    def constructTable(self, ctx, rows):
-        content = []
-        for row in rows:
-            if row["bookmarked"]:
-                rowPattern = "bookmarkedVisitRow"
-                actionsPattern = "bookmarkActions"
-            else:
-                rowPattern = "visitRow"
-                actionsPattern = "clickActions"
-
-            p = self.patterns[rowPattern](data=row)
-            p = p.fillSlots("clickActions", self.patterns[actionsPattern]())
-            content.extend((p, self.patterns["clickInfoRow"]()))
-
-        return self.patterns["clickTable"].fillSlots("rows", content)
-
-class CCPrivatePagedTable(CCPrivatePagedTableMixin, PagedTableMixin):
-    pass
-
-class CCPrivateSortablePagedTable(CCPrivatePagedTableMixin, SortablePagedTableMixin):
-    pagingItem = None
-
-    def __init__(self, original, docFactory=None):
-        CCPrivatePagedTableMixin.__init__(self, original, docFactory)
-        self.patterns["clickTable"] = self.pagingPatterns.patternGenerator("sortableClickTable")
-
-    def generateRowDicts(self, ctx, pageNumber, sortCol, sortDirection):
-        sort = getattr(getattr(self.pagingItem, sortCol), sortDirection)
-        store = self.original.store
-        offset = (pageNumber - 1) * self.itemsPerPage
-
-        for v in store.query(self.pagingItem, sort = sort,
-                             limit = self.itemsPerPage, offset = offset):
-
-            yield self.prepareVisited(v)
 
 class ClickChronicleBenefactor(Item):
     '''i am responsible for granting priveleges to avatars,
@@ -372,23 +247,18 @@ class DomainList(Item, InstallableMixin):
         '''show a link to myself in the navbar'''
         return [webnav.Tab('Domains', self.storeID, 0.1)]
 
-class ClickListFragment(CCPrivateSortablePagedTable):
+class ClickListFragment(tdbview.TabularDataView):
     '''i adapt ClickList to INavigableFragment'''
-    implements(ixmantissa.INavigableFragment)
-    title = 'Click List'
 
-    fragmentName = 'click-list-fragment'
-    live = True
-
-    pagingItem = Visit
-    sortDirection = 'descending'
-    sortColumn = 'timestamp'
-
-    def render_maxCount(self, ctx, data):
-        return ctx.tag[iclickchronicle.IClickRecorder(self.original.store).maxCount]
-
-    def countTotalItems(self, ctx):
-        return iclickchronicle.IClickRecorder(self.original.store).visitCount
+    def __init__(self, original):
+        # will probably have to do something wacky in order to emulate
+        # clickchronicle's method of displaying visit information in
+        # the tdb
+        (tdm, views) = clickbrowser.makeClickTDM(original.store, Visit)
+        tdbview.TabularDataView.__init__(self, tdm, views,
+                (clickbrowser.bookmarkAction,
+                 clickbrowser.deleteAction,
+                 clickbrowser.ignoreAction))
 
 registerAdapter(ClickListFragment,
                 ClickList,
@@ -414,78 +284,30 @@ class BookmarkList(Item, InstallableMixin):
         '''show a link to myself in the navbar'''
         return [webnav.Tab('Bookmarks', self.storeID, 0.1)]
 
-class BookmarkListFragment(CCPrivateSortablePagedTable):
+class BookmarkListFragment(tdbview.TabularDataView):
     '''i adapt BookmarkList to INavigableFragment'''
     implements(ixmantissa.INavigableFragment)
 
-    fragmentName = 'bookmark-list-fragment'
-    live = True
-    title = 'Bookmark List'
-
-    pagingItem = Bookmark
-    sortDirection = 'descending'
-    sortColumn = 'timestamp'
-
-    def __init__(self, original, docFactory=None):
-        CCPrivateSortablePagedTable.__init__(self, original, docFactory)
-        self.patterns["visitRow"] = self.patterns["bookmarkedVisitRow"]
-
-    def countTotalItems(self, ctx):
-        return self.original.installedOn.count(self.pagingItem)
-
-    def visitInfo(self, bm):
-        return (("URL", tags.a(href=bm.url)[self.trimTitle(bm.url)]),
-                ("Referrer", bm.referrer.title),
-                ("Created", bm.timestamp))
+    def __init__(self, original):
+        (tdm, views) = clickbrowser.makeClickTDM(original.store, Bookmark)
+        tdbview.TabularDataView.__init__(self, tdm, views,
+                (clickbrowser.deleteAction,
+                 clickbrowser.ignoreAction))
 
 registerAdapter(BookmarkListFragment,
                 BookmarkList,
                 ixmantissa.INavigableFragment)
 
-class DomainListFragment(CCPrivateSortablePagedTable):
+class DomainListFragment(tdbview.TabularDataView):
     '''i adapt DomainList to INavigableFragment'''
-    implements(ixmantissa.INavigableFragment)
 
-    fragmentName = 'domain-list-fragment'
-    live = True
-    title = 'Domain List'
+    def __init__(self, original):
+        (tdm, views) = clickbrowser.makeClickTDM(original.store, Domain)
 
-    pagingItem = Domain
-    sortDirection = 'descending'
-    sortColumn = 'timestamp'
-
-    def handle_delete(self, ctx, visitStoreID):
-        store = self.original.store
-        domain = store.getItemByID(int(visitStoreID))
-        clickApp = iclickchronicle.IClickRecorder(store)
-        def _():
-            clickApp.deleteDomain(domain)
-        self.store.transact(_)
-        yield (livepage.js.deleted(domain.url), livepage.eol)
-        yield self.handle_updateTable(ctx, self.currentPage)
-
-    def handle_block(self, ctx, visitStoreID):
-        store = self.original.store
-        domain = store.getItemByID(int(visitStoreID))
-        clickApp = iclickchronicle.IClickRecorder(store)
-        visit = store.findFirst(Visit, domain=domain)
-        def _():
-            if visit:
-                iclickchronicle.IClickRecorder(store).ignoreVisit(visit)
-            else:
-                domain.ignore = True
-        store.transact(_)
-        yield (livepage.js.blocked(self.trimTitle(domain.url)), livepage.eol)
-        yield self.handle_updateTable(ctx, self.currentPage)
-
-    def visitInfo(self, visit):
-        newest = iter(visit.getLatest(count=1)).next()
-
-        return (("URL", tags.a(href=visit.url)[self.trimTitle(visit.url)]),
-                ("Last Visited", newest.timestamp))
-
-    def countTotalItems(self, ctx):
-        return self.original.installedOn.count(self.pagingItem)
+        tdbview.TabularDataView.__init__(self, tdm, views,
+                (clickbrowser.bookmarkAction,
+                 clickbrowser.deleteAction,
+                 clickbrowser.ignoreAction))
 
 registerAdapter(DomainListFragment,
                 DomainList,

@@ -94,13 +94,21 @@ class FavIcon(Item, website.PrefixURLMixin):
 
     data = attributes.bytes(allowNone=False)
     prefixURL = attributes.bytes(allowNone=False)
+    iconURL = attributes.bytes(allowNone=False)
     contentType = attributes.bytes(allowNone=False)
 
-    schemaVersion = 1
+    schemaVersion = 2
     typeName = 'favicon'
 
     def createResource(self):
         return static.Data(self.data, self.contentType, ICON_VALIDITY_TIME)
+
+class DefaultFavicon(Item):
+
+    iconURL = attributes.bytes(default='/static/images/favicon.png')
+
+    schemaVersion = 1
+    typeName = 'clickchronicle_default_favicon'
 
 class PageFetchingTaskMixin(object):
     def retryableFailure(self, f):
@@ -110,6 +118,7 @@ class PageFetchingTaskMixin(object):
         # return likely errors as TaskError so they aren't reported
         err.trap(weberror.Error)
         return failure.Failure(queue.TaskError("HTTP error while downloading page (%r)" % (err.getErrorMessage(),)))
+
 
 class FetchFavIconTask(Item, PageFetchingTaskMixin):
     schemaVersion = 1
@@ -149,7 +158,6 @@ class FetchDomainTitleTask(Item, PageFetchingTaskMixin):
             title = pageInfo.title.decode(pageInfo.charset, "replace")
 
         self.domain.title = title
-
 
 class FetchSourceTask(Item, PageFetchingTaskMixin):
     schemaVersion = 1
@@ -194,6 +202,7 @@ class FetchSourceTask(Item, PageFetchingTaskMixin):
         domain = self.visit.domain
 
         if domain.favIcon is None:
+            domain.favIcon = self.store.findOrCreate(DefaultFavicon)
             for tsk in self.store.query(
                 FetchFavIconTask,
                 attributes.AND(FetchFavIconTask.domain == domain,
@@ -270,6 +279,7 @@ class CacheManager(Item):
                     visit.domain.title = visit.title
                 self.store.transact(txn)
             else:
+                visit.domain.title = unicode(visit.domain.url)
                 self.tasks.addTask(
                     FetchDomainTitleTask(store=self.store,
                                          domain=visit.domain,
@@ -303,12 +313,11 @@ class CacheManager(Item):
                 contentType = contentType[0]
 
             s = self.store
-            def txn():
-                fi = FavIcon(prefixURL='private/icons/%s.ico' % url.netloc,
-                             data=data, contentType=contentType, store=s)
-                fi.installOn(s)
-                domain.favIcon = fi
-            s.transact(txn)
+            iconURL = '/private/icons/%s.ico' % url.netloc
+            fi = FavIcon(prefixURL=iconURL[1:], iconURL=iconURL,
+                         data=data, contentType=contentType, store=s)
+            fi.installOn(s)
+            domain.favIcon = fi
 
         if faviconURL is not None:
             url = URL.fromString(faviconURL)
@@ -394,6 +403,7 @@ def makeDocument(visit, pageSource, pageInfo, summaryLength=400):
                    source=pageSource)
     return doc
 
+from clickchronicle import upgraders
 
 if __name__ == '__main__':
     import sys

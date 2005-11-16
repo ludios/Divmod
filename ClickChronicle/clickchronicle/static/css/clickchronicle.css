@@ -3,6 +3,11 @@ body {
     font-family: "Trebuchet MS", Verdana, Arial, Helvetica, sans-serif;
 }
 
+.clickchronicle-favicon {
+    padding: 2px;
+    vertical-align: middle;
+}
+
 .hidden { display: none; }
 
 .footer {
@@ -67,7 +72,7 @@ a:hover   { color: #575757; text-decoration: none }
 a:active  { color: #FFFFFF; text-decoration: underline }
 
 .navRow { 
-    background-image: url(/static/images/header_bg.png);
+    background-image: url(/static/mantissa/images/header_bg.png);
     background-repeat: repeat-x;
     background-position: bottom;
     vertical-align: middle;
@@ -125,7 +130,7 @@ img.navIcon {
 
 tr.fancyRowFirst { 
     background-color: #FFFFFF;
-    background-image: url(/static/images/header_bg.png);
+    background-image: url(/static/mantissa/images/header_bg.png);
     background-repeat: repeat-x;
     background-position: bottom left 
 }
@@ -183,14 +188,14 @@ tr.fancyRowFirst {
 }
 
 td.sFancyCol:hover { 
-    background-image: url(/static/images/header_bg_hover.png);
+    background-image: url(/static/mantissa/images/header_bg_hover.png);
 }
 
 .lastFancyCol  { padding: 4px 4px 4px 4px; border-bottom: solid 1px #B0B0B0 }
 .sLastFancyCol { padding: 4px 4px 4px 4px; border-bottom: solid 1px #B0B0B0 }
 
 td.sLastFancyCol:hover {
-    background-image: url(/static/images/header_bg_hover.png);
+    background-image: url(/static/mantissa/images/header_bg_hover.png);
 }
 
 .linkIcon { border: 0; vertical-align: middle; }

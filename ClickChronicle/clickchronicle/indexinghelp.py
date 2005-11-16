@@ -201,8 +201,7 @@ class FetchSourceTask(Item, PageFetchingTaskMixin):
     def _enqueueFaviconTask(self, pageInfo):
         domain = self.visit.domain
 
-        if domain.favIcon is None:
-            domain.favIcon = self.store.findOrCreate(DefaultFavicon)
+        if domain.favIcon is self.store.findFirst(DefaultFavicon):
             for tsk in self.store.query(
                 FetchFavIconTask,
                 attributes.AND(FetchFavIconTask.domain == domain,
@@ -275,9 +274,7 @@ class CacheManager(Item):
         if visit.domain.title is None:
             url = URL.fromString(visit.url)
             if url.isRoot(url.pathList()):
-                def txn():
-                    visit.domain.title = visit.title
-                self.store.transact(txn)
+                visit.domain.title = visit.title
             else:
                 visit.domain.title = unicode(visit.domain.url)
                 self.tasks.addTask(

@@ -33,13 +33,13 @@ class FaviconVisitLinkColumnView(tdbview.ColumnViewBase):
                                         width, typeHint)
 
     def stanFromValue(self, idx, item, value):
+        if value is None:
+            value = item.url
+
         if self.maxLength < len(value):
             value = value[:self.maxLength-3] + '...'
-        icon = item.asIcon()
-        if icon is None:
-            icon = item.store.findOrCreate(indexinghelp.DefaultFavicon)
 
-        return (tags.img(src=icon.iconURL,
+        return (tags.img(src=item.asIcon().iconURL, width=16, height=16,
                          **{'class':'clickchronicle-favicon'}),
                 tags.a(href=item.url)[value])
 

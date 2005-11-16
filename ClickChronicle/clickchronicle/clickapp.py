@@ -509,9 +509,14 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         created is True of False depending on whether or not a visit was created.
         """
         host = str(URL.fromString(url).click("/"))
-        domain = self.store.findOrCreate(Domain, url=host)
-        if domain.ignore:
-            return None, False
+        for domain in self.store.query(Domain, url=host):
+            if domain.ignore:
+                return None, False
+            break
+        else:
+            domain.favIcon = self.store.findOrCreate(
+                                indexinghelp.DefaultFavicon)
+
         # Defensive coding. Never allow visit.referrer to be None.
         # May need to be revisited
         if referrer is None:

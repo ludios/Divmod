@@ -66,10 +66,10 @@ class ClickStats(Item):
     """
 
     typeName = "click_stats"
-    schemaVersion = 2
+    schemaVersion = 3
 
-    score = attributes.integer(default=0) # stores a real. multiply and divide by 1000 as needed
-    history = attributes.bytes(allowNone=True) # stores a pickled list
+    score = attributes.ieee754_double(default=0.)
+    history = attributes.bytes(allowNone=True) # stores a packed list
 
     url = attributes.bytes(allowNone=False)
     title = attributes.text()

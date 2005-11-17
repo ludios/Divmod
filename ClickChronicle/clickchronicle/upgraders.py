@@ -54,5 +54,27 @@ def clickStat1to2(oldstat):
     newstat.depth = oldstat.depth
     newstat.lastClickInterval = 0 # this iVar was added
     newstat.statKeeper = oldstat.statKeeper
+    return oldstat
 
 registerUpgrader(clickStat1to2, "click_stats", 1, 2)
+
+def clickStat2to3(oldstat):
+    from clickchronicle.publicpage import _loadHistory
+
+    newstat = oldstat.upgradeVersion("click_stats", 2, 3,
+                                     url=oldstat.url,
+                                     score=0.,
+                                     history=oldstat.history,
+                                     title=oldstat.title,
+                                     totalClicks=oldstat.totalClicks,
+                                     intervalClicks=oldstat.intervalClicks,
+                                     depth=oldstat.depth,
+                                     lastClickInterval=oldstat.lastClickInterval,
+                                     statKeeper=oldstat.statKeeper)
+
+    # XXX ugh, remember to remove/update this when you write the next
+    # upgrader...
+    newstat.updateScore()
+    return newstat
+
+registerUpgrader(clickStat2to3, "click_stats", 2, 3)

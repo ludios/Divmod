@@ -35,7 +35,7 @@ def _expDecay(aList):
     z=len(aList)
     res = []
     for i in range(z):
-        res.append(1/log(z-i+1) * aList[i])
+        res.append(1/log(z-i+1) * float(aList[i]))
     return res
 
 

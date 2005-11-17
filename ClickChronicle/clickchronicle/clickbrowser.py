@@ -13,7 +13,8 @@ def makeClickTDM(store, typeClass):
                 typeClass, [typeClass.timestamp,
                             typeClass.title,
                             typeClass.visitCount],
-                itemsPerPage=prefs.getPreferenceValue('itemsPerPage'))
+                itemsPerPage=prefs.getPreferenceValue('itemsPerPage'),
+                defaultSortAscending=False)
 
 
     views = [tdbview.DateColumnView('timestamp'),

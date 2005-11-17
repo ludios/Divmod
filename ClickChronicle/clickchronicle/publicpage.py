@@ -38,6 +38,16 @@ def _expDecay(aList):
         res.append(1/log(z-i+1) * float(aList[i]))
     return res
 
+def _logNormalize(aList):
+    if len(aList) == 0:
+        return aList
+    top = max(aList)*1.0
+    if top == 0:
+        return aList
+    else:
+        total = log(sum(aList))
+    return [i/top * total for i in aList]
+
 
 class ClickStats(Item):
     """
@@ -119,8 +129,15 @@ class ClickStats(Item):
         """
         if history is None:
             history = _loadHistory(self.history)
-        history = _expDecay(history)
-        self.score = sum(history, 0.0)
+        length = len(history)
+        if length == 0:
+            return 0.0
+        history = _expDecay(_logNormalize(history))
+        sc = sum(history, 0.0)
+        # Now add even more weight to recent clicks
+        for i in (2,4,8):
+            sc += sum(history[-int(length/i):])
+        self.score = sc
 
 
 class AggregateClick(juice.Command):

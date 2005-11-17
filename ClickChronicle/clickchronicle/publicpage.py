@@ -120,7 +120,7 @@ class ClickStats(Item):
         if history is None:
             history = _loadHistory(self.history)
         history = _expDecay(history)
-        self.score = sum(history)
+        self.score = sum(history, 0.0)
 
 
 class AggregateClick(juice.Command):

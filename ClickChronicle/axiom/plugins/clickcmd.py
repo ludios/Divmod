@@ -1,5 +1,5 @@
 
-import decimal, os
+import os
 
 from zope.interface import classProvides
 
@@ -31,6 +31,28 @@ class ChronicleOptionsMixin:
             signup.FreeTicketSignup,
             signup.FreeTicketSignup.benefactor == bene)
         return bene, ticketSignup
+
+class ClickStatsInterval(usage.Options, axiomatic.AxiomaticSubCommandMixin):
+    longdesc = """
+    Change the interval attribute of the system user's ClickStats item - 
+    this determines the period within which click scores are updated.
+    """
+
+    optParameters = (('interval', 'i', None),
+                     ('system-user', 'u', 'clickchronicle@clickchronicle.com'))
+
+    def changeInterval(self, interval, systemUser):
+        store = self.parent.getStore()
+        loginSystem = portal.IRealm(store)
+        (localpart, hostname) = unicode(systemUser).split('@')
+        substore = loginSystem.accountByAddress(localpart, hostname).avatars.open()
+        pp = substore.findFirst(publicpage.ClickChroniclePublicPage)
+        pp.interval = interval
+
+    def postOptions(self):
+        if self['interval'] is None:
+            raise usage.UsageError('--interval must be specified')
+        self.changeInterval(int(self['interval']), self['system-user'])
 
 class Install(usage.Options, axiomatic.AxiomaticSubCommandMixin):
     longdesc = """
@@ -147,6 +169,7 @@ class ChroniclerConfiguration(usage.Options, axiomatic.AxiomaticSubCommandMixin,
     subCommands = [
         ('install', None, Install, "Install site-wide ClickChronicle components"),
         ('show', None, Show, "Show the current ClickChronicle configuration"),
+        ('click-stats-interval', None, ClickStatsInterval, 'Change the interval attribute of ClickStats items'),
         ]
 
     def getStore(self):

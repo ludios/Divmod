@@ -1,7 +1,7 @@
 # -*- test-case-name: clickchronicle.test.test_queue -*-
 
 from twisted.internet import defer
-from twisted.python import log
+from twisted.python import log, reflect
 
 from epsilon import extime
 
@@ -98,11 +98,11 @@ class Queue(item.Item):
 
     def _ebTask(self, err, task):
         if not err.check(TaskError):
-            log.msg("Error processing task: %r" % (task,))
+            log.msg("Error processing task: %r" % (reflect.safe_repr(task),))
             log.err(err)
 
         if task.retries > task.maxRetries or not task.task.retryableFailure(err):
-            log.msg("Giving up on %r" % (task.task,))
+            log.msg("Giving up on %r" % (reflect.safe_repr(task.task),))
             task.task.deleteFromStore()
             task.deleteFromStore()
         else:

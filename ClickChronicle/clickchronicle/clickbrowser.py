@@ -1,3 +1,4 @@
+from pytz import timezone
 from nevow import tags
 
 from xmantissa import ixmantissa, tdb, tdbview
@@ -17,7 +18,7 @@ def makeClickTDM(store, typeClass):
                 defaultSortAscending=False)
 
 
-    views = [tdbview.DateColumnView('timestamp'),
+    views = [TimezoneColumnView('timestamp'),
              FaviconVisitLinkColumnView('title', width='100%'),
              tdbview.ColumnViewBase('visitCount', typeHint='numeric',
                                      displayName='Visits')]
@@ -43,6 +44,17 @@ class FaviconVisitLinkColumnView(tdbview.ColumnViewBase):
         return (tags.img(src=item.asIcon().iconURL, width=16, height=16,
                          **{'class':'clickchronicle-favicon'}),
                 tags.a(href=item.url)[value])
+
+class TimezoneColumnView(tdbview.DateColumnView):
+    tzinfo = None
+
+    def stanFromValue(self, idx, item, value):
+        if self.tzinfo is None:
+            prefs = ixmantissa.IPreferenceAggregator(item.store)
+            tzname = prefs.getPreferenceValue('timezone')
+            self.tzinfo = timezone(tzname)
+
+        return value.asHumanly(self.tzinfo)
 
 class BookmarkAction(tdbview.Action):
     def __init__(self):

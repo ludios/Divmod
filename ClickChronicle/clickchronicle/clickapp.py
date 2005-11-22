@@ -405,14 +405,25 @@ class ClickRecorder(Item, website.PrefixURLMixin):
 
     bookmarkVisit = attributes.inmemory()
     prefAggregator = attributes.inmemory()
+    _tzinfo = attributes.inmemory()
 
     def installOn(self, other):
         super(ClickRecorder, self).installOn(other)
         other.powerUp(self, iclickchronicle.IClickRecorder)
 
     def activate(self):
+        self._tzinfo = None
         self.bookmarkVisit = self.store.findOrCreate(BookmarkVisit)
         self.prefAggregator = None
+
+    def _getTzinfo(self):
+        if self._tzinfo is None:
+            prefs = ixmantissa.IPreferenceAggregator(self.store)
+            tzname = prefs.getPreferenceValue('timezone')
+            self._tzinfo = pytz.timezone(tzname)
+        return self._tzinfo
+
+    tzinfo = property(_getTzinfo)
 
     def createResource(self):
         return URLGrabber(self)
@@ -523,7 +534,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         if referrer is None:
             referrer = self.bookmarkVisit
         existingVisit = self.findVisitForToday(url)
-        timeNow = Time.fromDatetime(datetime.now())
+        timeNow = Time()
 
         if existingVisit:
             # Already visited today
@@ -572,8 +583,8 @@ class ClickRecorder(Item, website.PrefixURLMixin):
 
 
     def findVisitForToday(self, url):
-        dtNow = datetime.now()
-        timeNow = Time.fromDatetime(dtNow)
+        timeNow = Time()
+        dtNow = timeNow.asDatetime(self.tzinfo)
         todayBegin = dtNow.replace(hour=0, minute=0, second=0, microsecond=0)
         tomorrowBegin = (dtNow+timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
 

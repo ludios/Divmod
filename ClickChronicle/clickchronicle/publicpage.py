@@ -45,7 +45,7 @@ def _logNormalize(aList):
     if top == 0:
         return aList
     else:
-        total = log(sum(aList))
+        total = log(sum(aList)+1)
     return [i/top * total for i in aList]
 
 

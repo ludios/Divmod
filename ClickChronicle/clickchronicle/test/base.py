@@ -66,7 +66,7 @@ class CCTestBase:
         if not seenURL:
             self.assertEqual(self.recorder.visitCount, preClicks+1)
 
-        visit = self.substore.findFirst(Visit, url=url)
+        visit = self.substore.findFirst(Visit, Visit.url == url)
         self.assertEqual(visit.visitCount, visitCount+1)
 
         if seenURL:
@@ -98,8 +98,8 @@ class CCTestBase:
     def record(self, title, url, **k):
         self.recorder.recordClick(dict(url=url, title=title, **k),
                                        indexIt=False, storeFavicon=False)
-        
-        return self.substore.findFirst(Visit, url=url)
+
+        return self.substore.findFirst(Visit, Visit.url == url)
 
     def urlsWithSameDomain(self, count=10):
         base = URL.fromString(self.randURL())

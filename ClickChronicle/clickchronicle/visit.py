@@ -109,7 +109,7 @@ class Visit(Item, VisitMixin, DisplayableVisitMixin):
     typeName = 'visit'
 
     def getBookmark(self):
-        return self.store.findFirst(Bookmark, url=self.url)
+        return self.store.findFirst(Bookmark, Bookmark.url == self.url)
 
     def asBookmark(self):
         dt = Time.fromDatetime(datetime.now())

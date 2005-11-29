@@ -432,9 +432,20 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         ChangeClickLimit(store=self.store, recorder=self, byWhat=-byWhat).schedule(howLong)
         self.maxCount += byWhat
 
+    def getDomain(self, host):
+        for domain in self.store.query(Domain, Domain.url==host):
+            if domain.ignore:
+                return None, False
+            break
+        else:
+            domain = Domain(url=host, store=self.store,
+                            favIcon=self.store.findOrCreate(
+                                indexinghelp.DefaultFavicon))
+        return domain
+
     def recordBookmark(self, title, url, indexIt=True, storeFavicon=True):
         host = str(URL.fromString(url).click("/"))
-        domain = self.store.findOrCreate(Domain, url=host)
+        domain = self.getDomain(host)
 
         bookmark = self.store.findOrCreate(Bookmark,
                                            title=title,
@@ -520,15 +531,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         created is True of False depending on whether or not a visit was created.
         """
         host = str(URL.fromString(url).click("/"))
-        for domain in self.store.query(Domain, Domain.url==host):
-            if domain.ignore:
-                return None, False
-            break
-        else:
-            domain = Domain(url=host, store=self.store,
-                            favIcon=self.store.findOrCreate(
-                                indexinghelp.DefaultFavicon))
-
+        domain = self.getDomain(host)
         # Defensive coding. Never allow visit.referrer to be None.
         # May need to be revisited
         if referrer is None:

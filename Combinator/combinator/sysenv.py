@@ -77,15 +77,25 @@ def generatePathVariable(nv):
     # set up for this one run... this is a harmless no-op if not.
     branchmgr.init()
 
+    nv.prePath('PATH', branchmgr.theBranchManager.binCachePath)
     userBinPath = os.path.abspath(
         os.path.expanduser("~/.local/bin"))
     if os.path.exists(userBinPath):
         nv.prePath("PATH", userBinPath)
-    for p in sys.path:
-        binpath = os.path.join(p, 'bin')
-        if os.path.exists(binpath):
-            nv.prePath("PATH", binpath)
 
+    # XXX move to separate command?
+    if not os.path.isdir(branchmgr.theBranchManager.binCachePath):
+        os.mkdir(branchmgr.theBranchManager.binCachePath)
+    for ent in sys.path:
+        branchBinDir = os.path.join(ent, 'bin')
+        if os.path.isdir(branchBinDir):
+            for binary in os.listdir(branchBinDir):
+                if not binary.startswith('.'):
+                    dst = os.path.join(branchmgr.theBranchManager.binCachePath, binary)
+                    src = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'bin', 'cham.py')
+                    if not os.path.exists(dst):
+                        sys.stderr.write('link: %r => %r\n <on account of %r>\n' % (dst, src, ent))
+                        os.symlink(src, dst)
 
 def export():
     e = Env()

@@ -99,6 +99,7 @@ class BranchManager:
 
         self.svnProjectsDir = svnProjectsDir
         self.sitePathsPath = sitePathsPath
+        self.binCachePath = os.path.join(sitePathsPath, 'bincache')
 
     def projectBranchDir(self, projectName, branchPath='trunk'):
         if branchPath == 'trunk':

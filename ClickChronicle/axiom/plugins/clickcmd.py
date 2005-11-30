@@ -14,7 +14,7 @@ from axiom.scripts import axiomatic
 
 from xmantissa import signup, website, publicweb
 
-from clickchronicle import clickapp, publicpage
+from clickchronicle import clickapp, publicpage, prods
 
 class ChronicleOptionsMixin:
     optParameters = [
@@ -157,8 +157,6 @@ class Show(usage.Options, ChronicleOptionsMixin):
         else:
             print 'Ticket signup is at', repr(ticketSignup.prefixURL)
             print 'Max clicks is', benefactor.maxClicks
-
-
 
 class ChroniclerConfiguration(usage.Options, axiomatic.AxiomaticSubCommandMixin, ChronicleOptionsMixin):
     classProvides(plugin.IPlugin, iaxiom.IAxiomaticCommand)

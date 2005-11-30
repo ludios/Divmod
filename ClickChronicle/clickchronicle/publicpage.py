@@ -5,10 +5,11 @@ from __future__ import division
 import time, struct, collections
 from epsilon import extime
 from xmantissa.publicresource import PublicLivePage, PublicPage
-from nevow import inevow, tags, livepage
-from clickchronicle.util import makeScriptTag, staticTemplate
+from nevow import inevow, tags, livepage, static
+from clickchronicle.util import makeStaticURL, makeScriptTag, staticTemplate
 from clickchronicle.urltagger import tagURL
 from axiom.item import Item, InstallableMixin
+from twisted.python import util
 from axiom import attributes, errors
 from axiom.tags import Catalog, Tag
 from zope.interface import implements
@@ -254,7 +255,7 @@ class CCPublicPageMixin(object):
     def render_head(self, ctx, data):
         yield super(CCPublicPageMixin, self).render_head(ctx, data)
         yield tags.title[self.title]
-        yield tags.link(rel="stylesheet", type="text/css", href="/static/css/static-site.css")
+        yield tags.link(rel="stylesheet", type="text/css", href=makeStaticURL("css/static-site.css"))
 
     def render_navigation(self, ctx, data):
         if self.username is None:
@@ -289,12 +290,15 @@ class PublicIndexPage(CCPublicPageMixin, PublicLivePage):
                           "faq" : mkchild('faq.html', 'Clickchronicle FAQ'),
                           "screenshots" : mkchild('screenshots.html', 'ClickChronicle Screenshots')}
 
+    def child_static(self, ctx):
+        return static.File(util.sibpath(__file__, 'static'))
+
     def customizeFor(self, forUser):
         return self.__class__(self.original, self.staticContent, forUser)
 
     def render_head(self, ctx, data):
         yield super(PublicIndexPage, self).render_head(ctx, data)
-        yield makeScriptTag("/static/js/live-clicks.js")
+        yield makeScriptTag("live-clicks.js")
 
     def goingLive(self, ctx, client):
         self.client = client

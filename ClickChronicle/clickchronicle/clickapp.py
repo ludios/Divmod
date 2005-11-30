@@ -23,7 +23,7 @@ from xmantissa import ixmantissa, webnav, website, webapp, prefs, search, tdbvie
 from xmantissa.publicresource import PublicPage
 
 from clickchronicle import iclickchronicle, indexinghelp, clickbrowser
-from clickchronicle.util import staticTemplate, makeScriptTag
+from clickchronicle.util import staticTemplate, makeStaticURL, makeScriptTag
 from clickchronicle.visit import Visit, Domain, BookmarkVisit, Bookmark
 from clickchronicle.searchparser import parseSearchString
 from clickchronicle.publicpage import AGGREGATION_PROTOCOL, ONLY_INCREMENT
@@ -49,6 +49,9 @@ class ClickChronicleBenefactor(Item):
     # able to store.
     maxClicks = attributes.integer(default=1000)
 
+    def installOn(self, other):
+        other.powerUp(self, ixmantissa.IBenefactor)
+
     def endow(self, ticket, avatar):
         self.endowed += 1
 
@@ -59,6 +62,17 @@ class ClickChronicleBenefactor(Item):
         avatar.findOrCreate(ClickChronicleInitializer,
                             maxClicks=self.maxClicks).installOn(avatar)
         avatar.findOrCreate(StaticShellContent).installOn(avatar)
+
+
+    def deprive(self, ticket, avatar):
+        avatar.findFirst(StaticShellContent).deleteFromStore()
+        cci = None
+        for cci in avatar.query(ClickChronicleInitializer):
+            cci.deleteFromStore()
+            break
+        else:
+            avatar.findFirst(ClickRecorder).deleteFromStore()
+
 
 def benefactor1To2(oldBene):
     newBene = oldBene.upgradeVersion(
@@ -188,7 +202,7 @@ class ClickChronicleInitializerPage(CCPublicPageMixin, PublicPage):
 
     def render_head(self, ctx, data):
         yield CCPublicPageMixin.render_head(self, ctx, data)
-        yield makeScriptTag("/static/js/initialize.js")
+        yield makeScriptTag("initialize.js")
 
     def renderHTTP(self, ctx):
         req = inevow.IRequest(ctx)
@@ -354,27 +368,6 @@ def sendToPublicPage(senderAvatar, toAddress, protocol, message):
         ixmantissa.IPublicPage(recip).observeClick(message.structured['title'], message.structured['url'])
 
 
-class ChangeClickLimit(Item):
-    typeName = 'clickchronicle_click_changer'
-    schemaVersion = 1
-
-    byWhat = attributes.integer()
-    recorder = attributes.reference()
-
-    def schedule(self, howLong):
-        """
-        Set this Item's run method to be run in C{howLong} seconds
-        from now.
-        """
-        scheduler.IScheduler(self.store).schedule(
-            self,
-            Time() + timedelta(seconds=howLong))
-
-    def run(self):
-        self.recorder.maxCount += self.byWhat
-        self.deleteFromStore()
-
-
 class ClickRecorder(Item, website.PrefixURLMixin):
     """
     I exist independently of the rest of the application and accept
@@ -427,10 +420,6 @@ class ClickRecorder(Item, website.PrefixURLMixin):
 
     def createResource(self):
         return URLGrabber(self)
-
-    def raiseClickLimitForDuration(self, byWhat, howLong):
-        ChangeClickLimit(store=self.store, recorder=self, byWhat=-byWhat).schedule(howLong)
-        self.maxCount += byWhat
 
     def getDomain(self, host):
         for domain in self.store.query(Domain, Domain.url==host):
@@ -661,7 +650,7 @@ class StaticShellContent(Item, InstallableMixin):
         other.powerUp(self, ixmantissa.IStaticShellContent)
 
     def getHeader(self):
-        return tags.a(href="/")[tags.img(border=0, src="/static/images/logo.png")]
+        return tags.a(href="/")[tags.img(border=0, src=makeStaticURL("images/logo.png"))]
 
     def getFooter(self):
         return (entities.copy, "Divmod 2005")

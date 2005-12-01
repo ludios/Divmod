@@ -85,7 +85,7 @@ def generatePathVariable(nv):
 
     # XXX move to separate command?
     if not os.path.isdir(branchmgr.theBranchManager.binCachePath):
-        os.mkdir(branchmgr.theBranchManager.binCachePath)
+        os.makedirs(branchmgr.theBranchManager.binCachePath)
     for ent in sys.path:
         branchBinDir = os.path.join(ent, 'bin')
         if os.path.isdir(branchBinDir):

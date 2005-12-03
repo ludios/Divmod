@@ -196,9 +196,14 @@ upgrade.registerUpgrader(initializer1To2, 'clickchronicle_password_initializer',
 class ClickChronicleInitializerPage(CCPublicPageMixin, PublicPage):
 
     def __init__(self, original):
+        for resource, domain in userbase.getAccountNames(original.installedOn):
+            username = '%s@%s' % (resource, domain)
+            break
+        else:
+            username = None
         PublicPage.__init__(self, original, staticTemplate("initialize.html"),
                             ixmantissa.IStaticShellContent(original.installedOn, None),
-                            original.installedOn)
+                            username)
 
     def render_head(self, ctx, data):
         yield CCPublicPageMixin.render_head(self, ctx, data)

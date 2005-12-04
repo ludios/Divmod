@@ -95,7 +95,9 @@ def generatePathVariable(nv):
                     src = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'bin', 'cham.py')
                     if not os.path.exists(dst):
                         sys.stderr.write('link: %r => %r\n <on account of %r>\n' % (dst, src, ent))
-                        os.symlink(src, dst)
+                        file(dst, 'w').write(file(src).read())
+                        if os.name != 'nt':
+                            os.chmod(dst, 0755)
 
 def export():
     e = Env()

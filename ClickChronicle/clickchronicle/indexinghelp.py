@@ -290,7 +290,7 @@ class CacheManager(Item):
         e.g. cchronicle.axiom/files/account/test.com/user/files/cache/2005-09-10/55.html
         """
         dirName = visit.timestamp.asDatetime().date().isoformat()
-        cacheDir = self.store.newDirectory('cache/%s' % dirName)
+        cacheDir = self.store.newDirectory('cache', dirName)
         fileName = cacheDir.child('%s.html' % visit.storeID)
         return fileName
 

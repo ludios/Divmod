@@ -393,7 +393,7 @@ class RadicalGame(website.AxiomFragment):
             return world
         raise RuntimeError("No world found")
 
-    name = property(lambda self: str(self.original.store.dbdir.split('/')[-1]))
+    name = property(lambda self: str(self.original.store.dbdir.basename()))
     image = property(lambda self: IVisible(self.original).image)
 
     def _closed(self, ignored):

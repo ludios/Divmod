@@ -2,7 +2,7 @@
 
 import pytz
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from zope.interface import implements
 
 from twisted.web.util import redirectTo
@@ -20,14 +20,13 @@ from axiom import upgrade, userbase, scheduler, attributes
 from vertex import q2q
 
 from xmantissa import ixmantissa, webnav, website, webapp, prefs, search, tdbview
-from xmantissa.publicresource import PublicPage
 
 from clickchronicle import iclickchronicle, indexinghelp, clickbrowser
-from clickchronicle.util import staticTemplate, makeStaticURL, makeScriptTag
+from clickchronicle.util import makeStaticURL
 from clickchronicle.visit import Visit, Domain, BookmarkVisit, Bookmark
 from clickchronicle.searchparser import parseSearchString
 from clickchronicle.publicpage import AGGREGATION_PROTOCOL, ONLY_INCREMENT
-from clickchronicle.publicpage import AggregateClick, CCPublicPageMixin
+from clickchronicle.publicpage import AggregateClick
 
 from xapwrap.index import NoIndexValueFound
 
@@ -56,22 +55,23 @@ class ClickChronicleBenefactor(Item):
         self.endowed += 1
 
         avatar.findOrCreate(website.WebSite).installOn(avatar)
-        avatar.findOrCreate(webapp.PrivateApplication,
-                            preferredTheme=u'cc-skin').installOn(avatar)
+        avatar.findOrCreate(webapp.PrivateApplication).installOn(avatar)
+
         avatar.findOrCreate(scheduler.SubScheduler).installOn(avatar)
-        avatar.findOrCreate(ClickChronicleInitializer,
-                            maxClicks=self.maxClicks).installOn(avatar)
         avatar.findOrCreate(StaticShellContent).installOn(avatar)
 
+        rec = avatar.findOrCreate(ClickRecorder)
+        rec.maxCount = self.maxClicks
+        rec.installOn(avatar)
+
+        for item in (ClickList, DomainList, indexinghelp.SyncIndexer,
+                     BookmarkList, CCSearchProvider, indexinghelp.CacheManager,
+                     GetExtension, CCPreferenceCollection):
+            avatar.findOrCreate(item).installOn(avatar)
 
     def deprive(self, ticket, avatar):
         avatar.findFirst(StaticShellContent).deleteFromStore()
-        cci = None
-        for cci in avatar.query(ClickChronicleInitializer):
-            cci.deleteFromStore()
-            break
-        else:
-            avatar.findFirst(ClickRecorder).deleteFromStore()
+        avatar.findFirst(ClickRecorder).deleteFromStore()
 
 
 def benefactor1To2(oldBene):
@@ -144,7 +144,7 @@ class ClickChronicleInitializer(Item, InstallableMixin):
     implements(ixmantissa.INavigableElement)
 
     typeName = 'clickchronicle_password_initializer'
-    schemaVersion = 2
+    schemaVersion = 3
 
     installedOn = attributes.reference()
     maxClicks = attributes.integer()
@@ -190,41 +190,9 @@ def initializer1To2(oldInit):
         installedOn=oldInit.installedOn,
         maxClicks=oldInit.maxClicks)
     return newInit
+
 upgrade.registerUpgrader(initializer1To2, 'clickchronicle_password_initializer', 1, 2)
-
-
-class ClickChronicleInitializerPage(CCPublicPageMixin, PublicPage):
-
-    def __init__(self, original):
-        for resource, domain in userbase.getAccountNames(original.installedOn):
-            username = '%s@%s' % (resource, domain)
-            break
-        else:
-            username = None
-        PublicPage.__init__(self, original, staticTemplate("initialize.html"),
-                            ixmantissa.IStaticShellContent(original.installedOn, None),
-                            username)
-
-    def render_head(self, ctx, data):
-        yield CCPublicPageMixin.render_head(self, ctx, data)
-        yield makeScriptTag("initialize.js")
-
-    def renderHTTP(self, ctx):
-        req = inevow.IRequest(ctx)
-        password = req.args.get('password', [None])[0]
-
-        if password is None:
-            return rend.Page.renderHTTP(self, ctx)
-
-        self.original.store.transact(self.original.setPassword,
-                                     unicode(password)) # XXX TODO: select
-                                                        # proper decoding
-                                                        # strategy.
-        return URL.fromString('/')
-
-registerAdapter(ClickChronicleInitializerPage,
-                ClickChronicleInitializer,
-                inevow.IResource)
+upgrade.registerUpgrader(lambda old: None, 'clickchronicle_password_initializer', 2, 3)
 
 class ClickList(Item, InstallableMixin):
     """similar to Preferences, i am an implementor of INavigableElement,

@@ -9,14 +9,14 @@
   onclose="gClickChronicleLoginPrompt.onCloseWindow()"
   style="padding: 5px;">
 
+  <script src="chrome://clickchronicle/content/js/login-prompt.js" type="application/x-javascript"/>
+
   <keyset>
     <key id="close_cmd" keycode="VK_ESCAPE"
       oncommand="gClickChronicleLoginPrompt.onCloseWindow(); window.close();"/>
     <key id="ok_cmd" keycode="VK_RETURN"
       oncommand="gClickChronicleLoginPrompt.onClickLogin();"/>
   </keyset>
-
-  <script src="chrome://clickchronicle/content/js/login-prompt.js" type="application/x-javascript"/>
 
   <vbox flex="1">
     <grid>

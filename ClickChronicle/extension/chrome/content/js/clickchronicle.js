@@ -1,9 +1,36 @@
+function ClickChronicleMutableURI(URI) {
+    this.URI = URI.clone();
+}
+
+ClickChronicleMutableURI.prototype = {
+    child  : function(cname) {
+        if(this.URI.spec[this.URI.spec.length-1] != "/")
+            cname = "/" + cname;
+        this.URI.spec += cname;
+        return this;
+    },
+
+    prePath : function() {
+        this.URI.spec = this.URI.prePath;
+        return this;
+    },
+
+    top : function(segment) {
+        return this.prePath().child(segment);
+    },
+
+    toString : function() { return this.URI.spec }
+}
+
 var gClickChronicleObs = {
     state : null,
 
     button : null,
     appContent : null,
     tabBrowser : null,
+    mantissaURI : null,
+    privateURI : null,
+    loginURI : null,
 
     IOService : Components.classes["@mozilla.org/network/io-service;1"]
                      .getService(Components.interfaces.nsIIOService),
@@ -76,7 +103,7 @@ var gClickChronicleObs = {
 
         try {
             var req = new XMLHttpRequest();
-            req.open("POST", targetURL, true);
+            req.open("GET", targetURL, true);
             req.send(null);
         } catch(e) {}
     },
@@ -130,7 +157,8 @@ var gClickChronicleObs = {
         }
         var recorderURL = me.CCPrefs.getCharPref("clickRecorderURL");
         var recorderURI = me.IOService.newURI(recorderURL, null, null);
-        gClickChronicleMantissaLogin.login(recorderURI, cbLoggedIn);
+        me.mantissaURI = recorderURI;
+        me.login(cbLoggedIn);
     },
 
     stopRecording : function(notify) {
@@ -150,7 +178,88 @@ var gClickChronicleObs = {
             gClickChronicleObs.stopRecording(false);
         else
             gClickChronicleObs.startRecording(false);
+    },
+
+    login : function(cbfunc) {
+        var mantissaURI = gClickChronicleObs.mantissaURI;
+
+        function mktop(segment) {
+            return new ClickChronicleMutableURI(mantissaURI).top(segment).URI;
+        }
+
+        gClickChronicleObs.privateURI = mktop("private");
+        gClickChronicleObs.loginURI   = mktop("__login__");
+
+        /* wrap the callback function in another that will login
+         to the mantissa server if we're not already */
+
+        function cbLoggedIn(result) {
+            if(result)
+                cbfunc(true);
+            else if(result == null) {
+                alert("There was a problem communicating with " + mantissaURI.host);
+                cbfunc(null);
+            } else
+                gClickChronicleObs.loginPrompt(cbfunc);
+        }
+        gClickChronicleObs.loggedIn(cbLoggedIn);
+    },
+
+
+    substitute : function() {
+        var str  = arguments[0];
+        for(i = 1; i < arguments.length; i++)
+            str = str.replace(/%s/, arguments[i].toString());
+        return str;
+    },
+
+    loginPrompt : function(cbfunc) {
+        function cbClickedLogin(result) {
+            if(result)
+                gClickChronicleObs.onClickLogin(cbfunc, result);
+            else
+                cbfunc(result);
+        }
+        var wargs = {"callback": cbClickedLogin,
+                     "display-url": gClickChronicleObs.mantissaURI.host,
+                     "post-url": gClickChronicleObs.loginURI.spec};
+
+        alert([wargs["callback"], wargs["display-url"], wargs["post-url"]]);
+
+        window.openDialog("chrome://clickchronicle/content/xul/login-prompt.xul",
+                          "clickchronicle_login_window",
+                          "chrome,centerscreen,resizable=no",
+                          wargs);
+    },
+
+    responseCode : function(cbfunc) {
+        try {
+            var req = new XMLHttpRequest();
+            req.onload  = function(event) {
+                cbfunc(event.target.status)
+            }
+            req.onerror = function(event) {
+                cbfunc(null)
+            }
+            req.open("GET", gClickChronicleObs.privateURI.spec, true);
+            req.send(null)
+        } catch(e) {
+            cbfunc(null)
+        }
+    },
+
+    loggedIn : function(cbfunc) {
+        function cbResponseCode(status) {
+            if(status && status != 404)
+                cbfunc(true);
+            else if(status == null)
+                cbfunc(null);
+            else
+                cbfunc(false);
+        }
+        gClickChronicleObs.responseCode(cbResponseCode);
     }
+
 }
 
 var gClickChronicleStateChangeSentinel = {
@@ -169,13 +278,11 @@ var gClickChronicleStateChangeSentinel = {
     },
 
     handleStateChanged : function(messageData) {
-        dump("cc: handleStateChanged\n");
         if(messageData[0] != gClickChronicleStateChangeSentinel.magicId)
             gClickChronicleObs.stateChanged(messageData[1]);
     },
 
     handleStateQuery : function(messageData) {
-        dump("cc: handleStateQuery\n");
         if(messageData[0] != gClickChronicleStateChangeSentinel.magicId)
             gClickChronicleStateChangeSentinel.notify(
                 "clickchronicle-state-notification", 
@@ -183,7 +290,6 @@ var gClickChronicleStateChangeSentinel = {
     },
 
     handleStateNotification : function(messageData) {
-        dump("cc: handleStateNotification\n");
         var gccscs = gClickChronicleStateChangeSentinel;
 
         if(messageData[0] != gccscs.magicId && gccscs.pollStateCallback) {
@@ -263,20 +369,14 @@ var gClickChronicleStateChangeSentinel = {
     },
 
     pollStates : function(cbfunc) {
-        dump("cc: gClickChronicleStateChangeSentinel.pollStates(...)\n");
-
         var gccscs = gClickChronicleStateChangeSentinel;
         var topic = "clickchronicle-state-query";
         var observers = gccscs.observerCount(topic) - 1;
 
-        dump("cc: ---> pollStates: got this many observers " + observers + "\n");
-
         if(0 < observers) {
-            dump("cc: ---> pollStates: notifying observers\n");
             gccscs.pollStateCallback = cbfunc;
             gccscs.notify(topic, null);
         } else {
-            dump("cc: ---> pollStates: calling back now with null\n");
             cbfunc(null);
         }
     }

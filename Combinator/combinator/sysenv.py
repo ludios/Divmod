@@ -5,7 +5,7 @@ import os
 
 from combinator import branchmgr
 
-PATHVARS = 'PYTHONPATH', 'PATH', 'LD_LIBRARY_PATH'
+PATHVARS = 'PYTHONPATH', 'PATH', 'LD_LIBRARY_PATH', 'PATHEXT'
 
 def uniq(l):
     tmpd = {}
@@ -78,6 +78,8 @@ def generatePathVariable(nv):
     branchmgr.init()
 
     nv.prePath('PATH', branchmgr.theBranchManager.binCachePath)
+    if os.name == 'nt':
+        nv.postPath('PATHEXT', '.PY')
     userBinPath = os.path.abspath(
         os.path.expanduser("~/.local/bin"))
     if os.path.exists(userBinPath):
@@ -94,14 +96,10 @@ def generatePathVariable(nv):
                     dst = os.path.join(branchmgr.theBranchManager.binCachePath,
                                        binary)
                     if os.name == 'nt':
-                        dst += '.bat'
-                        src = os.path.join(os.path.dirname(
-                                os.path.dirname(__file__)),
-                                           'bin', 'cham.bat')
-                    else:
-                        src = os.path.join(
-                            os.path.dirname(os.path.dirname(__file__)),
-                            'bin', 'cham.py')
+                        dst += '.py'
+                    src = os.path.join(
+                        os.path.dirname(os.path.dirname(__file__)),
+                        'bin', 'cham.py')
                     if not os.path.exists(dst):
                         sys.stderr.write('link: %r => %r\n <on account of %r>\n' % (dst, src, ent))
                         file(dst, 'w').write(file(src).read())

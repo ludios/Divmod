@@ -2,11 +2,15 @@
 
 import os
 import sys
+import signal
 
 from combinator import branchmgr
 
 def naturalName(n):
     return os.path.splitext(os.path.split(n)[1])[0]
+
+def nostop(*a):
+    pass
 
 def remain(argv):
     # sys.stderr.write('<chameleon script activated: %r>\n' % (argv))
@@ -26,8 +30,10 @@ def remain(argv):
         binpath = sys.executable
         newargz = map(branchmgr._cmdLineQuote, newargz)
         binpath = branchmgr._cmdLineQuote(binpath)
-        wincmd = ' '.join(newargz)
-        os.system(wincmd)
+        wincmd = ' '.join(newargz[1:])
+        signal.signal(signal.SIGINT, nostop) # ^C on Windows suuuuuuuucks
+        pid = os.spawnv(os.P_NOWAIT, binpath, [binpath, wincmd])
+        exstat = os.waitpid(pid, 0)
     else:
         os.execv(binpath, newargz)
 

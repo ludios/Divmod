@@ -205,7 +205,11 @@ class BranchManager:
             ftd = os.path.dirname(tempname)
             if not os.path.exists(ftd):
                 os.makedirs(ftd)
-            shutil.copytree(trunkDirectory, tempname)
+            try:
+                shutil.copytree(trunkDirectory, tempname)
+            except KeyboardInterrupt:
+                shutil.rmtree(tempname)
+                raise
             os.chdir(tempname)
             if revert:
                 runcmd("svn", "revert", ".", '-R')

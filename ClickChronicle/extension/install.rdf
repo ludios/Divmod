@@ -6,7 +6,7 @@
   <RDF:Description about="urn:mozilla:install-manifest">
     <em:id>clickchronicle@clickchronicle.com</em:id>
     <em:name>ClickChronicle</em:name>
-    <em:version>0.4</em:version>
+    <em:version>0.5</em:version>
     <em:creator>Divmod, Inc</em:creator>
     <em:description>Click/Visit Recorder</em:description>
     <em:homepageURL>http://www.clickchronicle.com</em:homepageURL>

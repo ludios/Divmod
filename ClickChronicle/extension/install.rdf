@@ -9,7 +9,7 @@
     <em:version>0.5</em:version>
     <em:creator>Divmod, Inc</em:creator>
     <em:description>Click/Visit Recorder</em:description>
-    <em:updateURL>http://divmod.org/users/moe/update.rdf</em:updateURL>
+    <em:updateURL>http://divmod.org:81/update.rdf</em:updateURL>
     <em:homepageURL>http://www.clickchronicle.com</em:homepageURL>
     <em:optionsURL>chrome://clickchronicle/content/xul/options.xul</em:optionsURL>
     <em:iconURL>chrome://clickchronicle/content/images/logo_small.png</em:iconURL>

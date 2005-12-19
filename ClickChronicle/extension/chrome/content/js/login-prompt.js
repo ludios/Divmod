@@ -30,13 +30,17 @@ var gClickChronicleLoginPrompt = {
             felem = formelems[i];
             value = getElementValue(felem).toString();
             qargs.push(felem.getAttribute("name") + "=" + encodeURIComponent(value));
+            felem.disabled = true;
         };
 
         qargs = qargs.join("&");
 
         var req = new XMLHttpRequest();
-        req.onerror = function(e) {}
-        req.onload  = function(e) {}
+
+        var callback = gClickChronicleLoginPrompt.windowargs["callback"];
+
+        req.onerror = function(e) { setTimeout(window.close, 10); callback(false) }
+        req.onload  = function(e) { setTimeout(window.close, 10); callback(true) }
 
         req.open("POST", gClickChronicleLoginPrompt.windowargs["post-url"], true);
         req.setRequestHeader("content-type", "application/x-www-form-urlencoded");

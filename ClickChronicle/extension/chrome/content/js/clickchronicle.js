@@ -145,9 +145,9 @@ var gClickChronicleObs = {
         me.setBusyButtonState();
 
         function cbLoggedIn(result) {
-            if(!result)
+            if(!result) {
                 return me.stopRecording(notify);
-
+            }
             me.state = "unpaused";
             me.setUnpausedButtonState();
             me.appContent.addEventListener("DOMContentLoaded", me.DOMContentLoaded, false);
@@ -194,9 +194,9 @@ var gClickChronicleObs = {
          to the mantissa server if we're not already */
 
         function cbLoggedIn(result) {
-            if(result)
+            if(result) {
                 cbfunc(true);
-            else if(result == null) {
+            } else if(result == null) {
                 alert("There was a problem communicating with " + mantissaURI.host);
                 cbfunc(null);
             } else
@@ -216,15 +216,13 @@ var gClickChronicleObs = {
     loginPrompt : function(cbfunc) {
         function cbClickedLogin(result) {
             if(result)
-                gClickChronicleObs.onClickLogin(cbfunc, result);
+                setTimeout(function () { gClickChronicleObs.loggedIn(cbfunc) }, 100);
             else
                 cbfunc(result);
         }
         var wargs = {"callback": cbClickedLogin,
                      "display-url": gClickChronicleObs.mantissaURI.host,
                      "post-url": gClickChronicleObs.loginURI.spec};
-
-        alert([wargs["callback"], wargs["display-url"], wargs["post-url"]]);
 
         window.openDialog("chrome://clickchronicle/content/xul/login-prompt.xul",
                           "clickchronicle_login_window",

@@ -9,6 +9,7 @@
 4. Write release notes. <Package>/NEWS.txt
    4a.  set version number in NEWS.txt.
    4b.  set date in NEWS.txt.
+   5c.  add any new depdencies/versions in DEPS.txt.
 
 5. Run unit tests locally.
 

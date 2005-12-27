@@ -252,10 +252,10 @@ class CCPublicPageMixin(object):
     loggedInNavigationFragment = staticTemplate("logged-in-static-nav.html")
     title = "ClickChronicle"
 
-    def render_head(self, ctx, data):
-        yield super(CCPublicPageMixin, self).render_head(ctx, data)
+    def head(self):
         yield tags.title[self.title]
-        yield tags.link(rel="stylesheet", type="text/css", href=makeStaticURL("css/static-site.css"))
+        yield tags.link(rel="stylesheet", type="text/css",
+                        href=makeStaticURL("css/static-site.css"))
 
     def render_navigation(self, ctx, data):
         if self.username is None:
@@ -296,8 +296,8 @@ class PublicIndexPage(CCPublicPageMixin, PublicLivePage):
     def customizeFor(self, forUser):
         return self.__class__(self.original, self.staticContent, forUser)
 
-    def render_head(self, ctx, data):
-        yield super(PublicIndexPage, self).render_head(ctx, data)
+    def head(self):
+        yield super(PublicIndexPage, self).head()
         yield makeScriptTag("live-clicks.js")
 
     def goingLive(self, ctx, client):

@@ -175,7 +175,7 @@ class ClickChroniclePublicPage(Item, InstallableMixin):
         self.clickListeners = []
         self.recentClicks = collections.deque()
         self.clickLogFile = self.store.newFilePath('clicks.log').open('a')
-        self.updateLowsetPopularScore()
+        self.updateLowestPopularScore()
 
     def installOn(self, other):
         super(ClickChroniclePublicPage, self).installOn(other)
@@ -214,7 +214,7 @@ class ClickChroniclePublicPage(Item, InstallableMixin):
             for tag in tagURL(url):
                 catalog.tag(clickStat, tag)
 
-    def updateLowsetPopularScore(self):
+    def updateLowestPopularScore(self):
         mostPopular = list(self.highestScored(HISTORY_DEPTH))
         if mostPopular:
             self.lowestPopularScore = mostPopular[-1].score
@@ -224,7 +224,7 @@ class ClickChroniclePublicPage(Item, InstallableMixin):
     def refreshScores(self):
         for stat in self.highestScored(HISTORY_DEPTH):
             stat.recordClick(extime.Time.fromPOSIXTimestamp(self.time()), increment=False)
-        self.updateLowsetPopularScore()
+        self.updateLowestPopularScore()
 
     def listenClicks(self, who):
         self.clickListeners.append(who)

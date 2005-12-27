@@ -1,57 +1,63 @@
-var clickchronicle_clickCount = 0;
-var clickchronicle_clickLimit = 10;
+if(typeof(ClickChronicle) == "undefined") {
+    ClickChronicle = {};
+}
 
-function clickchronicle_setOpacity(node, ratio) {
-    node.style.filter = 'alpha(opacity=' + new String(ratio * 100) + ')'
+ClickChronicle.LiveClicks = Nevow.Athena.Widget.subclass();
+
+ClickChronicle.LiveClicks.prototype.loaded = function() {
+    this.clickCount = 0;
+    this.clickLimit = 10;
+    this.callRemote('getClickBacklog').addCallback(
+        MochiKit.Base.bind(function(clicks){ this.addClicks(clicks) }, this));
+}
+
+ClickChronicle.LiveClicks.prototype.setOpacity = function(node, ratio) {
+    node.style.filter = 'alpha(opacity=' + new String(ratio * 100) + ')';
     node.style.opacity = ratio;
 }
 
-function clickchronicle_fadeIn(node, period) {
+ClickChronicle.LiveClicks.prototype.fadeIn = function(node, period) {
+    var outerthis = this;
     var ratio = 0.0;
     function bump() {
         if (ratio < 1) {
             ratio += 0.2;
-            clickchronicle_setOpacity(node, ratio);
+            outerthis.setOpacity(node, ratio);
             setTimeout(bump, 0.2);
         }
     }
-
     setTimeout(bump, 0.05);
 }
 
 
-function clickchronicle_createClick(title, url) {
-    var newClick = document.createElement('div');
-    newClick.setAttribute('id', 'click_' + clickchronicle_clickCount);
-    var clickLink = document.createElement('a');
-    var clickTitle = document.createTextNode(title);
+ClickChronicle.LiveClicks.prototype.createClick = function(title, url) {
+    var newClick = MochiKit.DOM.DIV({'id': 'click_' + this.clickCount},
+                     MochiKit.DOM.A({'href': url}, title));
 
-    clickLink.setAttribute('href', url);
-    clickLink.appendChild(clickTitle);
-    newClick.appendChild(clickLink)
-
-    clickchronicle_setOpacity(newClick, 0);
-
-    clickchronicle_fadeIn(newClick, 2);
+    this.setOpacity(newClick, 0);
+    this.fadeIn(newClick, 2);
 
     return newClick;
 }
 
-function clickchronicle_incrementClickCounter() {
-    var counter = document.getElementById('clicks-chronicled');
-    var count = parseInt(counter.firstChild.nodeValue);
-    counter.firstChild.nodeValue = count + 1;
+ClickChronicle.LiveClicks.prototype.addClicks = function(clicks) {
+    for(var i = 0; i < clicks.length; i++) {
+        this.addClick.apply(this, clicks[i]);
+    }
 }
 
-function clickchronicle_addClick(title, url) {
-    var nlc = document.getElementById('no-live-clicks-dialog');
-    nlc.style.display = 'none';
-
-    var clicks = document.getElementById('recent-clicks-container');
-    clickchronicle_clickCount += 1;
-    if (clickchronicle_clickCount > clickchronicle_clickLimit) {
-        var oldest = document.getElementById('click_' + (clickchronicle_clickCount-clickchronicle_clickLimit));
-        clicks.removeChild(oldest);
+ClickChronicle.LiveClicks.prototype.addClick = function(url, title) {
+    if(this.clickCount == 0) {
+        MochiKit.DOM.hideElement('no-live-clicks-dialog');
     }
-    clicks.insertBefore(clickchronicle_createClick(title, url), clicks.firstChild);
+
+    var clicks = MochiKit.DOM.getElement('recent-clicks-container');
+    this.clickCount++;
+
+    if(this.clickLimit < this.clickCount) {
+        clicks.removeChild(MochiKit.DOM.getElement(
+                            'click_' + (this.clickCount-this.clickLimit)));
+    }
+
+    clicks.insertBefore(this.createClick(title, url), clicks.firstChild);
 }

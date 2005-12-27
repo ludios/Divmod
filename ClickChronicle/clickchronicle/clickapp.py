@@ -336,10 +336,15 @@ def sendToPublicPage(senderAvatar, toAddress, protocol, message):
     assert isinstance(message, AggregateClick)
 
     realm = portal.IRealm(senderAvatar.store.parent)
-    recip = realm.accountByAddress(u"clickchronicle", u"clickchronicle.com")
-    if recip is not None:
-        ixmantissa.IPublicPage(recip).observeClick(message.structured['title'], message.structured['url'])
-
+    # FIXME argh.
+    for creds in ((u'ClickChronicle', None), (u'clickchronicle', u'clickchronicle.com')):
+        recip = realm.accountByAddress(*creds)
+        pp = ixmantissa.IPublicPage(recip, None)
+        if pp is not None:
+            pp.observeClick(message.structured['title'], message.structured['url'])
+            break
+    else:
+        assert False, 'shock horror. cannot find a system user'
 
 class ClickRecorder(Item, website.PrefixURLMixin):
     """
@@ -466,7 +471,6 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             storeFavicon=storeFavicon)
 
         if visit is not None and created is True:
-            # Ignored domain
             self.publicize(title, url)
         else:
             self.publicize(u'', ONLY_INCREMENT)
@@ -477,6 +481,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
 
         if not self.prefAggregator.getPreferenceValue("shareClicks"):
             url = ONLY_INCREMENT
+
         sendToPublicPage(
             self.installedOn,
             q2q.Q2QAddress("clickchronicle.com", "clickchronicle"),

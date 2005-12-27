@@ -33,11 +33,7 @@
       <tbody>
         <tr valign="top">
           <td>
-            <div class="click-container" id="recent-clicks-container">
-              <div class="big-title" id="no-live-clicks-dialog">
-                No Clicks
-              </div>
-            </div>
+            <nevow:invisible nevow:render="clickObserver" />
           </td>
           <td nevow:render="popularClicks" />
         </tr>

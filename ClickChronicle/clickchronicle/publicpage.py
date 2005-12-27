@@ -4,8 +4,8 @@ from __future__ import division
 
 import time, struct, collections
 from epsilon import extime
-from xmantissa.publicresource import PublicLivePage, PublicPage
-from nevow import inevow, tags, livepage, static
+from xmantissa.publicresource import PublicAthenaLivePage, PublicPage
+from nevow import inevow, tags, static, athena
 from clickchronicle.util import makeStaticURL, makeScriptTag, staticTemplate
 from clickchronicle.urltagger import tagURL
 from axiom.item import Item, InstallableMixin
@@ -189,6 +189,7 @@ class ClickChroniclePublicPage(Item, InstallableMixin):
 
         if url == ONLY_INCREMENT:
             return
+
         self.clickLogFile.write('%s %s\n' % (extime.Time().asISO8601TimeAndDate(), url))
         self.recentClicks.append((title, url))
         if len(self.recentClicks) > HISTORY_DEPTH:
@@ -268,20 +269,37 @@ class CCPublicPageMixin(object):
 class CCPublicPage(CCPublicPageMixin, PublicPage):
     pass
 
-class PublicIndexPage(CCPublicPageMixin, PublicLivePage):
+class ClickObserverFragment(athena.LiveFragment):
+    iface = allowedMethods = dict(getClickBacklog=True)
+    jsClass = 'ClickChronicle.LiveClicks'
+
+    def __init__(self, indexPage):
+        self.indexPage = indexPage
+        athena.LiveFragment.__init__(self, indexPage,
+                                     staticTemplate('click-observer.html'))
+
+    def getClickBacklog(self):
+        return list((t, unicode(u)) for (t, u) in self.indexPage.registerClient(self))
+
+    def observeClick(self, title, url):
+        self.callRemote('clickchronicle_incrementClickCounter')
+        self.callRemote('addClick', title, unicode(url))
+
+class PublicIndexPage(CCPublicPageMixin, PublicAthenaLivePage):
     implements(ixmantissa.ICustomizable)
 
     title = 'ClickChronicle'
     maxTitleLength = 50
     maxClickQueryResults = 10
 
-    def __init__(self, original, staticContent, forUser=None):
+    def __init__(self, publicPage, staticContent, forUser=None):
         templateContent = staticTemplate("index.html")
-        super(PublicIndexPage, self).__init__(original, templateContent, staticContent, forUser)
+        super(PublicIndexPage, self).__init__(None, None, templateContent, staticContent, forUser)
+
         self.clickContainerPattern = inevow.IQ(templateContent).patternGenerator('click-container')
 
         def mkchild(tmplname, title):
-            p = CCPublicPage(original, staticTemplate(tmplname), staticContent, forUser)
+            p = CCPublicPage(publicPage, staticTemplate(tmplname), staticContent, forUser)
             p.title = title
             return p
 
@@ -290,23 +308,23 @@ class PublicIndexPage(CCPublicPageMixin, PublicLivePage):
                           "faq" : mkchild('faq.html', 'Clickchronicle FAQ'),
                           "screenshots" : mkchild('screenshots.html', 'ClickChronicle Screenshots')}
 
+        self.publicPage = publicPage
+        self.clickObserver = ClickObserverFragment(self)
+        self.clickObserver.page = self
+
+    def registerClient(self, client):
+        unlisten = self.publicPage.listenClicks(client)
+        self.notifyOnDisconnect().addCallback(lambda ign: unlisten())
+        return list(self.publicPage.recentClicks)
+
     def child_static(self, ctx):
         return static.File(util.sibpath(__file__, 'static'))
 
     def customizeFor(self, forUser):
-        return self.__class__(self.original, self.staticContent, forUser)
+        return self.__class__(self.publicPage, self.staticContent, forUser)
 
-    def head(self):
-        yield super(PublicIndexPage, self).head()
-        yield makeScriptTag("live-clicks.js")
-
-    def goingLive(self, ctx, client):
-        self.client = client
-        unlisten = self.original.listenClicks(self)
-        client.notifyOnClose().addCallback(lambda ign: unlisten())
-        client.send([
-            (livepage.js.clickchronicle_addClick(self.trimTitle(t), u), livepage.eol)
-                for (t, u) in self.original.recentClicks])
+    def render_clickObserver(self, ctx, data):
+        return self.clickObserver
 
     def child_(self, ctx):
         return self
@@ -322,25 +340,21 @@ class PublicIndexPage(CCPublicPageMixin, PublicLivePage):
                        url=item.url, clicks=item.totalClicks)
 
     def render_totalClicks(self, ctx, data):
-        return ctx.tag[self.original.totalClicks]
+        return ctx.tag[self.publicPage.totalClicks]
 
     def _renderClicks(self, ctx, clicks):
         return ctx.tag[self.clickContainerPattern(data=self.asDicts(clicks))]
 
     def render_popularSearches(self, ctx, data):
-        return self._renderClicks(ctx, self.original.highestScoredByTag(u'search',
+        return self._renderClicks(ctx, self.publicPage.highestScoredByTag(u'search',
                                   self.maxClickQueryResults))
 
     def render_popularNews(self, ctx, data):
-        return self._renderClicks(ctx, self.original.highestScoredByTag(u'news',
+        return self._renderClicks(ctx, self.publicPage.highestScoredByTag(u'news',
                                   self.maxClickQueryResults))
 
     def render_popularClicks(self, ctx, data):
-        return self._renderClicks(ctx, self.original.highestScored(self.maxClickQueryResults))
-
-    def observeClick(self, title, url):
-        self.client.call('clickchronicle_addClick', self.trimTitle(title), url)
-        self.client.call('clickchronicle_incrementClickCounter')
+        return self._renderClicks(ctx, self.publicPage.highestScored(self.maxClickQueryResults))
 
 # doot doot
 from clickchronicle import upgraders

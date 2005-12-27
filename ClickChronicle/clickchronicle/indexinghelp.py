@@ -194,9 +194,8 @@ class FetchSourceTask(Item, PageFetchingTaskMixin):
         """
         Cache the source for this visit.
         """
-        newFile = self.store.newFile(self.cacheMan.cachedFileNameFor(self.visit).path)
-        newFile.write(source)
-        newFile.close()
+        newFile = self.cacheMan.cachedFilePathFor(self.visit)
+        newFile.setContent(source)
 
     def _enqueueFaviconTask(self, pageInfo):
         domain = self.visit.domain
@@ -282,7 +281,7 @@ class CacheManager(Item):
                                          domain=visit.domain,
                                          cacheMan=self))
 
-    def cachedFileNameFor(self, visit):
+    def cachedFilePathFor(self, visit):
         """
         Return the path to the cached source for this visit.
         The path consists of the iso date for the visit as directory and the
@@ -296,7 +295,7 @@ class CacheManager(Item):
 
     def forget(self, visit):
         try:
-            self.cachedFileNameFor(visit).remove()
+            self.cachedFilePathFor(visit).remove()
         except OSError:
             pass
 

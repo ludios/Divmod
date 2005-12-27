@@ -46,7 +46,7 @@ ClickChronicle.LiveClicks.prototype.addClicks = function(clicks) {
     }
 }
 
-ClickChronicle.LiveClicks.prototype.addClick = function(url, title) {
+ClickChronicle.LiveClicks.prototype.addClick = function(title, url) {
     if(this.clickCount == 0) {
         MochiKit.DOM.hideElement('no-live-clicks-dialog');
     }

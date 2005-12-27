@@ -402,7 +402,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
     def getDomain(self, host):
         for domain in self.store.query(Domain, Domain.url==host):
             if domain.ignore:
-                return None, False
+                return None
             break
         else:
             domain = Domain(url=host, store=self.store,
@@ -499,6 +499,8 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         """
         host = str(URL.fromString(url).click("/"))
         domain = self.getDomain(host)
+        if domain is None:
+            return (None, False)
         # Defensive coding. Never allow visit.referrer to be None.
         # May need to be revisited
         if referrer is None:

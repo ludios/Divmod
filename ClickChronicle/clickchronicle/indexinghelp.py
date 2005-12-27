@@ -290,8 +290,9 @@ class CacheManager(Item):
         """
         dirName = visit.timestamp.asDatetime().date().isoformat()
         cacheDir = self.store.newDirectory('cache', dirName)
-        fileName = cacheDir.child('%s.html' % visit.storeID)
-        return fileName
+        if not cacheDir.exists():
+            cacheDir.makedirs()
+        return cacheDir.child('%s.html' % (visit.storeID,))
 
     def forget(self, visit):
         try:

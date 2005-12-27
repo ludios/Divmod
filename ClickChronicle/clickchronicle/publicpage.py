@@ -279,11 +279,11 @@ class ClickObserverFragment(athena.LiveFragment):
                                      staticTemplate('click-observer.html'))
 
     def getClickBacklog(self):
-        return list((t, unicode(u)) for (t, u) in self.indexPage.registerClient(self))
+        return list((self.indexPage.trimTitle(t), unicode(u))
+                        for (t, u) in self.indexPage.registerClient(self))
 
     def observeClick(self, title, url):
-        self.callRemote('clickchronicle_incrementClickCounter')
-        self.callRemote('addClick', title, unicode(url))
+        self.callRemote('addClick', self.indexPage.trimTitle(title), unicode(url))
 
 class PublicIndexPage(CCPublicPageMixin, PublicAthenaLivePage):
     implements(ixmantissa.ICustomizable)

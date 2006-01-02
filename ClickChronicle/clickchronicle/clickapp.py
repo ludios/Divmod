@@ -653,6 +653,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         # Oh so close to ignoreVisit
         def txn():
             visitsToDelete = list(self.store.query(Visit, Visit.domain == domain))
+            visitsToDelete.extend(self.store.query(Bookmark, Bookmark.domain == domain))
             self.bulkForgetVisits(visitsToDelete)
             domain.deleteFromStore()
         self.store.transact(txn)

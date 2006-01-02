@@ -412,14 +412,23 @@ class ClickRecorder(Item, website.PrefixURLMixin):
 
     def recordBookmark(self, title, url, indexIt=True, storeFavicon=True):
         host = str(URL.fromString(url).click("/"))
-        domain = self.getDomain(host)
+        timeNow = Time()
 
-        bookmark = self.store.findOrCreate(Bookmark,
-                                           title=title,
-                                           url=url,
-                                           domain=domain,
-                                           referrer=self.bookmarkVisit,
-                                           timestamp=Time())
+        domain = self.getDomain(host)
+        if domain is None:
+            return
+        domain.timestamp = timeNow
+
+        for bookmark in self.store.query(Bookmark, Bookmark.url == url):
+            bookmark.timestamp = timeNow
+            break
+        else:
+            Bookmark(store=self.store,
+                     title=title,
+                     url=url,
+                     domain=domain,
+                     referrer=self.bookmarkVisit,
+                     timestamp=timeNow)
 
         cacheMan = iclickchronicle.ICache(self.store)
         cacheMan.rememberVisit(bookmark,

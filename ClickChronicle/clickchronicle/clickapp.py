@@ -212,7 +212,7 @@ class ClickList(Item, InstallableMixin):
 
     def getTabs(self):
         """show a link to myself in the navbar"""
-        return [webnav.Tab('Clicks', self.storeID, 0.2)]
+        return [webnav.Tab('Clicks', self.storeID, 0.9)]
 
 class DomainList(Item, InstallableMixin):
     """similar to Preferences, i am an implementor of INavigableElement,
@@ -232,7 +232,7 @@ class DomainList(Item, InstallableMixin):
 
     def getTabs(self):
         '''show a link to myself in the navbar'''
-        return [webnav.Tab('Domains', self.storeID, 0.1)]
+        return [webnav.Tab('Domains', self.storeID, 0.8)]
 
 class BlockedDomainList(Item, InstallableMixin):
     implements(ixmantissa.INavigableElement)
@@ -246,7 +246,7 @@ class BlockedDomainList(Item, InstallableMixin):
         other.powerUp(self, ixmantissa.INavigableElement)
 
     def getTabs(self):
-        return [webnav.Tab('Blocked Domains', self.storeID, 0.08)]
+        return [webnav.Tab('Blocked Domains', self.storeID, 0.7)]
 
 class ClickListFragment(tdbview.TabularDataView):
     '''i adapt ClickList to INavigableFragment'''
@@ -283,7 +283,7 @@ class BookmarkList(Item, InstallableMixin):
 
     def getTabs(self):
         '''show a link to myself in the navbar'''
-        return [webnav.Tab('Bookmarks', self.storeID, 0.1)]
+        return [webnav.Tab('Bookmarks', self.storeID, 0.6)]
 
 class BookmarkListFragment(tdbview.TabularDataView):
     '''i adapt BookmarkList to INavigableFragment'''
@@ -339,7 +339,7 @@ class GetExtension(Item, InstallableMixin):
         other.powerUp(self, ixmantissa.INavigableElement)
 
     def getTabs(self):
-        return [webnav.Tab('Get Extension', self.storeID, 0.0)]
+        return [webnav.Tab('Get Extension', self.storeID, 0.5)]
 
 class GetExtensionFragment(rend.Fragment):
     implements(ixmantissa.INavigableFragment)
@@ -611,6 +611,8 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         cacheMan = iclickchronicle.ICache(self.store)
         cacheMan.forget(visit)
         def _():
+            for refvisit in self.store.query(Visit, Visit.referrer == visit):
+                refvisit.referrer = self.bookmarkVisit
             visit.deleteFromStore()
             self.visitCount -= 1
         self.store.transact(_)
@@ -623,6 +625,8 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             cacheMan.forget(visit)
         def _():
             for visit in visitList:
+                for refvisit in self.store.query(Visit, Visit.referrer == visit):
+                    refvisit.referrer = self.bookmarkVisit
                 visit.deleteFromStore()
             self.visitCount -= len(visitList)
         self.store.transact(_)

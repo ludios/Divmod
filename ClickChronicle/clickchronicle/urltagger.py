@@ -6,11 +6,12 @@ from nevow.url import URL
 # __contains__, path regexes case insensitively with match().  this could also be changed
 
 
-_tags = {u'search':[['google',           r'(?:search|images|videosearch)$'],
+_tags = {u'search':[['google',           r'(?:base/)*(?:search|images|videosearch)$'],
                     ['search.yahoo.com', r'search$'],
                     ['clusty.com',       r'search$'],
                     ['search.com',       r'search$'],
-                    ['search.msn.com',   r'(?:(?:encarta|local|images|news)/)?results\.aspx$']],
+                    ['search.msn.com',   r'(?:(?:encarta|local|images|news)/)?results\.aspx$'],
+                    ['a9.com',           r'[^\-]']],
 
          u'news':[['nytimes.com',        r'\d{4}/\d{2}/\d{2}'],
                   ['cnn.com',            r'\d{4}'],
@@ -25,6 +26,8 @@ _tags = {u'search':[['google',           r'(?:search|images|videosearch)$'],
                   ['bloomberg.com',      r'apps/news$'],
                   ['timesonline.co.uk',  r'article'],
                   ['usatoday.com',       r'(?:\w+/){2,3}\d{4}\-\d{2}\-\d{2}'],
+                  ['forbes.com',         r'(?:\w+/){3,4}\d{4}\/\d{2}\/\d{2}\/[^.]+\.html'],
+                  ['news.yahoo.com',     r's/\w+/\d{8}'],
                   ['guardian.co.uk',     r'\w+/story/.*?\.htm']]}
 
 def _precompile(tagmap):

@@ -24,7 +24,9 @@ class URLTaggerTestCase(unittest.TestCase):
                      'http://video.google.com/videosearch?q=d&btnG=Search+Video',
                      'http://images.google.co.za/images?svnum=10&hl=en&lr=&q=elephants&btnG=Search',
                      'http://clusty.com/search?query=search%engines',
-                     'http://www.search.com/search?tag=se.fd.box.main.search&q=foobar')
+                     'http://base.google.com/base/search?q=stuff&btnG=Search+Base',
+                     'http://www.search.com/search?tag=se.fd.box.main.search&q=foobar',
+                     'http://a9.com/divmod%20is%20the%20best')
 
         self.assertOnlyTag(positives, 'search')
 
@@ -37,7 +39,8 @@ class URLTaggerTestCase(unittest.TestCase):
                      'http://toolbar.msn.com/?FORM=TLBRFT',
                      'http://www.dogpile.com/info.dogpl/clickit/search?r_aid=BCC09C95F8EA45A9B694D89E8F373700'
                         '&r_eop=2&r_sacop=5&r_spf=0&r_cop=main-title&r_snpp=2&r_spp=3&qqn=n)'
-                        '42U%262c&r_coid=239138&rawto=http://www.vh1.com/shows/dyn/flab_to_fab/series.jhtml')
+                        '42U%262c&r_coid=239138&rawto=http://www.vh1.com/shows/dyn/flab_to_fab/series.jhtml',
+                     'http://a9.com/-/search/prefs')
 
         self.assertNoTag(negatives)
 
@@ -55,13 +58,17 @@ class URLTaggerTestCase(unittest.TestCase):
                      'http://today.reuters.com/business/newsarticle.aspx?type=ousiv&'
                         'storyID=2005-10-24T030304Z_01_KRA410926_RTRIDST_0_BUSINESSPRO-APPLE-NANO-DC.XML',
                      'http://news.bbc.co.uk/1/hi/entertainment/film/4370742.stm',
+                     'http://news.yahoo.com/s/ap/20060102/ap_on_re_us/mine_explosion;'
+                        '_ylt=AsZnlbCIi8j6_QfJCzn2I3us0NUE;_ylu=X3oDMTA3MjBwMWtkBHNlYwM3MTg-',
                      'http://www.usatoday.com/news/world/iraq/2005-10-24-insurgent-attacks_x.htm',
                      'http://www.usatoday.com/life/people/2005-10-23-spears-site-pics_x.htm?POE=LIFISVA',
                      'http://today.reuters.co.uk/news/newsArticle.aspx?type=topNews&storyID=2005-10-24'
                         'T070435Z_01_KNE425338_RTRUKOC_0_UK-BRITAIN-ATTACK.xml',
                     'http://observer.guardian.co.uk/business/story/0,6903,1598469,00.html',
                     'http://today.reuters.com/news/NewsArticle.aspx?type=topNews&storyID=2005-10-24'
-                        'T140129Z_01_MOR420788_RTRUKOC_0_US-WEATHER-WILMA.xml')
+                        'T140129Z_01_MOR420788_RTRUKOC_0_US-WEATHER-WILMA.xml',
+                    'http://www.forbes.com/business/feeds/ap/2006/01/02/ap2423287.html',
+                    'http://www.forbes.com/business/manufacturing/feeds/ap/2006/01/02/ap2423466.html')
 
         self.assertOnlyTag(positives, 'news')
 
@@ -69,5 +76,7 @@ class URLTaggerTestCase(unittest.TestCase):
                      'http://www.bbc.co.uk/strictlycomedancing/about/strictly_african.shtml',
                      'http://news.bbc.co.uk/1/hi/world/default.stm',
                      'http://news.bbc.co.uk/newswatch/ukfs/hi/default.stm',
+                     'http://news.yahoo.com/fc/World/Iraq;_ylt=AkKdiljS2TB7kV9.sBkFBoCs0NUE;'
+                        '_ylu=X3oDMTA2ZGZwam4yBHNlYwNmYw--'
                      'http://today.reuters.com/news/default.aspx',
                      'http://today.reuters.com/news/newsChannel.aspx?type=businessNews')

@@ -31,7 +31,7 @@ ClickChronicle.LiveClicks.prototype.fadeIn = function(node, period) {
 
 
 ClickChronicle.LiveClicks.prototype.createClick = function(title, url) {
-    var newClick = MochiKit.DOM.DIV({'id': 'click_' + this.clickCount},
+    var newClick = MochiKit.DOM.DIV({'class': 'click_' + this.clickCount},
                      MochiKit.DOM.A({'href': url}, title));
 
     this.setOpacity(newClick, 0);
@@ -48,16 +48,16 @@ ClickChronicle.LiveClicks.prototype.addClicks = function(clicks) {
 
 ClickChronicle.LiveClicks.prototype.addClick = function(title, url) {
     if(this.clickCount == 0) {
-        MochiKit.DOM.hideElement('no-live-clicks-dialog');
+        MochiKit.DOM.hideElement(
+            this.nodeByAttribute('class', 'big-title'));
     }
 
-    var clicks = MochiKit.DOM.getElement('recent-clicks-container');
     this.clickCount++;
 
     if(this.clickLimit < this.clickCount) {
-        clicks.removeChild(MochiKit.DOM.getElement(
-                            'click_' + (this.clickCount-this.clickLimit)));
+        this.node.removeChild(this.nodeByAttribute(
+            'class', 'click_'+(this.clickCount-this.clickLimit)));
     }
 
-    clicks.insertBefore(this.createClick(title, url), clicks.firstChild);
+    this.node.insertBefore(this.createClick(title, url), this.node.firstChild);
 }

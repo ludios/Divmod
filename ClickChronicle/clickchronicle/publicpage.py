@@ -172,8 +172,8 @@ class ClickChroniclePublicPage(Item, InstallableMixin):
         return time.time()
 
     def activate(self):
-        self.clickListeners = []
-        self.recentClicks = collections.deque()
+        self.clickListeners = dict(all=list())
+        self.recentClicks = dict(all=collections.deque())
         self.clickLogFile = self.store.newFilePath('clicks.log').open('a')
         self.updateLowestPopularScore()
 
@@ -191,13 +191,6 @@ class ClickChroniclePublicPage(Item, InstallableMixin):
             return
 
         self.clickLogFile.write('%s %s\n' % (extime.Time().asISO8601TimeAndDate(), url))
-        self.recentClicks.append((title, url))
-        if len(self.recentClicks) > HISTORY_DEPTH:
-            self.recentClicks.popleft()
-
-        # XXX Desync this, it's gonna get slow.
-        for listener in self.clickListeners:
-            listener.observeClick(title, url)
 
         clickStat = self.store.findOrCreate(ClickStats, statKeeper=self, url=url)
         clickStat.title = title
@@ -209,11 +202,25 @@ class ClickChroniclePublicPage(Item, InstallableMixin):
 
         catalog = self.store.findOrCreate(Catalog)
 
+        tags = ['all']
         for tag in catalog.tagsOf(clickStat):
             break
         else:
             for tag in tagURL(url):
+                tags.append(tag)
                 catalog.tag(clickStat, tag)
+
+        for tag in tags:
+            if not tag in self.recentClicks:
+                self.recentClicks[tag] = collections.deque()
+            self.recentClicks[tag].append((title, url))
+            if len(self.recentClicks[tag]) > HISTORY_DEPTH:
+                self.recentClicks[tag].popleft()
+
+        # XXX Desync this, it's gonna get slow.
+        for tag in tags:
+            for listener in self.clickListeners.get(tag, ()):
+                listener.observeClick(title, url)
 
     def updateLowestPopularScore(self):
         mostPopular = list(self.highestScored(HISTORY_DEPTH))
@@ -227,9 +234,11 @@ class ClickChroniclePublicPage(Item, InstallableMixin):
             stat.recordClick(extime.Time.fromPOSIXTimestamp(self.time()), increment=False)
         self.updateLowestPopularScore()
 
-    def listenClicks(self, who):
-        self.clickListeners.append(who)
-        return lambda: self.clickListeners.remove(who)
+    def listenClicks(self, who, tag):
+        if not tag in self.clickListeners:
+            self.clickListeners[tag] = list()
+        self.clickListeners[tag].append(who)
+        return lambda: self.clickListeners[tag].remove(who)
 
     def highestScoredByTag(self, tagName, limit):
         scored = self.store.query(ClickStats,
@@ -273,14 +282,15 @@ class ClickObserverFragment(athena.LiveFragment):
     iface = allowedMethods = dict(getClickBacklog=True)
     jsClass = 'ClickChronicle.LiveClicks'
 
-    def __init__(self, indexPage):
+    def __init__(self, indexPage, tag):
         self.indexPage = indexPage
+        self.tag = tag
         athena.LiveFragment.__init__(self, indexPage,
                                      staticTemplate('click-observer.html'))
 
     def getClickBacklog(self):
         return list((self.indexPage.trimTitle(t), unicode(u))
-                        for (t, u) in self.indexPage.registerClient(self))
+                        for (t, u) in self.indexPage.registerClient(self, self.tag))
 
     def observeClick(self, title, url):
         self.callRemote('addClick', self.indexPage.trimTitle(title), unicode(url))
@@ -308,14 +318,19 @@ class PublicIndexPage(CCPublicPageMixin, PublicAthenaLivePage):
                           "faq" : mkchild('faq.html', 'Clickchronicle FAQ'),
                           "screenshots" : mkchild('screenshots.html', 'ClickChronicle Screenshots')}
 
-        self.publicPage = publicPage
-        self.clickObserver = ClickObserverFragment(self)
-        self.clickObserver.page = self
+        def mkobs(tag):
+            obs = ClickObserverFragment(self, tag)
+            obs.page = self
+            return obs
 
-    def registerClient(self, client):
-        unlisten = self.publicPage.listenClicks(client)
+        self.publicPage = publicPage
+        self.taggedClickObservers = dict((t, mkobs(t)) for t
+                                            in ('all', 'news', 'search'))
+
+    def registerClient(self, client, tag):
+        unlisten = self.publicPage.listenClicks(client, tag)
         self.notifyOnDisconnect().addCallback(lambda ign: unlisten())
-        return list(self.publicPage.recentClicks)
+        return list(self.publicPage.recentClicks.get(tag, ()))
 
     def child_static(self, ctx):
         return static.File(util.sibpath(__file__, 'static'))
@@ -324,7 +339,13 @@ class PublicIndexPage(CCPublicPageMixin, PublicAthenaLivePage):
         return self.__class__(self.publicPage, self.staticContent, forUser)
 
     def render_clickObserver(self, ctx, data):
-        return self.clickObserver
+        return self.taggedClickObservers['all']
+
+    def render_newsObserver(self, ctx, data):
+        return self.taggedClickObservers['news']
+
+    def render_searchObserver(self, ctx, data):
+        return self.taggedClickObservers['search']
 
     def child_(self, ctx):
         return self

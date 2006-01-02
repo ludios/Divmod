@@ -41,14 +41,32 @@
 
       <thead>
         <tr>
-          <td class="first-click-set">Popular Searches</td>
-          <td class="last-click-set">Popular News Stories</td>
+          <td class="first-click-set">Recent Searches</td>
+          <td class="last-click-set">Popular Searches</td>
         </tr>
       </thead>
 
       <tbody>
         <tr valign="top">
+          <td>
+            <nevow:invisible nevow:render="searchObserver" />
+          </td>
           <td nevow:render="popularSearches" />
+        </tr>
+      </tbody>
+
+      <thead>
+        <tr>
+          <td class="first-click-set">Recent News</td>
+          <td class="last-click-set">Popular News</td>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr valign="top">
+          <td>
+            <nevow:invisible nevow:render="newsObserver" />
+          </td>
           <td nevow:render="popularNews" />
         </tr>
       </tbody>

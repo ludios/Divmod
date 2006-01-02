@@ -147,7 +147,7 @@ class ClickStatsTests(unittest.TestCase):
                 def observeClick(title, url):
                     L.append((title, url))
                 observeClick = staticmethod(observeClick)
-            unobserve = pp.listenClicks(clickObserver)
+            unobserve = pp.listenClicks(clickObserver, 'all')
 
             pp.observeClick(u'The Internet', 'http://internet/')
             pp.observeClick(u'The Internet2', 'http://internet2/')

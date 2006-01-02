@@ -308,7 +308,8 @@ class DomainListFragment(tdbview.TabularDataView):
         tdbview.TabularDataView.__init__(self, tdm, views,
                 (clickbrowser.bookmarkAction,
                  clickbrowser.ignoreAction,
-                 clickbrowser.deleteAction))
+                 clickbrowser.deleteAction,
+                 clickbrowser.privateAction))
 
 registerAdapter(DomainListFragment,
                 DomainList,
@@ -321,7 +322,8 @@ class BlockedDomainListFragment(tdbview.TabularDataView):
                                                  Domain,
                                                  Domain.ignore==True)
         tdbview.TabularDataView.__init__(self, tdm, views,
-                (clickbrowser.unblockAction,))
+                (clickbrowser.unblockAction,
+                 clickbrowser.privateAction))
 
 registerAdapter(BlockedDomainListFragment,
                 BlockedDomainList,
@@ -506,7 +508,10 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             referrer, indexIt=indexIt,
             storeFavicon=storeFavicon)
 
-        if visit is not None and created is True:
+        if (visit is not None
+                and created is True
+                and not visit.domain.private):
+
             self.publicize(title, url)
         else:
             self.publicize(u'', ONLY_INCREMENT)

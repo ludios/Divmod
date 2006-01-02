@@ -122,3 +122,19 @@ class UnblockAction(tdbview.Action):
         return domain.ignore
 
 unblockAction = UnblockAction()
+
+class PrivateAction(tdbview.Action):
+    def __init__(self):
+        tdbview.Action.__init__(self, 'private',
+                                '/ClickChronicle/static/images/private.png',
+                                'Mark this domain private',
+                                disabledIconURL='/ClickChronicle/static/images/private-disabled.png')
+
+    def performOn(self, domain):
+        domain.private = True
+        return u'Marked %s private' % (domain.url,)
+
+    def actionable(self, domain):
+        return not domain.private
+
+privateAction = PrivateAction()

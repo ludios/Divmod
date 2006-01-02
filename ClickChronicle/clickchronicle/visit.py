@@ -1,6 +1,7 @@
 from zope.interface import implements
 from axiom.item import Item
 from axiom import attributes
+from axiom.upgrade import registerUpgrader
 from epsilon.extime import Time
 from datetime import datetime
 
@@ -26,10 +27,11 @@ class Domain(Item, DisplayableVisitMixin):
     title = attributes.text(allowNone=True) # We use None to denote that a title has not been set
     visitCount = attributes.integer(default=0)
     ignore = attributes.boolean(default=False)
+    private = attributes.boolean(default=False)
     favIcon = attributes.reference(allowNone=True)
     timestamp = attributes.timestamp()
 
-    schemaVersion = 1
+    schemaVersion = 2
     typeName = 'domain'
 
     def __repr__(self):
@@ -57,6 +59,17 @@ class Domain(Item, DisplayableVisitMixin):
         if self.title is None:
             myDict['title']=self.url
         return myDict
+
+def upgradeDomain1to2(old):
+    return old.upgradeVersion('domain', 1, 2,
+                              url=old.url,
+                              title=old.title,
+                              visitCount=old.visitCount,
+                              ignore=old.ignore,
+                              favIcon=old.favIcon,
+                              timestamp=old.timestamp)
+
+registerUpgrader(upgradeDomain1to2, 'domain', 1, 2)
 
 class VisitMixin(object):
     def asDocument(self):

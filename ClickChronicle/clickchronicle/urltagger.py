@@ -25,10 +25,10 @@ _tags = {u'search':[['google',           r'(?:base/)*(?:search|images|videosearc
                   ['nydailynews.com',    r'\w+/story'],
                   ['bloomberg.com',      r'apps/news$'],
                   ['timesonline.co.uk',  r'article'],
-                  ['usatoday.com',       r'(?:\w+/){2,3}\d{4}\-\d{2}\-\d{2}'],
+                  ['usatoday.com',       r'(?:\w+/){2,4}\d{4}\-\d{2}\-\d{2}'],
                   ['forbes.com',         r'(?:\w+/){3,4}\d{4}\/\d{2}\/\d{2}\/[^.]+\.html'],
                   ['news.yahoo.com',     r's/\w+/\d{8}'],
-                  ['guardian.co.uk',     r'\w+/story/.*?\.htm']]}
+                  ['guardian.co.uk',     r'\w+/(?:story|archive|article)/.*?\.htm']]}
 
 def _precompile(tagmap):
     import re

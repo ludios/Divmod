@@ -47,7 +47,11 @@ class URLTaggerTestCase(unittest.TestCase):
     def testNews(self):
         positives = ('http://www.bloomberg.com/apps/news?pid=10000086&sid=atYe2AWJKC10&refer=latin_america',
                      'http://www.sfgate.com/cgi-bin/article.cgi?f=/n/a/2005/10/24/national/w063847D11.DTL',
+                     'http://edition.cnn.com/2006/WORLD/meast/01/02/mideast/',
+                     'http://www.usatoday.com/sports/football/nfl/packers/2006-01-02-sherman-fired_x.htm?POE=SPOISVA',
+                     'http://www.cnn.com/2006/US/01/02/wildfires/',
                      'http://www.washingtonpost.com/wp-dyn/content/article/2005/10/23/AR2005102301352.html',
+                     'http://www.guardian.co.uk/russia/archive/0,3332,195378,00.html',
                      'http://www.alertnet.org/thenews/newsdesk/L24608596.htm',
                      'http://www.guardian.co.uk/hurricanes2005/story/0,16546,1599592,00.html',
                      'http://www.guardian.co.uk/worldlatest/story/0,1280,-5366049,00.html',

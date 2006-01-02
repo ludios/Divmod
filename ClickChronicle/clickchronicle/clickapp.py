@@ -64,7 +64,7 @@ class ClickChronicleBenefactor(Item):
         rec.maxCount = self.maxClicks
         rec.installOn(avatar)
 
-        for item in (ClickList, DomainList, indexinghelp.SyncIndexer,
+        for item in (ClickList, BlockedDomainList, DomainList, indexinghelp.SyncIndexer,
                      BookmarkList, CCSearchProvider, indexinghelp.CacheManager,
                      GetExtension, CCPreferenceCollection):
             avatar.findOrCreate(item).installOn(avatar)
@@ -234,6 +234,20 @@ class DomainList(Item, InstallableMixin):
         '''show a link to myself in the navbar'''
         return [webnav.Tab('Domains', self.storeID, 0.1)]
 
+class BlockedDomainList(Item, InstallableMixin):
+    implements(ixmantissa.INavigableElement)
+    typeName = 'clickchronicle_blocked_domain_list'
+    schemaVersion = 1
+
+    installedOn = attributes.reference()
+
+    def installOn(self, other):
+        super(BlockedDomainList, self).installOn(other)
+        other.powerUp(self, ixmantissa.INavigableElement)
+
+    def getTabs(self):
+        return [webnav.Tab('Blocked Domains', self.storeID, 0.08)]
+
 class ClickListFragment(tdbview.TabularDataView):
     '''i adapt ClickList to INavigableFragment'''
 
@@ -244,8 +258,8 @@ class ClickListFragment(tdbview.TabularDataView):
         (tdm, views) = clickbrowser.makeClickTDM(original.store, Visit)
         tdbview.TabularDataView.__init__(self, tdm, views,
                 (clickbrowser.bookmarkAction,
-                 clickbrowser.deleteAction,
-                 clickbrowser.ignoreAction))
+                 clickbrowser.ignoreAction,
+                 clickbrowser.deleteAction))
 
 registerAdapter(ClickListFragment,
                 ClickList,
@@ -278,8 +292,8 @@ class BookmarkListFragment(tdbview.TabularDataView):
     def __init__(self, original):
         (tdm, views) = clickbrowser.makeClickTDM(original.store, Bookmark)
         tdbview.TabularDataView.__init__(self, tdm, views,
-                (clickbrowser.deleteAction,
-                 clickbrowser.ignoreAction))
+                (clickbrowser.ignoreAction,
+                 clickbrowser.deleteAction))
 
 registerAdapter(BookmarkListFragment,
                 BookmarkList,
@@ -293,11 +307,24 @@ class DomainListFragment(tdbview.TabularDataView):
 
         tdbview.TabularDataView.__init__(self, tdm, views,
                 (clickbrowser.bookmarkAction,
-                 clickbrowser.deleteAction,
-                 clickbrowser.ignoreAction))
+                 clickbrowser.ignoreAction,
+                 clickbrowser.deleteAction))
 
 registerAdapter(DomainListFragment,
                 DomainList,
+                ixmantissa.INavigableFragment)
+
+class BlockedDomainListFragment(tdbview.TabularDataView):
+    def __init__(self, blockedDomainList):
+        self.blockedDomainList = blockedDomainList
+        (tdm, views) = clickbrowser.makeClickTDM(blockedDomainList.store,
+                                                 Domain,
+                                                 Domain.ignore==True)
+        tdbview.TabularDataView.__init__(self, tdm, views,
+                (clickbrowser.unblockAction,))
+
+registerAdapter(BlockedDomainListFragment,
+                BlockedDomainList,
                 ixmantissa.INavigableFragment)
 
 class GetExtension(Item, InstallableMixin):
@@ -612,9 +639,13 @@ class ClickRecorder(Item, website.PrefixURLMixin):
 
     def ignoreVisit(self, visit):
         def txn():
-            # ignore the Domain
-            visit.domain.ignore = True
-            visitsToDelete = list(self.store.query(Visit, Visit.domain == visit.domain))
+            if hasattr(visit, 'domain'):
+                visit.domain.ignore = True
+                comparison = Visit.domain == visit.domain
+            else:
+                visit.ignore = True
+                comparison = Visit.domain == visit
+            visitsToDelete = list(self.store.query(Visit, comparison))
             self.bulkForgetVisits(visitsToDelete)
         self.store.transact(txn)
 

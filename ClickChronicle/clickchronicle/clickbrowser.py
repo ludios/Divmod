@@ -73,10 +73,10 @@ class BookmarkAction(tdbview.Action):
 
 bookmarkAction = BookmarkAction()
 
-class IgnoreAction(tdbview.Action):
+class IgnoreVisitAction(tdbview.Action):
     def __init__(self):
         tdbview.Action.__init__(self, 'ignore',
-                                '/ClickChronicle/static/images/ignore_link.png',
+                                '/ClickChronicle/static/images/ignore.png',
                                 'Ignore this visit')
 
     def performOn(self, visit):
@@ -87,7 +87,7 @@ class IgnoreAction(tdbview.Action):
     def actionable(self, visit):
         return True
 
-ignoreAction = IgnoreAction()
+ignoreVisitAction = IgnoreVisitAction()
 
 class DeleteAction(tdbview.Action):
     def __init__(self):
@@ -108,33 +108,50 @@ class DeleteAction(tdbview.Action):
 
 deleteAction = DeleteAction()
 
-class UnblockAction(tdbview.Action):
+class BlockDomainToggleAction(tdbview.ToggleAction):
     def __init__(self):
-        tdbview.Action.__init__(self, 'unblock',
-                                '/ClickChronicle/static/images/unblock.png',
-                                'Unblock this domain')
+        tdbview.ToggleAction.__init__(self, 'block',
+                                      '/ClickChronicle/static/images/ignore.png',
+                                      'Block/Unblock this domain',
+                                      disabledIconURL='/ClickChronicle/static/images/ignore-disabled.png')
+
+    def isOn(self, idx, domain):
+        return not domain.ignore
 
     def performOn(self, domain):
-        domain.ignore = False
-        return u'Unblocked %r' % (domain.url,)
+        if domain.ignore:
+            domain.ignore = False
+            word = 'Unblocked'
+        else:
+            iclickchronicle.IClickRecorder(domain.store).ignoreVisit(domain)
+            word = 'Blocked'
 
-    def actionable(self, domain):
-        return domain.ignore
+        return word  + u' ' + domain.url
 
-unblockAction = UnblockAction()
+blockDomainToggleAction = BlockDomainToggleAction()
 
-class PrivateAction(tdbview.Action):
+class PrivateToggleAction(tdbview.ToggleAction):
     def __init__(self):
-        tdbview.Action.__init__(self, 'private',
-                                '/ClickChronicle/static/images/private.png',
-                                'Mark this domain private',
-                                disabledIconURL='/ClickChronicle/static/images/private-disabled.png')
+        tdbview.ToggleAction.__init__(self, 'private',
+                                      '/ClickChronicle/static/images/private.png',
+                                      'Mark this domain private/public',
+                                      disabledIconURL='/ClickChronicle/static/images/private-disabled.png')
 
-    def performOn(self, domain):
-        domain.private = True
-        return u'Marked %s private' % (domain.url,)
-
-    def actionable(self, domain):
+    def isOn(self, idx, domain):
         return not domain.private
 
-privateAction = PrivateAction()
+    def performOn(self, domain):
+        domain.private = not domain.private
+        word = ('public', 'private')[domain.private]
+        return u'Marked %s %s' % (domain.url, word)
+
+privateToggleAction = PrivateToggleAction()
+
+class PrivateVisitToggleAction(PrivateToggleAction):
+    def performOn(self, visit):
+        return PrivateToggleAction.performOn(self, visit.domain)
+
+    def isOn(self, idx, visit):
+        return PrivateToggleAction.isOn(self, idx, visit.domain)
+
+privateVisitToggleAction = PrivateVisitToggleAction()

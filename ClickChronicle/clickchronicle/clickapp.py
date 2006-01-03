@@ -246,7 +246,7 @@ class BlockedDomainList(Item, InstallableMixin):
         other.powerUp(self, ixmantissa.INavigableElement)
 
     def getTabs(self):
-        return [webnav.Tab('Blocked Domains', self.storeID, 0.7)]
+        return [webnav.Tab('Filtered Domains', self.storeID, 0.7)]
 
 class ClickListFragment(tdbview.TabularDataView):
     '''i adapt ClickList to INavigableFragment'''
@@ -258,7 +258,8 @@ class ClickListFragment(tdbview.TabularDataView):
         (tdm, views) = clickbrowser.makeClickTDM(original.store, Visit)
         tdbview.TabularDataView.__init__(self, tdm, views,
                 (clickbrowser.bookmarkAction,
-                 clickbrowser.ignoreAction,
+                 clickbrowser.ignoreVisitAction,
+                 clickbrowser.privateVisitToggleAction,
                  clickbrowser.deleteAction))
 
 registerAdapter(ClickListFragment,
@@ -292,7 +293,7 @@ class BookmarkListFragment(tdbview.TabularDataView):
     def __init__(self, original):
         (tdm, views) = clickbrowser.makeClickTDM(original.store, Bookmark)
         tdbview.TabularDataView.__init__(self, tdm, views,
-                (clickbrowser.ignoreAction,
+                (clickbrowser.ignoreVisitAction,
                  clickbrowser.deleteAction))
 
 registerAdapter(BookmarkListFragment,
@@ -307,9 +308,9 @@ class DomainListFragment(tdbview.TabularDataView):
 
         tdbview.TabularDataView.__init__(self, tdm, views,
                 (clickbrowser.bookmarkAction,
-                 clickbrowser.ignoreAction,
-                 clickbrowser.deleteAction,
-                 clickbrowser.privateAction))
+                 clickbrowser.blockDomainToggleAction,
+                 clickbrowser.privateToggleAction,
+                 clickbrowser.deleteAction))
 
 registerAdapter(DomainListFragment,
                 DomainList,
@@ -320,10 +321,11 @@ class BlockedDomainListFragment(tdbview.TabularDataView):
         self.blockedDomainList = blockedDomainList
         (tdm, views) = clickbrowser.makeClickTDM(blockedDomainList.store,
                                                  Domain,
-                                                 Domain.ignore==True)
+                                                 attributes.OR(Domain.ignore==True,
+                                                               Domain.private==True))
         tdbview.TabularDataView.__init__(self, tdm, views,
-                (clickbrowser.unblockAction,
-                 clickbrowser.privateAction))
+                (clickbrowser.blockDomainToggleAction,
+                 clickbrowser.privateToggleAction))
 
 registerAdapter(BlockedDomainListFragment,
                 BlockedDomainList,

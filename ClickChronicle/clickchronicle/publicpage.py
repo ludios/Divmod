@@ -299,7 +299,7 @@ class PublicIndexPage(CCPublicPageMixin, PublicAthenaLivePage):
     implements(ixmantissa.ICustomizable)
 
     title = 'ClickChronicle'
-    maxTitleLength = 50
+    maxTitleLength = 70
     maxClickQueryResults = 10
 
     def __init__(self, publicPage, staticContent, forUser=None):

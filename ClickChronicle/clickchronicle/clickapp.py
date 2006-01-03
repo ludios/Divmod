@@ -294,6 +294,7 @@ class BookmarkListFragment(tdbview.TabularDataView):
         (tdm, views) = clickbrowser.makeClickTDM(original.store, Bookmark)
         tdbview.TabularDataView.__init__(self, tdm, views,
                 (clickbrowser.ignoreVisitAction,
+                 clickbrowser.privateVisitToggleAction,
                  clickbrowser.deleteAction))
 
 registerAdapter(BookmarkListFragment,
@@ -324,7 +325,8 @@ class BlockedDomainListFragment(tdbview.TabularDataView):
                                                  attributes.OR(Domain.ignore==True,
                                                                Domain.private==True))
         tdbview.TabularDataView.__init__(self, tdm, views,
-                (clickbrowser.blockDomainToggleAction,
+                (clickbrowser.bookmarkAction,
+                 clickbrowser.blockDomainToggleAction,
                  clickbrowser.privateToggleAction))
 
 registerAdapter(BlockedDomainListFragment,

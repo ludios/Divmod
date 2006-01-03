@@ -1,11 +1,17 @@
 from zope.interface import implements
+
 from twisted.python import failure
 from twisted.web import error as weberror
+
 from axiom.item import Item
 from axiom import attributes
+
 from nevow.url import URL
+from nevow import rend
+
 from xapwrap.index import SmartIndex, ParsedQuery, DocNotFoundError
 from xapwrap.document import Document, TextField, Value, Keyword
+
 from clickchronicle import tagstrip, webclient
 from clickchronicle.iclickchronicle import IIndexer, ICache
 from clickchronicle.pageinfo import getPageInfo
@@ -89,26 +95,63 @@ from xmantissa import ixmantissa, website
 
 ICON_VALIDITY_TIME = 60 * 60 * 24
 
-class FavIcon(Item, website.PrefixURLMixin):
+class FaviconViewer(rend.Page):
+    addSlash = True
+    def locateChild(self, ctx, segments):
+        try:
+            (segment,) = segments
+            storeID = long(segment)
+        except ValueError:
+            return rend.NotFound
+
+        favicon = self.original.store.getItemByID(storeID, default=None)
+        if favicon is not None:
+            return static.Data(favicon.data, favicon.contentType, ICON_VALIDITY_TIME), ()
+        return rend.NotFound
+
+class FaviconView(Item, website.PrefixURLMixin):
     implements(ixmantissa.ISiteRootPlugin)
+    typeName = 'clickchronicle_favicon_viewer'
+    schemaVersion = 1
 
-    data = attributes.bytes(allowNone=False)
-    prefixURL = attributes.bytes(allowNone=False)
-    iconURL = attributes.bytes(allowNone=False)
-    contentType = attributes.bytes(allowNone=False)
-
-    schemaVersion = 2
-    typeName = 'favicon'
+    installedOn = attributes.reference()
+    prefixURL = 'private/favicons'
 
     def createResource(self):
-        return static.Data(self.data, self.contentType, ICON_VALIDITY_TIME)
+        return FaviconViewer(self)
 
-class DefaultFavicon(Item):
+class FaviconMixin(object):
 
-    iconURL = attributes.bytes(default='/static/images/favicon.png')
+    def _getIconURL(self):
+        return '/'+ self.faviconView.prefixURL + '/' + str(self.storeID)
+    iconURL = property(_getIconURL)
 
-    schemaVersion = 1
+    def activate(self):
+        for fv in self.store.query(FaviconView):
+            break
+        else:
+            fv = FaviconView(store=self.store)
+            fv.installOn(self.store)
+
+        self.faviconView = fv
+
+class FavIcon(FaviconMixin, Item):
+    typeName = 'favicon'
+    schemaVersion = 3
+
+    data = attributes.bytes(allowNone=False)
+    contentType = attributes.bytes(allowNone=False)
+
+    faviconView = attributes.inmemory()
+
+class DefaultFavicon(FaviconMixin, Item):
     typeName = 'clickchronicle_default_favicon'
+    schemaVersion = 2
+
+    data = attributes.bytes()
+    contentType = 'image/png'
+
+    faviconView = attributes.inmemory()
 
 class PageFetchingTaskMixin(object):
     def retryableFailure(self, f):

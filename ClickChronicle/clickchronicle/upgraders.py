@@ -3,10 +3,12 @@
 """
 Axiom upgrade functions for ClickChronicle
 """
-
+from twisted.python.filepath import FilePath
 from epsilon import extime
 
 from axiom.upgrade import registerUpgrader
+
+from xmantissa import ixmantissa
 
 # remember to set installedOn when you upgrade
 
@@ -18,6 +20,23 @@ def favicon1To2(oldicon):
                                   contentType=oldicon.contentType)
 
 registerUpgrader(favicon1To2, "favicon", 1, 2)
+
+def favicon2To3(oldicon):
+    newicon = oldicon.upgradeVersion("favicon", 2, 3,
+                                     data=oldicon.data,
+                                     contentType=oldicon.contentType)
+
+    newicon.store.powerDown(newicon, ixmantissa.ISiteRootPlugin)
+    return newicon
+
+registerUpgrader(favicon2To3, "favicon", 2, 3)
+
+def defaultFavicon1to2(oldicon):
+    images = FilePath(__file__).parent().child('static').child('images')
+    return oldicon.upgradeVersion("clickchronicle_default_favicon", 1, 2,
+                                  data=images.child('favicon.png').getContent())
+
+registerUpgrader(defaultFavicon1to2, "clickchronicle_default_favicon", 1, 2)
 
 def publicPage1To2(oldpage):
     newpage = oldpage.upgradeVersion("clickchronicle_public_page", 1, 2)

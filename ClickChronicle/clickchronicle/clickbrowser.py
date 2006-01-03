@@ -7,6 +7,11 @@ from clickchronicle.visit import Bookmark
 from clickchronicle import iclickchronicle, indexinghelp
 
 
+def trimFeedbackURL(url, maxlength=50):
+    if maxlength < len(url):
+        url = url[:maxlength-3] + '...'
+    return url
+
 def makeClickTDM(store, typeClass, baseComparison=None):
     prefs = ixmantissa.IPreferenceAggregator(store)
 
@@ -66,7 +71,7 @@ class BookmarkAction(tdbview.Action):
 
     def performOn(self, visit):
         visit.asBookmark()
-        return u'Bookmarked %s' % (visit.url,)
+        return u'Bookmarked %s' % (trimFeedbackURL(visit.url),)
 
     def actionable(self, visit):
         return visit.store.count(Bookmark, Bookmark.url == visit.url) == 0
@@ -82,7 +87,7 @@ class IgnoreVisitAction(tdbview.Action):
     def performOn(self, visit):
         recorder = iclickchronicle.IClickRecorder(visit.store)
         recorder.ignoreVisit(visit)
-        return u'Ignored %s' % (visit.url,)
+        return u'Ignored %s' % (trimFeedbackURL(visit.url),)
 
     def actionable(self, visit):
         return True
@@ -101,7 +106,7 @@ class DeleteAction(tdbview.Action):
             cr.forgetVisit(visit)
         else:
             cr.deleteDomain(visit)
-        return u'Deleted %s' % (visit.url,)
+        return u'Deleted %s' % (trimFeedbackURL(visit.url),)
 
     def actionable(self, visit):
         return True
@@ -126,7 +131,7 @@ class BlockDomainToggleAction(tdbview.ToggleAction):
             iclickchronicle.IClickRecorder(domain.store).ignoreVisit(domain)
             word = 'Blocked'
 
-        return word  + u' ' + domain.url
+        return word  + u' ' + trimFeedbackURL(domain.url)
 
 blockDomainToggleAction = BlockDomainToggleAction()
 
@@ -143,7 +148,7 @@ class PrivateToggleAction(tdbview.ToggleAction):
     def performOn(self, domain):
         domain.private = not domain.private
         word = ('public', 'private')[domain.private]
-        return u'Marked %s %s' % (domain.url, word)
+        return u'Marked %s %s' % (trimFeedbackURL(domain.url), word)
 
 privateToggleAction = PrivateToggleAction()
 

@@ -144,6 +144,9 @@ class FavIcon(FaviconMixin, Item):
 
     faviconView = attributes.inmemory()
 
+    def resourceFactory(self, segments):
+        return None
+
 class DefaultFavicon(FaviconMixin, Item):
     typeName = 'clickchronicle_default_favicon'
     schemaVersion = 2
@@ -353,9 +356,7 @@ class CacheManager(Item):
                 contentType = contentType[0]
 
             s = self.store
-            iconURL = '/private/icons/%s.ico' % url.netloc
-            fi = FavIcon(prefixURL=iconURL[1:], iconURL=iconURL,
-                         data=data, contentType=contentType, store=s)
+            fi = FavIcon(data=data, contentType=contentType, store=s)
             fi.installOn(s)
             domain.favIcon = fi
 

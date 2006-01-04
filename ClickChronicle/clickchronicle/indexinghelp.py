@@ -357,7 +357,6 @@ class CacheManager(Item):
 
             s = self.store
             fi = FavIcon(data=data, contentType=contentType, store=s)
-            fi.installOn(s)
             domain.favIcon = fi
 
         if faviconURL is not None:

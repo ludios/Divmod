@@ -25,7 +25,7 @@ def makeClickTDM(store, typeClass, baseComparison=None):
 
 
     views = [TimezoneColumnView('timestamp'),
-             FaviconVisitLinkColumnView('title', width='100%'),
+             FaviconVisitLinkColumnView('title'),
              tdbview.ColumnViewBase('visitCount', typeHint='numeric',
                                      displayName='Visits')]
 

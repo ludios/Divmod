@@ -6,6 +6,7 @@ from datetime import timedelta
 from zope.interface import implements
 
 from twisted.web.util import redirectTo
+from twisted.python.filepath import FilePath
 from twisted.cred import portal
 from twisted.python.components import registerAdapter
 
@@ -438,9 +439,16 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                 return None
             break
         else:
+            favIcon = self.store.findUnique(indexinghelp.DefaultFavicon,
+                                            default=None)
+            if favIcon is None:
+                images = FilePath(__file__).parent().child('static').child('images')
+                favIcon = indexinghelp.DefaultFavicon(
+                                        store=self.store,
+                                        data=images.child('favicon.png').getContent())
+
             domain = Domain(url=host, store=self.store,
-                            favIcon=self.store.findOrCreate(
-                                indexinghelp.DefaultFavicon))
+                            favIcon=favIcon, timestamp=Time())
         return domain
 
     def recordBookmark(self, title, url, indexIt=True, storeFavicon=True):

@@ -464,12 +464,12 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             bookmark.timestamp = timeNow
             break
         else:
-            Bookmark(store=self.store,
-                     title=title,
-                     url=url,
-                     domain=domain,
-                     referrer=self.bookmarkVisit,
-                     timestamp=timeNow)
+            bookmark = Bookmark(store=self.store,
+                                title=title,
+                                url=url,
+                                domain=domain,
+                                referrer=self.bookmarkVisit,
+                                timestamp=timeNow)
 
         cacheMan = iclickchronicle.ICache(self.store)
         cacheMan.rememberVisit(bookmark,

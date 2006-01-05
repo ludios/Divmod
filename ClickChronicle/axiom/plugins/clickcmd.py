@@ -1,4 +1,4 @@
-
+# -*- test-case-name: clickchronicle.test -*-
 import os
 
 from zope.interface import classProvides
@@ -103,6 +103,7 @@ class Install(usage.Options, axiomatic.AxiomaticSubCommandMixin):
         ticketSignup = s.findOrCreate(
             signup.FreeTicketSignup,
             benefactor=benefactor,
+            prefixURL=u'signup',
             booth=booth)
         if ticketSignup.prefixURL is None:
             ticketSignup.prefixURL = signupURL

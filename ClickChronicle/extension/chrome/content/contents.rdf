@@ -11,7 +11,7 @@
   <Seq about="urn:mozilla:overlays">
     <li>
       <Seq about="chrome://browser/content/browser.xul">
-        <li>chrome://clickchronicle/content/xul/toolbar-palette-overlay.xul</li>
+        <li>chrome://clickchronicle/content/xul/clickchronicle-overlays.xul</li>
       </Seq>
     </li>
   </Seq>

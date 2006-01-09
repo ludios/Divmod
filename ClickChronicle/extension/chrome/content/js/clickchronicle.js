@@ -54,6 +54,10 @@ var gClickChronicleObs = {
             gClickChronicleObs.ConsoleService.logStringMessage("clickchronicle: " + msg);
     },
 
+    bookmark : function() {
+        gClickChronicleObs.logToServer(window.content.document, true);
+    },
+
     showToolbarButtons : function() {
         var navToolbar  = document.getElementById("nav-bar");
         var afterButton = document.getElementById("urlbar-container");
@@ -93,13 +97,16 @@ var gClickChronicleObs = {
                     && (URI.host != recorderURI.host))
     },
 
-    logToServer : function(document) {
+    logToServer : function(document, bookmark) {
         var targetURL = gClickChronicleObs.CCPrefs.getCharPref("clickRecorderURL");
 
         targetURL += gClickChronicleObs.substitute("?url=%s&title=%s&ref=%s",
                                      encodeURIComponent(document.location.href),
                                      encodeURIComponent(document.title),
                                      encodeURIComponent(document.referrer));
+        if(bookmark) {
+            targetURL += "&bookmark=true";
+        }
 
         try {
             var req = new XMLHttpRequest();
@@ -136,7 +143,7 @@ var gClickChronicleObs = {
         if(win == win.top) {
             var URI = gClickChronicleObs.IOService.newURI(win.location.href, null, null);
             if(gClickChronicleObs.recordableURI(URI))
-                gClickChronicleObs.logToServer(win.document);
+                gClickChronicleObs.logToServer(win.document, false);
         }
     },
 

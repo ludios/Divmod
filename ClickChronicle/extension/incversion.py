@@ -5,10 +5,9 @@ from os import path
 def getversion(fname):
     from xml.dom import minidom
     doc = minidom.parse(fname)
-    versions = list(e.firstChild.nodeValue for e in
+    (version,) = set(e.firstChild.nodeValue for e in
                         doc.getElementsByTagNameNS(
                             'http://www.mozilla.org/2004/em-rdf#', 'version'))
-    (version,) = set(versions)
     return float(version)
 
 def main(newversion=None, files=('install.rdf', 'update.rdf')):

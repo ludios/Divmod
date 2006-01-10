@@ -17,6 +17,7 @@ from epsilon.extime import Time
 
 from axiom.item import Item, InstallableMixin
 from axiom import upgrade, userbase, scheduler, attributes
+from axiom.tags import Catalog
 
 from vertex import q2q
 
@@ -451,7 +452,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                             favIcon=favIcon, timestamp=Time())
         return domain
 
-    def recordBookmark(self, title, url, indexIt=True, storeFavicon=True):
+    def recordBookmark(self, title, url, tags, indexIt=True, storeFavicon=True):
         host = str(URL.fromString(url).click("/"))
         timeNow = Time()
 
@@ -470,6 +471,11 @@ class ClickRecorder(Item, website.PrefixURLMixin):
                                 domain=domain,
                                 referrer=self.bookmarkVisit,
                                 timestamp=timeNow)
+        catalog = None
+        for tag in filter(len, tags):
+            if catalog is None:
+                catalog = self.store.findOrCreate(Catalog)
+                catalog.tag(bookmark, unicode(tag))
 
         cacheMan = iclickchronicle.ICache(self.store)
         cacheMan.rememberVisit(bookmark,
@@ -486,19 +492,19 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         if self.maxCount < self.visitCount+1:
             self.forgetOldestVisit()
 
-        url = qargs.get('url')
+        (url,) = qargs.get('url', (None,))
         if url is None:
             # No url, no deal.
             return
-        title = qargs.get('title')
+        (title,) = qargs.get('title', (None,))
         if not title or title.isspace():
             title = url
 
         title = title.decode('utf-8')
 
-        ref = qargs.get('ref')
-        if qargs.get('bookmark') is not None:
-            self.recordBookmark(title, url, indexIt=indexIt, storeFavicon=storeFavicon)
+        (ref,) = qargs.get('ref', (None,))
+        if qargs.get('bookmark', (None,))[0] is not None:
+            self.recordBookmark(title, url, qargs.get('tags', ()), indexIt=indexIt, storeFavicon=storeFavicon)
             return
 
         if ref:
@@ -767,7 +773,10 @@ class URLGrabber(rend.Page):
     def renderHTTP(self, ctx):
         """get url and title GET variables, supplying sane defaults"""
         urlpath = inevow.IRequest(ctx).URLPath()
-        qargs = dict(urlpath.queryList())
+        qargs = dict()
+        for (k, v) in urlpath.queryList():
+            qargs.setdefault(k, list()).append(v)
+
         self.recorder.recordClick(qargs)
         request = inevow.IRequest(ctx)
         referrer = request.getHeader('referer')

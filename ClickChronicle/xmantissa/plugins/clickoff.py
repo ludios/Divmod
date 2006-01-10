@@ -23,12 +23,20 @@ chronicler = provisioning.BenefactorFactory(
     parameters = ccBenefactorArgs,
     )
 
+ccIncreaserArgs = [
+    liveform.Parameter('clickChange',
+         liveform.TEXT_INPUT,
+         int,
+         u'The number of additional clicks users will be allowed to store at once.',
+         u'1000')
+    ]
+
 clicks = provisioning.BenefactorFactory(
     name = u'clickchronicle-clicks',
     description = u'Add some clicks to the click limit',
     benefactorClass = prods.ClickIncreaser,
     dependencies = [chronicler],
-    parameters = ccBenefactorArgs,
+    parameters = ccIncreaserArgs,
     )
 
 plugin = offering.Offering(

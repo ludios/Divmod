@@ -300,11 +300,19 @@ class PublicIndexPage(CCPublicPageMixin, PublicAthenaLivePage):
 
     title = 'ClickChronicle'
     maxTitleLength = 70
-    maxClickQueryResults = 10
+    maxClickQueryResults = 0
 
     def __init__(self, publicPage, staticContent, forUser=None):
+        """
+        Create a PublicIndexPage, e.g. a resource to be displayed at the root
+        of the ClickChronicle application.
+
+        @param publicPage: a ClickChroniclePublicPage
+        @param staticContent: some nevow dom junk
+        @param forUser: a unicode user identifier
+        """
         templateContent = staticTemplate("index.html")
-        super(PublicIndexPage, self).__init__(None, None, templateContent, staticContent, forUser)
+        super(PublicIndexPage, self).__init__(templateContent, staticContent, forUser)
 
         self.clickContainerPattern = inevow.IQ(templateContent).patternGenerator('click-container')
 

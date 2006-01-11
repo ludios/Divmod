@@ -21,7 +21,7 @@ from axiom.tags import Catalog
 
 from vertex import q2q
 
-from xmantissa import ixmantissa, webnav, website, webapp, prefs, search, tdbview
+from xmantissa import ixmantissa, webnav, website, webapp, prefs, search, tdbview, sharing
 
 from clickchronicle import iclickchronicle, indexinghelp, clickbrowser
 from clickchronicle.util import makeStaticURL
@@ -94,6 +94,15 @@ class _ShareClicks(prefs.MultipleChoicePreference):
                                            collection, desc,
                                            valueToDisplay)
 
+class _PublicPagePreference(prefs.MultipleChoicePreference):
+    def __init__(self, value, collection):
+        valueToDisplay = {True: "Yes", False: "No"}
+        desc = 'If set To "Yes", you will get a public page'
+        super(_PublicPagePreference, self).__init__('publicPage', value,
+                                                    'Give me a public page',
+                                                    collection, desc,
+                                                    valueToDisplay)
+
 class _TimezonePreference(prefs.Preference):
     def __init__(self, value, collection):
         super(_TimezonePreference, self).__init__('timezone', value, 'Timezone',
@@ -120,13 +129,37 @@ class CCPreferenceCollection(Item, InstallableMixin):
     timezone = attributes.text(default=u'US/Eastern')
     _cachedPrefs = attributes.inmemory()
 
+    def publicPage():
+        def get(self):
+            # figure out if we've shared this before...
+            try:
+                sharing.getShare(self.store,
+                                 sharing.getEveryoneRole(self.store),
+                                 shareID=u'clicks')
+                return True
+            except sharing.NoSuchShare:
+                return False
+
+        def set(self, value):
+            theClickList = list(self.store.query(ClickList))[0]
+            if value:
+                sharing.shareItem(
+                        theClickList,
+                        shareID=u'clicks',
+                        toRole=sharing.getEveryoneRole(self.store))
+            else:
+                sharing.unShare(theClickList)
+        return get, set
+    publicPage = property(*publicPage())
+
     def installOn(self, other):
         super(CCPreferenceCollection, self).installOn(other)
         other.powerUp(self, ixmantissa.IPreferenceCollection)
 
     def activate(self):
         self._cachedPrefs = {"shareClicks" : _ShareClicks(self.shareClicks, self),
-                             "timezone" : _TimezonePreference(self.timezone, self)}
+                             "timezone" : _TimezonePreference(self.timezone, self),
+                             "publicPage" : _PublicPagePreference(self.publicPage, self)}
 
     def getPreferences(self):
         return self._cachedPrefs
@@ -216,6 +249,13 @@ class ClickList(Item, InstallableMixin):
         """show a link to myself in the navbar"""
         return [webnav.Tab('Clicks', self.storeID, 0.9)]
 
+    allowedActions = (clickbrowser.bookmarkAction,
+         clickbrowser.ignoreVisitAction,
+         clickbrowser.privateVisitToggleAction,
+         clickbrowser.deleteAction)
+
+    sharing.allow('clicks', 'store')
+
 class DomainList(Item, InstallableMixin):
     """similar to Preferences, i am an implementor of INavigableElement,
        and PrivateApplication will find me when when it looks in the user's
@@ -257,12 +297,20 @@ class ClickListFragment(tdbview.TabularDataView):
         # will probably have to do something wacky in order to emulate
         # clickchronicle's method of displaying visit information in
         # the tdb
+        self.clickListItem = original
         (tdm, views) = clickbrowser.makeClickTDM(original.store, Visit)
-        tdbview.TabularDataView.__init__(self, tdm, views,
-                (clickbrowser.bookmarkAction,
-                 clickbrowser.ignoreVisitAction,
-                 clickbrowser.privateVisitToggleAction,
-                 clickbrowser.deleteAction))
+        allowedActions = self.getAllowedActions()
+        tdbview.TabularDataView.__init__(self, tdm, views, allowedActions)
+
+    def getAllowedActions(self):
+        return getattr(self.clickListItem, 'allowedActions', ())
+
+
+    def customizeFor(self, forUser):
+        # Hmm, this method probably shouldn't be required, but currently the
+        # sharing system invokes it unconditionally... remove me if that
+        # changes
+        return self
 
 registerAdapter(ClickListFragment,
                 ClickList,

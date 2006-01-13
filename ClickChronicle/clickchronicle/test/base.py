@@ -1,10 +1,17 @@
-from clickchronicle import iclickchronicle, clickapp
-from clickchronicle.visit import Visit, Domain
-from xmantissa import signup
+
+from tempfile import mktemp
+
+from nevow.url import URL
+
 from axiom.store import Store
 from axiom.scripts import axiomatic
-from nevow.url import URL
-from tempfile import mktemp
+
+from xmantissa import signup, offering
+from xmantissa.plugins import clickoff
+
+from clickchronicle import iclickchronicle, clickapp
+from clickchronicle.visit import Visit, Domain
+
 
 class CCTestBase:
     itemCount = lambda self, store, item: store.count(item)
@@ -19,18 +26,21 @@ class CCTestBase:
         before each one).
         """
         dbpath = self.mktemp()
-        axiomatic.main(['-d', dbpath, 'click-chronicle-site', 'install'])
+        axiomatic.main(['-d', dbpath, 'mantissa', '-p', 'password'])
         store = Store(dbpath)
 
-        for booth in store.query(signup.TicketBooth):
-            break
-        else:
-            raise RuntimeError("Failed to find TicketBooth, cannot set up tests")
+        offering.installOffering(
+            store,
+            clickoff.plugin,
+            {})
 
-        for benefactor in store.query(clickapp.ClickChronicleBenefactor):
-            break
-        else:
-            raise RuntimeError("Failed to find ClickChronicleBenefactor, cannot set up tests")
+        booth = store.findOrCreate(signup.TicketBooth)
+        booth.installOn(store)
+
+        benefactor = clickapp.ClickChronicleBenefactor(
+            store=store,
+            maxClicks=1000)
+        benefactor.installOn(store)
 
         ticket = booth.createTicket(booth, u'x@y.z', benefactor)
         ticket.claim()

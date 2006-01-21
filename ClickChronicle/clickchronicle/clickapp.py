@@ -11,17 +11,18 @@ from twisted.cred import portal
 from twisted.python.components import registerAdapter
 
 from nevow.url import URL
-from nevow import rend, inevow, tags, flat, entities
+from nevow import rend, inevow, tags, flat, entities, athena
 
 from epsilon.extime import Time
 
 from axiom.item import Item, InstallableMixin
-from axiom import upgrade, userbase, scheduler, attributes
-from axiom.tags import Catalog
+from axiom import upgrade, userbase, scheduler, attributes, errors
+from axiom.tags import Catalog, Tag
 
 from vertex import q2q
 
 from xmantissa import ixmantissa, webnav, website, webapp, prefs, search, tdbview, sharing
+from xmantissa.webtheme import getLoader
 
 from clickchronicle import iclickchronicle, indexinghelp, clickbrowser
 from clickchronicle.util import makeStaticURL
@@ -336,17 +337,65 @@ class BookmarkList(Item, InstallableMixin):
         '''show a link to myself in the navbar'''
         return [webnav.Tab('Bookmarks', self.storeID, 0.6)]
 
-class BookmarkListFragment(tdbview.TabularDataView):
+class BookmarkListFragment(athena.LiveFragment):
     '''i adapt BookmarkList to INavigableFragment'''
     implements(ixmantissa.INavigableFragment)
+    _bookmarkTDB = None
 
-    def __init__(self, original):
-        (tdm, views) = clickbrowser.makeClickTDM(original.store, Bookmark)
-        tdbview.TabularDataView.__init__(self, tdm, views,
-                (clickbrowser.ignoreVisitAction,
-                 clickbrowser.privateVisitToggleAction,
-                 clickbrowser.deleteAction),
-                width='100%')
+    jsClass = u'ClickChronicle.BookmarkList'
+    fragmentName = 'bookmark-list'
+    live = 'athena'
+    iface = allowedMethods = dict(filterBookmarks=True)
+
+    magicWord = u'-- All --'
+
+    def filterBookmarks(self, tag):
+        if tag == self.magicWord:
+            comparison = None
+        else:
+            comparison = attributes.AND(Tag.object == Bookmark.storeID,
+                                        Tag.name == tag)
+
+        self.bookmarkTDB.original.baseComparison = comparison
+        self.bookmarkTDB.original.firstPage()
+        return self.bookmarkTDB.replaceTable()
+
+    def getBookmarkTDB(self):
+        if self._bookmarkTDB is None:
+            (tdm, views) = clickbrowser.makeClickTDM(self.original.store, Bookmark)
+            tdv = tdbview.TabularDataView(tdm, views,
+                                          (clickbrowser.ignoreVisitAction,
+                                           clickbrowser.privateVisitToggleAction,
+                                           clickbrowser.deleteAction),
+                                          width='100%')
+            tdv.docFactory = getLoader(tdv.fragmentName)
+            tdv.setFragmentParent(self)
+            self._bookmarkTDB = tdv
+        return self._bookmarkTDB
+
+    bookmarkTDB = property(getBookmarkTDB)
+
+    def render_bookmarkTDB(self, ctx, data):
+        return self.bookmarkTDB
+
+    def render_tagList(self, ctx, data):
+        tags = self.original.store.query(Tag, Tag.object == Bookmark.storeID)
+        tags = list(tags.getColumn('name').distinct())
+        tags = [self.magicWord] + tags
+
+        iq = inevow.IQ(self.docFactory)
+        tagListPattern = iq.onePattern('tag-list')
+        tagPattern = iq.patternGenerator('tag')
+
+        try:
+            tagStan = list(tagPattern.fillSlots('name', name) for name in tags)
+        except errors.SQLError:
+            return ctx.tag
+
+        return tagListPattern.fillSlots('tags', tagStan)
+
+    def head(self):
+        return None
 
 registerAdapter(BookmarkListFragment,
                 BookmarkList,

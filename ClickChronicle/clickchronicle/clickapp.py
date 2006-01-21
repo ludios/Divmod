@@ -575,7 +575,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
         for tag in filter(len, tags):
             if catalog is None:
                 catalog = self.store.findOrCreate(Catalog)
-                catalog.tag(bookmark, unicode(tag))
+            catalog.tag(bookmark, unicode(tag.strip()))
 
         cacheMan = iclickchronicle.ICache(self.store)
         cacheMan.rememberVisit(bookmark,

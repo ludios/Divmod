@@ -5,7 +5,7 @@ import os
 
 from combinator import branchmgr
 
-PATHVARS = 'PYTHONPATH', 'PATH', 'LD_LIBRARY_PATH', 'PATHEXT'
+PATHVARS = 'PYTHONPATH', 'PATH', 'LD_LIBRARY_PATH', 'PATHEXT', "FPATH"
 
 def uniq(l):
     tmpd = {}
@@ -66,10 +66,13 @@ class Env:
                 v.sort()
                 v = os.pathsep.join(uniq([x[1] for x in v]))
             print fstr % (k, ffunc(v))
-
+        if how == 'zsh':
+            print "export FPATH=$FPATH:"+os.path.join(os.path.split(os.path.split(__file__)[0])[0], "zsh")
+            print "compinit"
 
 def generatePythonPathVariable(nv):
     nv.prePath('PYTHONPATH', os.path.split(os.path.split(__file__)[0])[0])
+
 
 def generatePathVariable(nv):
     from combinator import branchmgr
@@ -112,6 +115,8 @@ def export():
     generatePathVariable(e)
     if sys.platform == 'win32':
         how = 'bat'
+    elif 'zsh' in os.environ['SHELL']:
+        how = 'zsh'
     else:
         how = 'sh'
     e.export(how)

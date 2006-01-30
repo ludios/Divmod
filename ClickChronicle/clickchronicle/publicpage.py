@@ -300,7 +300,7 @@ class PublicIndexPage(CCPublicPageMixin, PublicAthenaLivePage):
 
     title = 'ClickChronicle'
     maxTitleLength = 70
-    maxClickQueryResults = 0
+    maxClickQueryResults = 10
 
     def __init__(self, publicPage, staticContent, forUser=None):
         """

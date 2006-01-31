@@ -66,7 +66,7 @@ class Env:
                 v.sort()
                 v = os.pathsep.join(uniq([x[1] for x in v]))
             print fstr % (k, ffunc(v))
-        if how == 'zsh':
+        if how == 'zsh' and os.environ.get('FPATH'):
             print "export FPATH=$FPATH:"+os.path.join(os.path.split(os.path.split(__file__)[0])[0], "zsh")
             print "compinit"
 

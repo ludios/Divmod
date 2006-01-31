@@ -88,8 +88,12 @@ def generatePathVariable(nv):
         nv.postPath('PATHEXT', '.PY')
     userBinPath = os.path.abspath(
         os.path.expanduser("~/.local/bin"))
+    userLibPath = os.path.abspath(
+        os.path.expanduser("~/.local/lib"))
     if os.path.exists(userBinPath):
         nv.prePath("PATH", userBinPath)
+    if os.path.exists(userLibPath):
+        nv.prePath("LD_LIBRARY_PATH", userLibPath)
 
     # XXX move to separate command?
     if not os.path.isdir(branchmgr.theBranchManager.binCachePath):

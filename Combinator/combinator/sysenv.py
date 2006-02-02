@@ -48,6 +48,8 @@ class Env:
     def export(self, how):
         z = self.d.items()
         z.sort()
+        import pprint
+        pprint.pprint(z, sys.stderr)
         if how == 'emacs':
             fstr = '(setenv "%s" "%s")'
             ffunc = lambda x: x.replace('"', '\\"')
@@ -60,18 +62,23 @@ class Env:
                                     # lines at *all*
                 fstr = 'set %s=%s'
             else:
-                fstr = 'export %s=%s '
+                fstr = 'export %s=%s;'
         for k, v in z:
             if isinstance(v, list):
                 v.sort()
                 v = os.pathsep.join(uniq([x[1] for x in v]))
             print fstr % (k, ffunc(v))
+
+        combinator = os.path.split(os.path.split(__file__)[0])[0]
+
         if how == 'zsh':
             print """
             export FPATH="$FPATH:%s"
             compinit
-            """ % os.path.join(os.path.split(os.path.split(__file__)[0])[0],
-                               "zsh")
+            """ % os.path.join(combinator, "zsh")
+        elif how == 'bash':
+            print ". " + os.path.join(combinator, "bash", "completion")
+
 
 def generatePythonPathVariable(nv):
     nv.prePath('PYTHONPATH', os.path.split(os.path.split(__file__)[0])[0])
@@ -124,6 +131,8 @@ def export():
         how = 'bat'
     elif 'zsh' in os.environ['SHELL']:
         how = 'zsh'
+    elif 'bash' in os.environ['SHELL']:
+        how = 'bash'
     else:
         how = 'sh'
     e.export(how)

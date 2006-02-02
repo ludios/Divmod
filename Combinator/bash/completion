@@ -1,0 +1,39 @@
+. /etc/bash_completion
+
+SVNLOOK=/usr/bin/svnlook
+
+function projectDir() {
+	local pdir=`python -c "import combinator; print combinator.__file__"`
+	for i in `seq 1 4`; do
+		pdir=`dirname $pdir`
+	done
+	echo -n "$pdir"
+}
+
+function branchURI() {
+	local buri=`python -c '\
+
+import sys
+from combinator.branchmgr import theBranchManager as bm
+print bm.projectBranchURI(sys.argv[1], "")
+
+' "$(projectDir)"`
+	echo -n "$buri"
+}
+
+function _chbranch() {
+	case ${COMP_CWORD} in
+		1)
+			pushd `dirname "$(projectDir)"` > /dev/null
+			_filedir -d
+			popd > /dev/null
+			return 0
+			;;
+		2)
+			COMPREPLY=(`svn ls --non-interactive "$(branchURI)"`)
+			return 0
+			;;
+	esac
+}
+
+complete -F _chbranch chbranch

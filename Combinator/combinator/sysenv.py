@@ -48,8 +48,6 @@ class Env:
     def export(self, how):
         z = self.d.items()
         z.sort()
-        import pprint
-        pprint.pprint(z, sys.stderr)
         if how == 'emacs':
             fstr = '(setenv "%s" "%s")'
             ffunc = lambda x: x.replace('"', '\\"')

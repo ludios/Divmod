@@ -31,9 +31,32 @@ def remain(argv):
         newargz = map(branchmgr._cmdLineQuote, newargz)
         binpath = branchmgr._cmdLineQuote(binpath)
         wincmd = ' '.join(newargz[1:])
-        signal.signal(signal.SIGINT, nostop) # ^C on Windows suuuuuuuucks
-        pid = os.spawnv(os.P_NOWAIT, binpath, [binpath, wincmd])
-        exstat = os.waitpid(pid, 0)
+        import msvcrt
+        try:
+            # There is probably a better 'are we running in a GUI, ie, is
+            # os.system going to be completely broken' test, but I have no idea
+            # what it is.
+            osfh = msvcrt.get_osfhandle(0)
+        except IOError:
+            try:
+                import win32pipe
+            except ImportError:
+                print "Non-console I/O is broken on win32"
+                print "Workaround requires pywin32"
+                print "http://sourceforge.net/project/showfiles.php?group_id=78018"
+                os._exit(2)
+            else:
+                opipe = win32pipe.popen(' '.join(newargz), 'r')
+                while 1:
+                    byte = opipe.read(1)
+                    if not byte:
+                        break
+                    sys.stdout.write(byte)
+                    sys.stdout.flush()
+        else:
+            signal.signal(signal.SIGINT, nostop) # ^C on Windows suuuuuuuucks
+            exstat = os.system(' '.join(newargz))
+            os._exit(exstat)
     else:
         os.execv(binpath, newargz)
 

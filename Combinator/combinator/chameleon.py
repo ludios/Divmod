@@ -46,7 +46,8 @@ def remain(argv):
                 print "http://sourceforge.net/project/showfiles.php?group_id=78018"
                 os._exit(2)
             else:
-                opipe = win32pipe.popen(' '.join(newargz), 'r')
+                ipipe, opipe = win32pipe.popen4(' '.join(newargz), 't')
+                ipipe.close()
                 while 1:
                     byte = opipe.read(1)
                     if not byte:

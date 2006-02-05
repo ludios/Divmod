@@ -1,5 +1,4 @@
 
-
 from combinator.branchmgr import theBranchManager
 
 dependencies = [

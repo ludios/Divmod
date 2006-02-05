@@ -78,8 +78,6 @@ def clickStat1to2(oldstat):
 registerUpgrader(clickStat1to2, "click_stats", 1, 2)
 
 def clickStat2to3(oldstat):
-    from clickchronicle.publicpage import _loadHistory
-
     newstat = oldstat.upgradeVersion("click_stats", 2, 3,
                                      url=oldstat.url,
                                      score=0.,

@@ -6,7 +6,7 @@ import time, struct, collections
 from epsilon import extime
 from xmantissa.publicresource import PublicAthenaLivePage, PublicPage
 from nevow import inevow, tags, static, athena
-from clickchronicle.util import makeStaticURL, makeScriptTag, staticTemplate
+from clickchronicle.util import makeStaticURL, staticTemplate
 from clickchronicle.urltagger import tagURL
 from axiom.item import Item, InstallableMixin
 from twisted.python import util

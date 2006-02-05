@@ -6,8 +6,6 @@ Products related to ClickChronicle to be offered for sale.
 
 from zope.interface import implements
 
-from twisted.cred import portal
-
 from axiom import item, attributes
 
 from xmantissa import ixmantissa

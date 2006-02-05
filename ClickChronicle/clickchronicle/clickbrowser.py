@@ -4,7 +4,7 @@ from nevow import tags
 from xmantissa import ixmantissa, tdb, tdbview
 
 from clickchronicle.visit import Bookmark
-from clickchronicle import iclickchronicle, indexinghelp
+from clickchronicle import iclickchronicle
 
 
 def trimFeedbackURL(url, maxlength=50):

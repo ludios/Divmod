@@ -28,7 +28,7 @@ def runcmd(*x):
     print 'C: ' + '\nC: '.join(output.splitlines())
     if os.name == 'nt':
         # There is nothing we can possibly do with this error code.
-        return
+        return output
     if os.WIFSIGNALED(code):
         raise ValueError("Command: %r exited with signal: %d" % (
             popenstr, os.WTERMSIG(code)))

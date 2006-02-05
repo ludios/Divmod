@@ -37,3 +37,18 @@ function _chbranch() {
 }
 
 complete -F _chbranch chbranch
+
+function _unbranch_mkbranch() {
+	case ${COMP_CWORD} in
+		1)
+			pushd `dirname "$(projectDir)"` > /dev/null
+			_filedir -d
+			popd > /dev/null
+			return 0
+			;;
+	esac
+}
+
+complete -F _unbranch_mkbranch unbranch
+complete -F _unbranch_mkbranch mkbranch
+

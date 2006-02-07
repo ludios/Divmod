@@ -163,6 +163,8 @@ class BranchManager:
 
     def mergeProjectBranch(self, projectName):
         currentBranch = self.currentBranchFor(projectName)
+        if currentBranch == "trunk":
+            raise ValueError("Cannot merge trunk")
         branchDir = self.projectBranchDir(projectName, currentBranch)
         os.chdir(branchDir)
         rev = None

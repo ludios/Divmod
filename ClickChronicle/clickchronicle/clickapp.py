@@ -104,30 +104,15 @@ class _PublicPagePreference(prefs.MultipleChoicePreference):
                                                     collection, desc,
                                                     valueToDisplay)
 
-class _TimezonePreference(prefs.Preference):
-    def __init__(self, value, collection):
-        super(_TimezonePreference, self).__init__('timezone', value, 'Timezone',
-                                                  collection, 'Your current timezone')
-
-    def choices(self):
-        return pytz.common_timezones
-
-    def displayToValue(self, display):
-        return unicode(display)
-
-    def valueToDisplay(self, value):
-        return str(value)
-
 class CCPreferenceCollection(Item, InstallableMixin):
     implements(ixmantissa.IPreferenceCollection)
 
-    schemaVersion = 1
+    schemaVersion = 2
     typeName = 'clickchronicle_preference_collection'
-    name = 'ClickChronicle Preferences'
+    applicationName = 'ClickChronicle'
 
     installedOn = attributes.reference()
     shareClicks = attributes.boolean(default=True)
-    timezone = attributes.text(default=u'US/Eastern')
     _cachedPrefs = attributes.inmemory()
 
     def publicPage():
@@ -159,7 +144,6 @@ class CCPreferenceCollection(Item, InstallableMixin):
 
     def activate(self):
         self._cachedPrefs = {"shareClicks" : _ShareClicks(self.shareClicks, self),
-                             "timezone" : _TimezonePreference(self.timezone, self),
                              "publicPage" : _PublicPagePreference(self.publicPage, self)}
 
     def getPreferences(self):
@@ -170,6 +154,16 @@ class CCPreferenceCollection(Item, InstallableMixin):
         assert hasattr(self, pref.key)
         setattr(pref, 'value', value)
         self.store.transact(lambda: setattr(self, pref.key, value))
+
+    def getSections(self):
+        return None
+
+def ccPreferenceCollection1To2(old):
+    return old.upgradeVersion('clickchronicle_preference_collection', 1, 2,
+                              installedOn=old.installedOn,
+                              shareClicks=old.shareClicks)
+
+upgrade.registerUpgrader(ccPreferenceCollection1To2, 'clickchronicle_preference_collection', 1, 2)
 
 class ClickChronicleInitializer(Item, InstallableMixin):
     """

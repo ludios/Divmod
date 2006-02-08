@@ -208,7 +208,7 @@ class BranchManager:
             if not os.path.exists(ftd):
                 os.makedirs(ftd)
             try:
-                shutil.copytree(trunkDirectory, tempname)
+                shutil.copytree(trunkDirectory, tempname, True)
             except KeyboardInterrupt:
                 shutil.rmtree(tempname)
                 raise

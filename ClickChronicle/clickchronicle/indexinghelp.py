@@ -1,10 +1,12 @@
 from zope.interface import implements
 
 from twisted.python import failure
+from twisted.python.filepath import FilePath
 from twisted.web import error as weberror
 
 from axiom.item import Item
 from axiom import attributes
+from axiom.upgrade import registerUpgrader
 
 from nevow.url import URL
 from nevow import rend
@@ -147,6 +149,25 @@ class FavIcon(FaviconMixin, Item):
     def resourceFactory(self, segments):
         return None
 
+def favicon1To2(oldicon):
+    return oldicon.upgradeVersion("favicon", 1, 2,
+                                  iconURL='/' + oldicon.prefixURL,
+                                  prefixURL=oldicon.prefixURL,
+                                  data=oldicon.data,
+                                  contentType=oldicon.contentType)
+
+registerUpgrader(favicon1To2, "favicon", 1, 2)
+
+def favicon2To3(oldicon):
+    newicon = oldicon.upgradeVersion("favicon", 2, 3,
+                                     data=oldicon.data,
+                                     contentType=oldicon.contentType)
+
+    newicon.store.powerDown(newicon, ixmantissa.ISiteRootPlugin)
+    return newicon
+
+registerUpgrader(favicon2To3, "favicon", 2, 3)
+
 class DefaultFavicon(FaviconMixin, Item):
     typeName = 'clickchronicle_default_favicon'
     schemaVersion = 2
@@ -155,6 +176,13 @@ class DefaultFavicon(FaviconMixin, Item):
     contentType = 'image/png'
 
     faviconView = attributes.inmemory()
+
+def defaultFavicon1to2(oldicon):
+    images = FilePath(__file__).parent().child('static').child('images')
+    return oldicon.upgradeVersion("clickchronicle_default_favicon", 1, 2,
+                                  data=images.child('favicon.png').getContent())
+
+registerUpgrader(defaultFavicon1to2, "clickchronicle_default_favicon", 1, 2)
 
 class PageFetchingTaskMixin(object):
     def retryableFailure(self, f):
@@ -442,8 +470,6 @@ def makeDocument(visit, pageSource, pageInfo, summaryLength=400):
                    keywords=keywords,
                    source=pageSource)
     return doc
-
-from clickchronicle import upgraders
 
 if __name__ == '__main__':
     import sys

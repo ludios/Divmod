@@ -50,7 +50,7 @@ class Env:
         z.sort()
         if how == 'emacs':
             fstr = '(setenv "%s" "%s")'
-            ffunc = lambda x: x.replace('"', '\\"')
+            ffunc = lambda x: x.replace("\\", "\\\\").replace('"', '\\"')
         else:
             ffunc = repr
             if how == 'tcsh':
@@ -121,16 +121,21 @@ def generatePathVariable(nv):
                         if os.name != 'nt':
                             os.chmod(dst, 0755)
 
+def gethow():
+    if len(sys.argv) > 1:
+        return sys.argv[1]
+    if sys.platform == 'win32':
+        return 'bat'
+    elif 'zsh' in os.environ['SHELL']:
+        return 'zsh'
+    elif 'bash' in os.environ['SHELL']:
+        return 'bash'
+    else:
+        return 'sh'
+
 def export():
     e = Env()
     generatePythonPathVariable(e)
     generatePathVariable(e)
-    if sys.platform == 'win32':
-        how = 'bat'
-    elif 'zsh' in os.environ['SHELL']:
-        how = 'zsh'
-    elif 'bash' in os.environ['SHELL']:
-        how = 'bash'
-    else:
-        how = 'sh'
+    how = gethow()
     e.export(how)

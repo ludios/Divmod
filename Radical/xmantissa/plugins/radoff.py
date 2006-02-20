@@ -1,23 +1,20 @@
 
-from axiom import iaxiom, scheduler
+from nevow import inevow
 
-from xmantissa import offering
+from xmantissa import website, offering, provisioning
 
-import radical
-from radical import radapp
+from radical import model, web
 
 offer = offering.Offering(
     name = u"Radical",
     description = u"""
     Radical is an awesome game for you to play.
     """,
-    siteRequirements = (
-        (iaxiom.IScheduler, scheduler.Scheduler),
-        (None, radapp.RadicalWorld),
-        ),
-    appPowerups = (
-        radapp.RadicalApplication,
-        ),
-    benefactorFactories = (
-    ))
-
+    siteRequirements = [
+        (inevow.IResource, website.WebSite)],
+    appPowerups = [model.Game],
+    benefactorFactories = [
+        provisioning.BenefactorFactory(
+            u'Radical Game',
+            u'Grants a user access to a Radical game.',
+            web.RadicalBenefactor)])

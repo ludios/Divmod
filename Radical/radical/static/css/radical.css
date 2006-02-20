@@ -1,0 +1,10 @@
+
+/* The player node gets shuffled around using pixel coordinates.  It
+ * is not included in the normal flow of the page.  We also hide it
+ * completely and allow the JavaScript associated with it to select
+ * its initial location.
+ */
+.radical-character {
+        position: absolute;
+        display: none;
+}

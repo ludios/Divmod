@@ -72,7 +72,6 @@ class Env:
         if how == 'zsh':
             print """
             export FPATH="$FPATH:%s"
-            compinit
             """ % os.path.join(combinator, "zsh")
         elif how == 'bash':
             print ". " + os.path.join(combinator, "bash", "completion")

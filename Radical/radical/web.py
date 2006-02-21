@@ -29,8 +29,7 @@ class RadicalUserApplication(item.Item, item.InstallableMixin):
     implements(ixmantissa.INavigableElement)
 
     installedOn = attributes.reference(doc="""
-    A reference to the avatar on which this application has been
-    installed.
+    A reference to the avatar on which this application has been installed.
     """)
 
     def installOn(self, other):
@@ -150,26 +149,9 @@ class CharacterFragment(athena.LiveFragment):
 
     docFactory = loaders.stan(
         tags.span(_class='radical-character',
-                  render=tags.directive('liveFragment'))[
-            tags.img(render=tags.directive('characterImage'))])
+                  render=tags.directive('liveFragment')))
 
 
-    def render_characterImage(self, ctx, data):
-        return ctx.tag(src=imageLocation('player'))
-
-
-    allowedMethods = {'getLocation': True,
-                      'move': True}
-    def getLocation(self):
-        return self.original.getLocation()
-
-
-    def move(self, direction):
-        return self.original.move({
-            u'west': (-1, 0),
-            u'east': (1, 0),
-            u'north': (0, -1),
-            u'south': (0, 1)}[direction])
 
 
 
@@ -190,18 +172,9 @@ class SceneFragment(structlike.record('world character'), athena.LiveFragment):
     fragmentName = 'radical-terrain'
     jsClass = u'Radical.World.Scene'
 
-    def render_terrain(self, ctx, data):
-        x, y = self.character.getLocation()
-        t = self.world.getTerrain(x, y)
-        return ctx.tag[TerrainFragment(t)]
-
-
-    def render_character(self, ctx, data):
-        self.charfrag = CharacterFragment(self.character)
-        self.charfrag.setFragmentParent(self)
+    def __init__(self, *a, **kw):
+        super(SceneFragment, self).__init__(*a, **kw)
         self.world.observeMovement(self.movementObserver)
-        return ctx.tag[self.charfrag]
-
 
     # Observers!
     def movementObserver(self, mover, location):
@@ -210,6 +183,30 @@ class SceneFragment(structlike.record('world character'), athena.LiveFragment):
             self.callRemote('movementObserver', mover.name, location)
 
 
+    # Remote methods
+    allowedMethods = ('getTerrain', 'getLocation', 'move')
+    def getTerrain(self):
+        loc = self.character.getLocation()
+        results = []
+        for t in self.world.getTerrainWithin(loc[0] - 8, loc[1] - 8, 16, 16):
+            results.append({
+                u'x': t.west,
+                u'y': t.north,
+                u'kind': t.kind,
+                u'passable': True})
+        return results
+
+
+    def getLocation(self):
+        return self.character.getLocation()
+
+
+    def move(self, direction):
+        return self.character.move({
+            u'west': (-1, 0),
+            u'east': (1, 0),
+            u'north': (0, -1),
+            u'south': (0, 1)}[direction])
 
 
 class GameplayFragment(athena.LiveFragment):
@@ -233,7 +230,7 @@ class GameplayFragment(athena.LiveFragment):
         return tags.link(rel='stylesheet', href=cssLocation('radical'))
 
 
-    def render_map(self, ctx, data):
+    def render_scene(self, ctx, data):
         f = SceneFragment(self.world, self.character)
         f.docFactory = webtheme.getLoader(f.fragmentName) # XXX
         f.setFragmentParent(self)

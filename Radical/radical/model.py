@@ -55,8 +55,11 @@ class RadicalGameResource(rend.Page):
         return 'Nothing to see here, yet.'
 
 
-
 BARREN = u'barren'
+MOUNTAIN = u'mountain'
+GRASS = u'grass'
+WATER = u'water'
+FOREST = u'forest'
 
 class Terrain(item.Item):
     """
@@ -151,6 +154,17 @@ class World(item.Item):
         if upper:
             c = c + self.baseGranularity
         return c
+
+
+    def getTerrainWithin(self, top, left, width, height):
+        return self.store.query(
+            Terrain,
+            attributes.AND(Terrain.world == self,
+                           Terrain.west > left,
+                           Terrain.west < left + width,
+                           Terrain.north > top,
+                           Terrain.north < top + height),
+            sort=(Terrain.west.ascending, Terrain.north.ascending))
 
 
     def getTerrain(self, x, y):

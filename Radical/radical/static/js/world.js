@@ -10,21 +10,12 @@
 
 Radical.World = {};
 
-Radical.World.getTerrainURL = function(x, y) {
-    return Radical.Artwork.terrainLocation(Radical.World.getTerrain(x, y));
-};
-
-Radical.World.getTerrain = function(x, y) {
-    return Radical.World._terrainTypes[(x + y) % Radical.World._terrainTypes.length];
-};
-
-
 Radical.World.Application = Nevow.Athena.Widget.subclass('Radical.World.Application');
 Radical.World.Application.methods(
     function __init__(self, node) {
         Radical.World.Application.upcall(self, '__init__', node);
         var e = document.getElementById('init-args-' + self.objectID);
-        self.characterNames = eval(e.value);
+        self.characterNames = eval('(' + e.value + ')');
         self.addCharacterLinks(self.characterNames);
     },
 
@@ -53,252 +44,161 @@ Radical.World.Entity = Divmod.Class.subclass('Radical.World.Entity');
 Radical.World.Entity.methods(
     function __init__(self, scene, /* optional */ imageLocation) {
         self.scene = scene;
-        self.node = document.createElement('span');
-        self.node.style.position = 'absolute';
-
+        self.img = null;
         if (imageLocation != undefined) {
             self.setImage(imageLocation);
-        }
-
-        document.body.appendChild(self.node);
-    },
-
-    function setCoordinates(self, x, y) {
-        self.x = x;
-        self.y = y;
-        if (self.img) {
-            self.scene.viewport.setItemImagePosition(self.img, x, y);
         }
     },
 
     function setImage(self, imageLocation) {
-        if (self.img != undefined) {
-            self.node.removeChild(self.img);
+        if (self.img && self.img.parentNode) {
+            self.img.parentNode.removeChild(self.img);
         }
         self.img = document.createElement('img');
-        self.img.src = imageLocation;
         self.img.style.position = 'absolute';
-        if (self.x != undefined) {
-            self.scene.viewport.setItemImagePosition(self.img, self.x, self.y);
-        }
-        self.node.appendChild(self.img);
+        self.img.style.display = 'none';
+        self.img.src = imageLocation;
+        self.img.onload = function() {
+            self.img.onload = null;
+            Divmod.msg("Entity loaded, painting viewport");
+            self.scene.viewport.paint();
+            self.img.style.display = '';
+        };
+        document.body.appendChild(self.img);
+        Divmod.msg("An entity arrived on the page: " + self.img.src);
     });
 
 Radical.World._terrainTypes = ['barren', 'water', 'grass', 'forest', 'mountain'];
 
 Radical.World.Scene = Nevow.Athena.Widget.subclass('Radical.World.Scene');
 Radical.World.Scene.methods(
+    /*
+     * Keeps track of environment, items and characters.  Keeps a limited cache
+     * of terrain which is updated when the character moves around.  Is
+     * responsible for telling the viewport to redraw and move around and such.
+     */
     function __init__(self, node) {
         Radical.World.Scene.upcall(self, '__init__', node);
 
-        self.viewport = new Radical.Geometry.Viewport(0, 0, 16, 16);
+        self.terrainCache = {};
+
+        var initargs = eval('(' + document.getElementById('scene-args-' + self.objectID).value + ')');
+        var center = initargs.center;
+        var terrain = initargs.terrain;
+        var players = initargs.players;
+
+        self.viewport = new Radical.Geometry.Viewport(self, center[0] - 8, center[1] - 8, 16, 16);
+        self.node.appendChild(self.viewport.evenNode);
+        self.node.appendChild(self.viewport.oddNode);
 
         /* A mapping of all the things we've seen move around us.  Keys are
            unique identifiers received from the server.  Values are objects
            containing local state about the entitity. */
         self.observedEntities = {
-            'player': new Radical.World.Character(self)
+            'player': new Radical.World.Character(self, center[0], center[1])
         };
 
-        self._viewportResized();
+        Divmod.msg("There is terrain: " + terrain.length);
+
+        for (var i = 0; i < terrain.length; ++i) {
+            self.cacheTerrainInfo(terrain[i].x, terrain[i].y, terrain[i].kind);
+        }
+
+        Divmod.msg("There is players: " + players.length);
+
+        for (var i = 0; i < players.length; ++i) {
+            self.movementObserver(players[i].name, players[i].x, players[i].y);
+        }
+
+        self.paint();
     },
 
-    function _viewportResized(self) {
-        /*
-         * An Array of img tags representing the currently visible terrain.
-         */
-        self.terrain = new Array(self.viewport.width * self.viewport.height);
+    function cacheTerrainInfo(self, col, row, info) {
+        self.terrainCache[col + 'x' + row] = info;
+    },
 
-        /*
-         * Some more information about that visible terrain.
-         */
-        self.terrainInfo = new Array(self.viewport.width * self.viewport.height);
+    function getTerrainKind(self, col, row) {
+        var result = self.terrainCache[col + 'x' + row];
+        if (result == undefined) {
+            return null;
+        }
+        return result;
+    },
 
-        /*
-         * Initial the field to something random.  Lala.
-         */
-        for (var y = 0; y < self.viewport.height; ++y) {
-            for (var x = 0; x < self.viewport.width; ++x) {
-                self.setTerrain(x, y, Radical.World.getTerrain(x, y), true);
+    function getEntitiesWithin(self, x, y, width, height) {
+        var result = [];
+        var count = 0;
+        Divmod.msg("getEntitiesWithin(" + x + ", " + y + ", " + width + ", " + height + ")");
+        for (var e in self.observedEntities) {
+            count += 1;
+            var ent = self.observedEntities[e];
+            if (ent.x >= x && ent.x < x + width && ent.y >= y && ent.y < y + height) {
+                result.push(ent);
             }
         }
-
-        /*
-         * Load the actually visible terrain.
-         */
-        self.callRemote('getTerrain').addCallback(function(result) {
-            for (var i = 0; i < result.length; ++i) {
-                var x = result[i].x,
-                    y = result[i].y,
-                    kind = result[i].kind,
-                    passable = result[i].passable;
-
-                    self.setTerrain(x, y, kind, passable);
-            }
-        });
+        Divmod.msg("getEntitiesWithin culling from " + count);
+        return result;
     },
 
-    function getTerrainInfo(self, col, row) {
-        var ti;
-        if (col >= 0 && col < self.viewport.width && row >= 0 && row < self.viewport.height) {
-            ti = self.terrainInfo[row * self.viewport.width + col];
-        }
-        if (ti == undefined) {
-            Divmod.msg("No terrain info for " + col + ", " + row + ".");
-            return {'kind': 'barren', 'passable': false};
-        }
-        return ti;
-    },
-
-    function setTerrain(self, col, row, kind, passable) {
-        var idx = row * self.viewport.width + col;
-        var img = self.terrain[idx]
-        if (img == undefined) {
-            img = self.terrain[idx] = document.createElement('img');
-            img.style.position = 'absolute';
-            self.viewport.setTerrainImagePosition(img, col, row);
-            self.node.appendChild(img);
-            self.terrainInfo[idx] = {};
-        }
-        img.src = Radical.Artwork.terrainLocation(kind);
-        self.terrainInfo[idx].kind = kind;
-        self.terrainInfo[idx].passable = passable;
-    },
-
-    function movementObserver(self, moverId, loc) {
+    function movementObserver(self, moverId, x, y) {
         var moverEntity = self.observedEntities[moverId];
-        if (moverEntity == undefined) {
-            moverEntity = self.initializeEntity(moverId);
+
+        if (x == null && y == null) {
+            if (moverEntity != undefined) {
+                delete self.observedEntities[moverId];
+                if (moverEntity.img) {
+                    moverEntity.img.parentNode.removeChild(moverEntity.img);
+                }
+            }
+        } else {
+            if (moverEntity == undefined) {
+                Divmod.msg("Creating a new entity: " + moverId);
+                moverEntity = self.initializeEntity(moverId);
+            }
+            var oldx = moverEntity.x,
+                oldy = moverEntity.y;
+            moverEntity.x = x;
+            moverEntity.y = y;
+            if (self.viewport.visible(x, y) || (oldx != undefined && oldy != undefined && self.viewport.visible(oldx, oldy))) {
+                self.paint();
+            }
         }
-        moverEntity.x = loc[0];
-        moverEntity.y = loc[1];
-        if (moverEntity.img) {
-            Radical.Geometry.setItemImagePosition(moverEntity.img, loc[0], loc[1]);
+    },
+
+    function terrainObserver(self, terrain) {
+        self.cacheTerrainInfo(terrain.x, terrain.y, terrain.kind);
+        if (self.viewport.visible(terrain.x, terrain.y)) {
+            Divmod.msg("Received terrain update, repainting");
+            self.paint();
+        } else {
+            Divmod.msg("Received irrelevant terrain update");
         }
     },
 
     function initializeEntity(self, entityId) {
-        var e = new Radical.World.Entity(self, Radical.Artwork.playerLocation('small-red'));
+        var e = new Radical.World.Entity(self, Radical.Artwork.playerLocation('medium-red'));
         self.observedEntities[entityId] = e;
         return e;
     },
 
-    function scrollNorth(self) {
-        self.viewport.top -= 2;
-
-        for (var y = self.viewport.height - 3; y >= 0; --y) {
-            for (var x = 0; x < self.viewport.width; ++x) {
-                var idx = y * self.viewport.width + x;
-                var t = self.terrain[idx];
-                var ti = self.terrainInfo[idx];
-
-                self.terrain[idx + (self.viewport.width * 2)].src = t.src;
-                self.terrainInfo[idx + (self.viewport.width * 2)] = ti;
-            }
-        }
-
-        for (var y = 0; y < 2; ++y) {
-            for (var x = 0; x < self.viewport.width; ++x) {
-                var idx = y * self.viewport.width + x;
-                self.terrain[idx].src = Radical.Artwork.terrainLocation('water');
-                Divmod.msg("Assigned new terrain type to " + idx);
-            }
-        }
-        for (var entId in self.observedEntities) {
-            var e = self.observedEntities[entId];
-            if (e.img) {
-                self.viewport.setItemImagePosition(e.img, e.x, e.y);
-            }
-        }
-
+    function scroll_north(self) {
+        self.viewport.y -= 1;
     },
 
-    function scrollSouth(self) {
-        self.viewport.top += 2;
-
-        for (var y = 2; y < self.viewport.height; ++y) {
-            for (var x = 0; x < self.viewport.width; ++x) {
-                var idx = y * self.viewport.width + x;
-                var t = self.terrain[idx];
-                var ti = self.terrainInfo[idx];
-
-                self.terrain[idx - (self.viewport.width * 2)].src = t.src;
-                self.terrainInfo[idx - (self.viewport.width * 2)] = ti;
-            }
-        }
-
-        for (var y = self.viewport.height - 3; y < self.viewport.height; ++y) {
-            for (var x = 0; x < self.viewport.width; ++x) {
-                var idx = y * self.viewport.width + x;
-                self.terrain[idx].src = Radical.Artwork.terrainLocation('grass');
-                Divmod.msg("Assigned new terrain type to " + idx);
-            }
-        }
-
-        for (var entId in self.observedEntities) {
-            var e = self.observedEntities[entId];
-            if (e.img) {
-                self.viewport.setItemImagePosition(e.img, e.x, e.y);
-            }
-        }
+    function scroll_south(self) {
+        self.viewport.y += 1;
     },
 
-    function scrollWest(self) {
-        self.viewport.left -= 2;
-
-        for (var x = self.viewport.width - 3; x >= 0; --x) {
-            for (var y = 0; y < self.viewport.height; ++y) {
-                var idx = y * self.viewport.width + x;
-                var t = self.terrain[idx];
-                var ti = self.terrainInfo[idx];
-
-                self.terrain[idx + 2].src = t.src;
-                self.terrainInfo[idx + 2] = ti;
-            }
-        }
-
-        for (var x = 0; x < 2; ++x) {
-            for (var y = 0; y < self.viewport.height; ++y) {
-                var idx = y * self.viewport.width + x;
-                self.terrain[idx].src = Radical.Artwork.terrainLocation('forest');
-            }
-        }
-
-        for (var entId in self.observedEntities) {
-            var e = self.observedEntities[entId];
-            if (e.img) {
-                self.viewport.setItemImagePosition(e.img, e.x, e.y);
-            }
-        }
+    function scroll_west(self) {
+        self.viewport.x -= 1;
     },
 
-    function scrollEast(self) {
-        self.viewport.left += 2;
+    function scroll_east(self) {
+        self.viewport.x += 1;
+    },
 
-        for (var x = 2; x < self.viewport.width; ++x) {
-            for (var y = 0; y < self.viewport.height; ++y) {
-                var idx = y * self.viewport.width + x;
-                var t = self.terrain[idx];
-                var ti = self.terrainInfo[idx];
-
-                self.terrain[idx - 2].src = t.src;
-                self.terrainInfo[idx - 2] = ti;
-            }
-        }
-
-        for (var x = self.viewport.width - 3; x < self.viewport.width; ++x) {
-            for (var y = 0; y < self.viewport.height; ++y) {
-                var idx = y * self.viewport.width + x;
-                self.terrain[idx].src = Radical.Artwork.terrainLocation('mountain');
-            }
-        }
-
-        for (var entId in self.observedEntities) {
-            var e = self.observedEntities[entId];
-            if (e.img) {
-                self.viewport.setItemImagePosition(e.img, e.x, e.y);
-            }
-        }
+    function paint(self) {
+        self.viewport.paint();
     });
 
 Radical.World.Gameplay = Nevow.Athena.Widget.subclass('Radical.World.Gameplay');
@@ -308,7 +208,61 @@ Radical.World.Gameplay.methods(
         document.addEventListener('keyup',
                                   function(event) { return self.onKeyPress(event); },
                                   true);
+        document.addEventListener('click',
+                                  function(event) { return self.onClick(event); },
+                                  true);
+    },
 
+    function tryWalkTo(self, x, y) {
+        if (!self.character) {
+            // XXX Improve this
+            self.character = self.childWidgets[0].observedEntities['player'];
+        }
+
+        var northsouth = '';
+        var eastwest = '';
+        // Super stupid algorithm - just walk straight there.
+        if (self.character.x < x) {
+            Divmod.msg(self.character.x + " is less than " + x + " so going EEEE.");
+            eastwest = 'east';
+        } else if (self.character.x > x) {
+            Divmod.msg(self.character.x + " is greater than " + x + " so going WWWW.");
+            eastwest = 'west';
+        }
+
+        if (self.character.y < y) {
+            Divmod.msg(self.character.y + " is less than " + y + " so going SSSSS.");
+            northsouth = 'south';
+        } else if (self.character.y > y) {
+            Divmod.msg(self.character.y + " is greater than " + y + " so going NNNNN.");
+            northsouth = 'north';
+        }
+
+        var d = northsouth + eastwest;
+
+        if (d.length) {
+            var moved = self.character.move(d);
+            if (moved != null) {
+                moved.addCallback(function(ign) {
+                    self.tryWalkTo(x, y);
+                });
+            }
+        }
+    },
+
+    function onClick(self, event) {
+        if (!self.character) {
+            // XXX Improve this
+            self.character = self.childWidgets[0].observedEntities['player'];
+        }
+
+        Divmod.msg("On Click!");
+        var pos = self.character.scene.viewport.worldCoordinatesFromPixelPosition(
+            event.clientX, event.clientY);
+        if (pos != null) {
+            Divmod.msg("Try walk to " + pos.toSource());
+            self.tryWalkTo(pos.x, pos.y);
+        }
     },
 
     function onKeyPress(self, event) {
@@ -323,6 +277,10 @@ Radical.World.Gameplay.methods(
             m[event.DOM_VK_RIGHT] = 'east';
             m[event.DOM_VK_UP] = 'north';
             m[event.DOM_VK_DOWN] = 'south';
+            m[event.DOM_VK_HOME] = 'northwest';
+            m[event.DOM_VK_PAGE_UP] = 'northeast';
+            m[event.DOM_VK_END] = 'southwest';
+            m[event.DOM_VK_PAGE_DOWN] = 'southeast';
             Radical.World.Gameplay.arrowKeys = m;
         }
         var direction = Radical.World.Gameplay.arrowKeys[event.keyCode];
@@ -335,44 +293,62 @@ Radical.World.Gameplay.methods(
         }
     });
 
-Radical.World._movementOffsets = {
-    'west': [-1, 0],
-    'east': [1, 0],
-    'north': [0, -1],
-    'south': [0, 1]
-};
-
 Radical.World.Character = Radical.World.Entity.subclass('Radical.World.Character');
 Radical.World.Character.methods(
-    function __init__(self, scene) {
-        Radical.World.Character.upcall(self, '__init__', scene, Radical.Artwork.playerLocation('small-red'));
-        self.node.style.zIndex = 1;
+    function __init__(self, scene, x, y) {
+        Radical.World.Character.upcall(self, '__init__', scene, Radical.Artwork.playerLocation('medium-red'));
+        self.img.style.zIndex = 1;
+        self.moving = false;
 
-        self.scene.callRemote('getLocation').addCallback(
-            function(loc) {
-                self.setCoordinates(loc[0], loc[1]);
-            });
+        self.x = x;
+        self.y = y;
+
+        self.worldPos = document.createElement('span');
+        document.body.appendChild(self.worldPos);
     },
 
     function move(self, direction) {
-        var viewport = self.scene.viewport;
-        var off = Radical.World._movementOffsets[direction];
-        self.x += off[0];
-        self.y += off[1];
-        var terrain = self.scene.getTerrainInfo(self.x - viewport.left, self.y - viewport.top);
-        if (terrain.passable || true) {
-            if (direction == 'west' && (self.x - viewport.left) < 3) {
-                self.scene.scrollWest();
-            } else if (direction == 'east' && (self.x - viewport.left) > 12) {
-                self.scene.scrollEast();
-            } else if (direction == 'north' && (self.y - viewport.top) < 3) {
-                self.scene.scrollNorth();
-            } else if (direction == 'south' && (self.y - viewport.top) > 12) {
-                self.scene.scrollSouth();
-            } else {
-                self.scene.viewport.setItemImagePosition(self.img, self.x, self.y);
-            }
+        if (!self.moving) {
+            self.moving = true;
+            var before = new Date();
+            var d = self.scene.callRemote('move', direction).addCallback(function(result) {
+                var after = new Date();
+                Divmod.msg("move roundtrip was " + (after.valueOf() - before.valueOf()));
+                before = new Date();
 
-            var d = self.scene.callRemote('move', direction);
+                self.moving = false;
+
+                var pos = result[0],
+                    ter = result[1],
+                    chs = result[2];
+
+                self.x = pos.x;
+                self.y = pos.y;
+                self.worldPos.innerHTML = self.x + ', ' + self.y;
+
+                Divmod.msg("Adding " + ter.length + " terrains to the cache.");
+
+                for (var i = 0; i < ter.length; ++i) {
+                    self.scene.cacheTerrainInfo(ter[i].x, ter[i].y, ter[i].kind);
+                }
+
+                Divmod.msg("Scrolling " + direction);
+                var scroller = self.scene['scroll_' + direction];
+                if (scroller != undefined) {
+                    scroller.call(self.scene);
+                }
+                Divmod.msg("There are " + chs.length + " characters.");
+
+                for (var i = 0; i < chs.length; ++i) {
+                    self.scene.movementObserver(chs[i].name, chs[i].x, chs[i].y);
+                }
+
+                self.scene.paint();
+
+                after = new Date();
+                Divmod.msg("move callback was " + (after.valueOf() - before.valueOf()));
+            });
+            return d;
         }
+        return null;
     });

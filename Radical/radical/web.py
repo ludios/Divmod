@@ -153,8 +153,6 @@ class CharacterFragment(athena.LiveFragment):
 
 
 
-
-
 class TerrainFragment(rend.Fragment):
     docFactory = loaders.stan(
         tags.img(render=tags.directive('terrainImage')))
@@ -172,15 +170,36 @@ class SceneFragment(structlike.record('world character'), athena.LiveFragment):
     fragmentName = 'radical-terrain'
     jsClass = u'Radical.World.Scene'
 
-    def __init__(self, *a, **kw):
-        super(SceneFragment, self).__init__(*a, **kw)
-        self.world.observeMovement(self.movementObserver)
+    def setFragmentParent(self, parent):
+        super(SceneFragment, self).setFragmentParent(parent)
+        def onDisconnect(ign, f=self.world.addActiveCharacter(self)):
+            f()
+        self.page.notifyOnDisconnect().addBoth(onDisconnect)
+
+
+    def render_initArgs(self, ctx, data):
+        terrain, players = self.character.getVisibleSurroundings()
+        return ctx.tag[tags.textarea(id='scene-args-' + str(self._athenaID),
+                                     style='display: none;')[
+            json.serialize({u'center': self.character.getLocation(),
+                            u'terrain': [{u'x': t.x,
+                                          u'y': t.y,
+                                          u'kind': t.kind} for t in terrain],
+                            u'players': [{u'x': p.character.getLocation()[0],
+                                          u'y': p.character.getLocation()[1],
+                                          u'name': p.character.name} for p in players if p is not self]})]]
+
 
     # Observers!
-    def movementObserver(self, mover, location):
+    def movementObserver(self, mover, x, y):
         if mover is not self.character:
-            print mover, self.character
-            self.callRemote('movementObserver', mover.name, location)
+            self.callRemote('movementObserver', mover.name, x, y)
+
+
+    def terrainObserver(self, terrain):
+        self.callRemote('terrainObserver', {u'x': terrain.x,
+                                            u'y': terrain.y,
+                                            u'kind': terrain.kind})
 
 
     # Remote methods
@@ -188,10 +207,10 @@ class SceneFragment(structlike.record('world character'), athena.LiveFragment):
     def getTerrain(self):
         loc = self.character.getLocation()
         results = []
-        for t in self.world.getTerrainWithin(loc[0] - 8, loc[1] - 8, 16, 16):
+        for t in self.world.getTerrainWithin(loc[0] - 9, loc[1] - 9, 18, 18):
             results.append({
-                u'x': t.west,
-                u'y': t.north,
+                u'x': t.x,
+                u'y': t.y,
                 u'kind': t.kind,
                 u'passable': True})
         return results
@@ -202,11 +221,60 @@ class SceneFragment(structlike.record('world character'), athena.LiveFragment):
 
 
     def move(self, direction):
-        return self.character.move({
-            u'west': (-1, 0),
-            u'east': (1, 0),
-            u'north': (0, -1),
-            u'south': (0, 1)}[direction])
+        """
+        Try to move in the indicated direction.
+
+        Returns a tuple of:
+
+            The new location, as a two-tuple.
+
+            All visible terrain, as a list of dicts with keys u'x', u'y' and u'name'.
+
+            All visible characters, as a list of dicts with keys u'x', u'y' and u'name'.
+        """
+        if self.character.getLocation()[1] % 2:
+            # Normally I detest vertically aligning code like this, but in this
+            # particular case it actually seems useful.  I think it's because
+            # this actually wants to be a 3 dimensional matrix literal.
+            unit = {
+                u'west':       (-1,  0),
+                u'east':       ( 1,  0),
+
+                u'north':      ( 0, -1),
+                u'south':      ( 0,  1),
+
+                u'northwest':  ( 0, -1),
+                u'northeast':  ( 1, -1),
+
+                u'southwest':  ( 0,  1),
+                u'southeast':  ( 1,  1),
+                }[direction]
+        else:
+            unit = {
+                u'west':       (-1,  0),
+                u'east':       ( 1,  0),
+
+                u'north':      ( 0, -1),
+                u'south':      ( 0,  1),
+
+                u'northwest':  (-1, -1),
+                u'northeast':  ( 0, -1),
+
+                u'southwest':  (-1,  1),
+                u'southeast':  ( 0,  1),
+                }[direction]
+
+        newLocation = self.character.move(unit)
+        terrain, players = self.character.getVisibleSurroundings()
+        return ({u'x': newLocation[0],
+                 u'y': newLocation[1]},
+                [{u'x': t.x,
+                  u'y': t.y,
+                  u'kind': t.kind} for t in terrain],
+                [{u'x': p.character.getLocation()[0],
+                  u'y': p.character.getLocation()[1],
+                  u'name': p.character.name} for p in players if p is not self])
+
 
 
 class GameplayFragment(athena.LiveFragment):
@@ -234,6 +302,32 @@ class GameplayFragment(athena.LiveFragment):
         f = SceneFragment(self.world, self.character)
         f.docFactory = webtheme.getLoader(f.fragmentName) # XXX
         f.setFragmentParent(self)
-        return ctx.tag[f]
+
+        e = TerrainEditor(self.world, self.character)
+        e.docFactory = webtheme.getLoader(e.fragmentName) # XXX
+        e.setFragmentParent(self)
+        return ctx.tag[f, e]
+
 
 components.registerAdapter(GameplayFragment, model.RadicalCharacter, ixmantissa.INavigableFragment)
+
+class TerrainEditor(athena.LiveFragment):
+    """
+    Minimal interface for changing kinds of terrain.
+    """
+    jsClass = u'Radical.Terrain.Editor'
+    fragmentName = 'terrain-editor'
+
+    def __init__(self, world, character):
+        super(TerrainEditor, self).__init__(self)
+        self.world = world
+        self.character = character
+
+    allowedMethods = ('setTerrainType',)
+    def setTerrainType(self, kind):
+        assert kind in (model.BARREN, model.MOUNTAIN, model.GRASS, model.WATER, model.FOREST)
+        x, y = self.character.getLocation()
+        t = self.world.getTerrain(x, y)
+        t.kind = kind
+        self.world.terrainEvent(t)
+        return x, y

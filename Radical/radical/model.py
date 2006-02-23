@@ -17,8 +17,6 @@ class Game(item.Item, item.InstallableMixin):
     """
     implements(ixmantissa.IPublicPage)
 
-    schemaVersion = 2
-
     world = attributes.reference(doc="""
     Reference to this game's L{World} instance.
     """)
@@ -65,29 +63,12 @@ class Terrain(item.Item):
     """
     A small section of the world.
     """
-    west = attributes.integer(doc="""
-    The west-east coordinate of the northwest corner of this terrain in the
-    world.  Bigger is easter.
-    """)
-
-    north = attributes.integer(doc="""
-    The north-south coordinate of the northwest corner of this terrain
-    in the world.  Bigger is souther.
-    """)
-
-    east = attributes.integer(doc="""
-    The west-east coordinate of the northeast corner of this terrain
-    in the world.  Bigger is easter.
-    """)
-
-    south = attributes.integer(doc="""
-    The north-south coordinate of the southeast corner of this terrain
-    in the world.  Bigger is souther.
-    """)
+    x = attributes.integer(indexed=True)
+    y = attributes.integer(indexed=True)
 
     kind = attributes.text(doc="""
     A string/symbolic constant describing this terrain.
-    """)
+    """, default=None)
 
     world = attributes.reference(doc="""
     A reference to the world to which this terrain belongs.
@@ -104,42 +85,55 @@ class World(item.Item):
 
     A world has a bunch of terrain instances associated with it.
     """
-
-    schemaVersion = 2
-
-    width = attributes.integer(doc="""
-    The east-west length in FUNDAMENTAL UNITs of the entire world.
-    """)
-
-    height = attributes.integer(doc="""
-    The north-south length in FUNDAMENTAL UNITs of the entire world.
-    """)
-
-    baseGranularity = attributes.integer(doc="""
-    The length in FUNDAMENTAL UNITs of the default terrain which is
-    created in the world.  This applies to both dimensions.
-    """, default=10)
-
     baseTerrainKind = attributes.text(doc="""
     A string/symbolic constant naming the default kind of terrain
     which is created in the world.
     """, default=BARREN)
 
     observers = attributes.inmemory()
+    characters = attributes.inmemory()
 
     def activate(self):
         self.observers = {}
+        self.characters = []
         # As an optimization, we might load all terrain here.
 
 
-    def movementEvent(self, mover, location):
+    def addActiveCharacter(self, character):
+        self.characters.append(character)
+        self.movementEvent(character.character, *character.getLocation())
+        removeMovementObserver = self.observeMovement(character.movementObserver)
+        removeTerrainObserver = self.observeTerrain(character.terrainObserver)
+        def removeActiveCharacter():
+            removeMovementObserver()
+            self.characters.remove(character)
+            self.quitEvent(character.character)
+        return removeActiveCharacter
+
+
+    def quitEvent(self, quiter):
         for obs in self.observers.get('movement', ()):
-            obs(mover, location)
+            obs(quiter, None, None)
+
+
+    def movementEvent(self, mover, x, y):
+        for obs in self.observers.get('movement', ()):
+            obs(mover, x, y)
+
+
+    def terrainEvent(self, terrain):
+        for obs in self.observers.get('terrain', ()):
+             obs(terrain)
 
 
     def observeMovement(self, observer):
         self.observers.setdefault('movement', []).append(observer)
         return lambda: self.observers['movement'].remove(observer)
+
+
+    def observeTerrain(self, observer):
+        self.observers.setdefault('terrain', []).append(observer)
+        return lambda: self.observers['terrain'].remove(observer)
 
 
     def demolish(self):
@@ -149,41 +143,30 @@ class World(item.Item):
         self.store.query(Terrain, Terrain.world == self).deleteFromStore()
 
 
-    def _quantize(self, coord, upper):
-        c = (coord - coord % self.baseGranularity)
-        if upper:
-            c = c + self.baseGranularity
-        return c
-
-
-    def getTerrainWithin(self, top, left, width, height):
+    def getTerrainWithin(self, left, top, width, height):
         return self.store.query(
             Terrain,
             attributes.AND(Terrain.world == self,
-                           Terrain.west > left,
-                           Terrain.west < left + width,
-                           Terrain.north > top,
-                           Terrain.north < top + height),
-            sort=(Terrain.west.ascending, Terrain.north.ascending))
+                           Terrain.x >= left,
+                           Terrain.x <= left + width,
+                           Terrain.y >= top,
+                           Terrain.y <= top + height),
+            sort=(Terrain.x.ascending, Terrain.y.ascending))
 
 
     def getTerrain(self, x, y):
-        for t in self.store.query(Terrain,
-                                  attributes.AND(Terrain.world == self,
-                                                 queryutil.contains(Terrain.west,
-                                                                    Terrain.east,
-                                                                    x),
-                                                 queryutil.contains(Terrain.north,
-                                                                    Terrain.south,
-                                                                    y))):
-            return t
-        return Terrain(store=self.store,
-                world=self,
-                west=self._quantize(x, False),
-                east=self._quantize(x, True),
-                north=self._quantize(y, False),
-                south=self._quantize(y, True),
-                kind=self.baseTerrainKind)
+        t = self.store.findOrCreate(
+            Terrain,
+            world=self,
+            x=x,
+            y=y)
+        if t.kind is None:
+            t.kind = self.baseTerrainKind
+        return t
+
+
+    def getCharactersWithin(self, top, left, width, height):
+        return self.characters
 
 
 
@@ -193,9 +176,6 @@ class RadicalCharacter(item.Item):
 
     A single user may have multiple characters.
     """
-
-    schemaVersion = 2
-
     name = attributes.text(doc="""
     Character's name.
     """)
@@ -224,41 +204,29 @@ class RadicalCharacter(item.Item):
     def getLocation(self):
         return self._transientLocation
 
+    def getVisibleSurroundings(self):
+        """
+        Return a tuple of:
+
+            A list of Terrain instances which are visible to this character at
+            his current location.
+
+            A list of other Characters who are visible to this character at his
+            current location.
+        """
+        loc = self.getLocation()
+        boundingBox = (loc[0] - 8, loc[1] - 8, 16, 16)
+        terrain = list(self.world.getTerrainWithin(*boundingBox))
+        players = list(self.world.getCharactersWithin(*boundingBox))
+        return (terrain, players)
+
+
     def move(self, (x, y)):
         _x, _y = self._transientLocation
         self._transientLocation = _x + x, _y + y
-        self.world.movementEvent(self, self._transientLocation)
+
+        if abs(self._x - _x) > 5 or abs(self._y - _y) > 5:
+            self._x, self._y = _x, _y
+
+        self.world.movementEvent(self, self._transientLocation[0], self._transientLocation[1])
         return self._transientLocation
-
-from axiom import upgrade
-from twisted.python import reflect
-
-upgrade.registerUpgrader(
-    lambda char: char.upgradeVersion(item.normalize(reflect.qual(RadicalCharacter)),
-                                     1, 2,
-                                     name=char.name, _x=0, _y=0),
-    item.normalize(reflect.qual(RadicalCharacter)),
-    1, 2)
-
-
-upgrade.registerUpgrader(
-    lambda world: world.upgradeVersion(item.normalize(reflect.qual(World)),
-                                       1, 2,
-                                       width=world.width,
-                                       height=world.height,
-                                       baseGranularity=10,
-                                       baseTerrainKind=BARREN),
-    item.normalize(reflect.qual(World)),
-    1, 2)
-
-def _game(game):
-    g = game.upgradeVersion(item.normalize(reflect.qual(Game)),
-                            1, 2,
-                            world=game.world)
-    g.installOn(g.store)
-    return g
-
-upgrade.registerUpgrader(
-    _game,
-    item.normalize(reflect.qual(Game)),
-    1, 2)

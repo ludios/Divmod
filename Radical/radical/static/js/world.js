@@ -125,21 +125,6 @@ Radical.World.Scene.methods(
         return result;
     },
 
-    function getEntitiesWithin(self, x, y, width, height) {
-        var result = [];
-        var count = 0;
-        Divmod.msg("getEntitiesWithin(" + x + ", " + y + ", " + width + ", " + height + ")");
-        for (var e in self.observedEntities) {
-            count += 1;
-            var ent = self.observedEntities[e];
-            if (ent.x >= x && ent.x < x + width && ent.y >= y && ent.y < y + height) {
-                result.push(ent);
-            }
-        }
-        Divmod.msg("getEntitiesWithin culling from " + count);
-        return result;
-    },
-
     function movementObserver(self, moverId, x, y) {
         var moverEntity = self.observedEntities[moverId];
 
@@ -159,9 +144,7 @@ Radical.World.Scene.methods(
                 oldy = moverEntity.y;
             moverEntity.x = x;
             moverEntity.y = y;
-            if (self.viewport.visible(x, y) || (oldx != undefined && oldy != undefined && self.viewport.visible(oldx, oldy))) {
-                self.paint();
-            }
+            self.paint();
         }
     },
 

@@ -23,8 +23,6 @@ Radical.Geometry.Viewport.methods(
      *
      *     getTerrainKind(modelx, modely) -> kind of terrain
      *
-     *     getEntity(modelx, modely) -> kind of non-terrain thing
-     *
      */
     function __init__(self, model, x, y, width, height) {
         self.model = model;
@@ -131,21 +129,23 @@ Radical.Geometry.Viewport.methods(
         flipin.style.display = '';
         flipout.style.display = 'none';
 
-        var entities = self.model.getEntitiesWithin(self.x, self.y, self.width, self.height);
-        Divmod.msg("Painting " + entities.length + " entities.");
-        for (var i = 0; i < entities.length; ++i) {
-            if (images[idx].style.top) {
-                var idx = ((entities[i].y - self.y) * self.width + (entities[i].x - self.x));
-                entities[i].img.style.left = images[idx].style.left;
+        for (var e in self.model.observedEntities) {
+            var ent = self.model.observedEntities[e];
+            if (self.visible(ent.x, ent.y)) {
+                if (images[idx].style.top) {
+                    var idx = ((ent.y - self.y) * self.width + (ent.x - self.x));
 
-                var terrainTop = images[idx].style.top;
-                Divmod.msg("Terrain top is " + terrainTop.toSource());
-                var topInt = terrainTop.slice(0, terrainTop.length - 2);
-                Divmod.msg("Top int is " + topInt);
-                var intint = parseInt(topInt);
-                var realTopInt = intint + images[idx].height - entities[i].img.height;
-                Divmod.msg("Setting it to " + (realTopInt + 'px').toSource());
-                entities[i].img.style.top = realTopInt + 'px';
+                    var terrainTop = images[idx].style.top;
+                    var topInt = terrainTop.slice(0, terrainTop.length - 2);
+                    var intint = parseInt(topInt);
+                    var realTopInt = intint + images[idx].height - ent.img.height;
+
+                    ent.img.style.top = realTopInt + 'px';
+                    ent.img.style.left = images[idx].style.left;
+                    ent.img.style.display = '';
+                }
+            } else {
+                ent.img.style.display = 'none';
             }
         }
 

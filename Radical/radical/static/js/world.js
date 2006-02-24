@@ -341,22 +341,40 @@ Radical.World.Character.methods(
 
     function move(self, direction) {
         if (!self.moving) {
-            self.moving = true;
+            // self.moving = true;
             var before = new Date();
+
+            var change;
+            if (self.y % 2) {
+                change = Radical.World.Character._evenMovementOffsets[direction];
+            } else {
+                change = Radical.World.Character._oddMovementOffsets[direction];
+            }
+            var relx = self.x - self.scene.viewport.x;
+            var rely = self.y - self.scene.viewport.y;
+
+            if (relx + change[0] < 3 || relx + change[0] > 12) {
+                self.scene.viewport.x += change[0];
+            }
+
+            if (rely + change[1] < 3 || rely + change[1] > 12) {
+                self.scene.viewport.y += change[1];
+            }
+
+            self.x += change[0];
+            self.y += change[1];
+            self.worldPos.innerHTML = self.x + ', ' + self.y;
+
             var d = self.scene.callRemote('move', direction).addCallback(function(result) {
                 var after = new Date();
                 Divmod.msg("move roundtrip was " + (after.valueOf() - before.valueOf()));
                 before = new Date();
 
-                self.moving = false;
+                // self.moving = false;
 
                 var pos = result[0],
                     ter = result[1],
                     chs = result[2];
-
-                self.x = pos.x;
-                self.y = pos.y;
-                self.worldPos.innerHTML = self.x + ', ' + self.y;
 
                 Divmod.msg("Adding " + ter.length + " terrains to the cache.");
 
@@ -364,33 +382,15 @@ Radical.World.Character.methods(
                     self.scene.cacheTerrainInfo(ter[i].x, ter[i].y, ter[i].kind);
                 }
 
-                var change;
-                if (self.y % 2) {
-                    change = Radical.World.Character._oddMovementOffsets[direction];
-                } else {
-                    change = Radical.World.Character._evenMovementOffsets[direction];
-                }
-                var relx = self.x - self.scene.viewport.x;
-                var rely = self.y - self.scene.viewport.y;
-
-                if (relx + change[0] < 3 || relx + change[0] > 12) {
-                    self.scene.viewport.x += change[0];
-                }
-
-                if (rely + change[1] < 3 || rely + change[1] > 12) {
-                    self.scene.viewport.y += change[1];
-                }
-
                 Divmod.msg("There are " + chs.length + " characters.");
                 for (var i = 0; i < chs.length; ++i) {
                     self.scene.movementObserver(chs[i].name, chs[i].x, chs[i].y);
                 }
 
-                self.scene.paint();
-
                 after = new Date();
                 Divmod.msg("move callback was " + (after.valueOf() - before.valueOf()));
             });
+            self.scene.paint();
             return d;
         }
         return null;

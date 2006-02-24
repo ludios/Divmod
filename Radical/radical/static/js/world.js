@@ -144,7 +144,7 @@ Radical.World.Scene.methods(
                 oldy = moverEntity.y;
             moverEntity.x = x;
             moverEntity.y = y;
-            self.scene._paintEntity(moverEntity);
+            self.viewport._paintEntity(moverEntity);
         }
     },
 
@@ -399,7 +399,7 @@ Radical.World.Character.methods(
             if (change[0] || change[1]) {
                 self.scene.paint();
             } else {
-                self.scene._paintEntity(self);
+                self.scene.viewport._paintEntity(self);
             }
             return d;
         }

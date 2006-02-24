@@ -346,9 +346,9 @@ Radical.World.Character.methods(
 
             var change;
             if (self.y % 2) {
-                change = Radical.World.Character._evenMovementOffsets[direction];
-            } else {
                 change = Radical.World.Character._oddMovementOffsets[direction];
+            } else {
+                change = Radical.World.Character._evenMovementOffsets[direction];
             }
             var relx = self.x - self.scene.viewport.x;
             var rely = self.y - self.scene.viewport.y;

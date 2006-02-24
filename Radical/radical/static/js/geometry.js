@@ -23,6 +23,13 @@ Radical.Geometry.Viewport.methods(
      *
      *     getTerrainKind(modelx, modely) -> kind of terrain
      *
+     *     terrainClicked(modelx, modely)
+     *
+     * and will have the following properties:
+     *
+     *     observedEntities -> an object mapping unique IDs to objects with x,
+     *                         y, and img properties.
+     *
      */
     function __init__(self, model, x, y, width, height) {
         self.model = model;
@@ -31,21 +38,21 @@ Radical.Geometry.Viewport.methods(
         self.width = width;
         self.height = height;
 
-        self.evenNode = document.createElement('span');
-        self.oddNode = document.createElement('span');
-
-        self.evenNode.style.display = 'none';
-        self.oddNode.style.display = 'none';
 
         /*
-         * An Array of img tags representing the currently visible terrain.
+         * The img tags which represent the the currently visible terrain.
          */
+        self.evenNode = document.createElement('span');
+        self.evenNode.style.display = 'none';
         self.visibleTerrainImagesEven = self._initializeRenderBuffer(self.evenNode, self.y % 2);
 
 
         /*
-         * An Array of img tags representing the currently visible terrain.
+         * The other img tags which also represent the currently visible
+         * terrain.
          */
+        self.oddNode = document.createElement('span');
+        self.oddNode.style.display = 'none';
         self.visibleTerrainImagesOdd = self._initializeRenderBuffer(self.oddNode, (self.y + 1) % 2);
     },
 
@@ -59,6 +66,13 @@ Radical.Geometry.Viewport.methods(
                 var img = result[y * self.width + x] = document.createElement('img');
                 img.src = Radical.Artwork.terrainLocation('barren');
                 img.style.position = 'absolute';
+
+                img.onclick = (function(img, relx, rely) {
+                    return function() {
+                        self.model.terrainClicked(self.x + relx, self.y + rely);
+                    };
+                })(img, x, y);
+
                 img.onload = (function(img, x, y) {
                     return function() {
                         img.onload = null;
@@ -183,6 +197,9 @@ Radical.Geometry.Viewport.methods(
     },
 
     function worldCoordinatesFromPixelPosition(self, screenx, screeny) {
+        /*
+         * XXX This doesn't quite work right.
+         */
         var result = self.viewportCoordinatesFromPixelPosition(screenx, screeny);
         if (result != null) {
             result.x += self.x;

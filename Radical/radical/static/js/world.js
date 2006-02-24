@@ -164,6 +164,11 @@ Radical.World.Scene.methods(
         return e;
     },
 
+    function terrainClicked(self, x, y) {
+        Divmod.msg("terrainClicked(" + x + ", " + y + ")");
+        self.widgetParent.tryWalkTo(x, y);
+    },
+
     function scroll_north(self) {
         self.viewport.y -= 1;
     },
@@ -180,6 +185,42 @@ Radical.World.Scene.methods(
         self.viewport.x += 1;
     },
 
+    function scroll_northwest(self) {
+        if (self.observedEntities.player.y % 2) {
+            self.viewport.y -= 1;
+        } else {
+            self.viewport.x -= 1;
+            self.viewport.y -= 1;
+        }
+    },
+
+    function scroll_northeast(self) {
+        if (self.observedEntities.player.y % 2) {
+            self.viewport.x += 1;
+            self.viewport.y -= 1;
+        } else {
+            self.viewport.y -= 1;
+        }
+    },
+
+    function scroll_southwest(self) {
+        if (self.observedEntities.player.y % 2) {
+            self.viewport.y += 1;
+        } else {
+            self.viewport.x -= 1;
+            self.viewport.y += 1;
+        }
+    },
+
+    function scroll_southeast(self) {
+        if (self.observedEntities.player.y % 2) {
+            self.viewport.x += 1;
+            self.viewport.y += 1;
+        } else {
+            self.viewport.y += 1;
+        }
+    },
+
     function paint(self) {
         self.viewport.paint();
     });
@@ -190,9 +231,6 @@ Radical.World.Gameplay.methods(
         Radical.World.Gameplay.upcall(self, '__init__', node);
         document.addEventListener('keyup',
                                   function(event) { return self.onKeyPress(event); },
-                                  true);
-        document.addEventListener('click',
-                                  function(event) { return self.onClick(event); },
                                   true);
     },
 
@@ -233,21 +271,6 @@ Radical.World.Gameplay.methods(
         }
     },
 
-    function onClick(self, event) {
-        if (!self.character) {
-            // XXX Improve this
-            self.character = self.childWidgets[0].observedEntities['player'];
-        }
-
-        Divmod.msg("On Click!");
-        var pos = self.character.scene.viewport.worldCoordinatesFromPixelPosition(
-            event.clientX, event.clientY);
-        if (pos != null) {
-            Divmod.msg("Try walk to " + pos.toSource());
-            self.tryWalkTo(pos.x, pos.y);
-        }
-    },
-
     function onKeyPress(self, event) {
         if (!self.character) {
             // XXX Improve this
@@ -277,6 +300,32 @@ Radical.World.Gameplay.methods(
     });
 
 Radical.World.Character = Radical.World.Entity.subclass('Radical.World.Character');
+Radical.World.Character._oddMovementOffsets = {
+    west:       [-1,  0],
+    east:       [ 1,  0],
+
+    north:      [ 0, -1],
+    south:      [ 0,  1],
+
+    northwest:  [ 0, -1],
+    northeast:  [ 1, -1],
+
+    southwest:  [ 0,  1],
+    southeast:  [ 1,  1]};
+
+Radical.World.Character._evenMovementOffsets = {
+    west:       [-1,  0],
+    east:       [ 1,  0],
+
+    north:      [ 0, -1],
+    south:      [ 0,  1],
+
+    northwest:  [-1, -1],
+    northeast:  [ 0, -1],
+
+    southwest:  [-1,  1],
+    southeast:  [ 0,  1]};
+
 Radical.World.Character.methods(
     function __init__(self, scene, x, y) {
         Radical.World.Character.upcall(self, '__init__', scene, Radical.Artwork.playerLocation('medium-red'));
@@ -315,13 +364,24 @@ Radical.World.Character.methods(
                     self.scene.cacheTerrainInfo(ter[i].x, ter[i].y, ter[i].kind);
                 }
 
-                Divmod.msg("Scrolling " + direction);
-                var scroller = self.scene['scroll_' + direction];
-                if (scroller != undefined) {
-                    scroller.call(self.scene);
+                var change;
+                if (self.y % 2) {
+                    change = Radical.World.Character._oddMovementOffsets[direction];
+                } else {
+                    change = Radical.World.Character._evenMovementOffsets[direction];
                 }
-                Divmod.msg("There are " + chs.length + " characters.");
+                var relx = self.x - self.scene.viewport.x;
+                var rely = self.y - self.scene.viewport.y;
 
+                if (relx + change[0] < 3 || relx + change[0] > 12) {
+                    self.scene.viewport.x += change[0];
+                }
+
+                if (rely + change[1] < 3 || rely + change[1] > 12) {
+                    self.scene.viewport.y += change[1];
+                }
+
+                Divmod.msg("There are " + chs.length + " characters.");
                 for (var i = 0; i < chs.length; ++i) {
                     self.scene.movementObserver(chs[i].name, chs[i].x, chs[i].y);
                 }

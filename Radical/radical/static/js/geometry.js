@@ -96,14 +96,12 @@ Radical.Geometry.Viewport.methods(
         return (x >= self.x && x < self.x + self.width && y >= self.y && y < self.y + self.height);
     },
 
-    function paint(self, viewx, viewy, vieww, viewh) {
-        var before = new Date();
-        /*
-         * Redraw the part of the screen represented by the rectangle with
-         * top-left corner at (self.x + viewx, self.y + viewy) and bottom right
-         * corner at (self.x + viewx + vieww, self.y + viewy + viewh).
-         *
-         */
+    function _paintTerrain(self,
+                           viewx /* = 0 */,
+                           viewy /* = 0 */,
+                           vieww /* = self.width */,
+                           viewh /* = self.height */,
+                           images /* = magically determined */) {
         if (viewx == undefined) {
             viewx = 0;
         }
@@ -117,15 +115,12 @@ Radical.Geometry.Viewport.methods(
             viewh = self.height;
         }
 
-        var images, flipin, flipout;
-        if (self.y % 2) {
-            images = self.visibleTerrainImagesOdd;
-            flipin = self.oddNode;
-            flipout = self.evenNode;
-        } else {
-            images = self.visibleTerrainImagesEven;
-            flipin = self.evenNode;
-            flipout = self.oddNode;
+        if (images == undefined) {
+            if (self.y % 2) {
+                images = self.visibleTerrainImagesOdd;
+            } else {
+                images = self.visibleTerrainImagesEven;
+            }
         }
 
         for (var x = viewx; x < viewx + vieww; ++x) {
@@ -139,29 +134,87 @@ Radical.Geometry.Viewport.methods(
                 }
             }
         }
+    },
+
+    function _paintEntity(self, ent, images /* = magically determined*/) {
+        if (images == undefined) {
+            if (self.y % 2) {
+                images = self.visibleTerrainImagesOdd;
+            } else {
+                images = self.visibleTerrainImagesEven;
+            }
+        }
+
+        if (images == undefined) {
+            return;
+        }
+
+        var idx;
+        if (self.visible(ent.x, ent.y)) {
+            idx = ((ent.y - self.y) * self.width + (ent.x - self.x));
+            if (images[idx].style.top) {
+                var terrainTop = images[idx].style.top;
+                var topInt = terrainTop.slice(0, terrainTop.length - 2);
+                var intint = parseInt(topInt);
+                var realTopInt = intint + images[idx].height - ent.img.height;
+
+                ent.img.style.top = realTopInt + 'px';
+                ent.img.style.left = images[idx].style.left;
+                ent.img.style.display = '';
+            }
+        } else {
+            ent.img.style.display = 'none';
+        }
+    },
+
+    function _paintEntities(self, images /* = magically determined*/) {
+        if (images == undefined) {
+            if (self.y % 2) {
+                images = self.visibleTerrainImagesOdd;
+            } else {
+                images = self.visibleTerrainImagesEven;
+            }
+        }
+
+        if (images == undefined) {
+            return;
+        }
+
+        for (var e in self.model.observedEntities) {
+            self._paintEntity(self.model.observedEntities[e], images);
+        }
+    },
+
+    function paint(self, viewx, viewy, vieww, viewh) {
+        var before = new Date();
+        /*
+         * Redraw the part of the screen represented by the rectangle with
+         * top-left corner at (self.x + viewx, self.y + viewy) and bottom right
+         * corner at (self.x + viewx + vieww, self.y + viewy + viewh).
+         *
+         */
+
+        var images, flipin, flipout;
+        if (self.y % 2) {
+            images = self.visibleTerrainImagesOdd;
+            flipin = self.oddNode;
+            flipout = self.evenNode;
+        } else {
+            images = self.visibleTerrainImagesEven;
+            flipin = self.evenNode;
+            flipout = self.oddNode;
+        }
+
+        if (images == undefined) {
+            return;
+        }
+
+        self._paintTerrain(viewx, viewy, vieww, viewh, images);
 
         flipin.style.display = '';
         flipout.style.display = 'none';
 
-        for (var e in self.model.observedEntities) {
-            var ent = self.model.observedEntities[e];
-            if (self.visible(ent.x, ent.y)) {
-                if (images[idx].style.top) {
-                    var idx = ((ent.y - self.y) * self.width + (ent.x - self.x));
-
-                    var terrainTop = images[idx].style.top;
-                    var topInt = terrainTop.slice(0, terrainTop.length - 2);
-                    var intint = parseInt(topInt);
-                    var realTopInt = intint + images[idx].height - ent.img.height;
-
-                    ent.img.style.top = realTopInt + 'px';
-                    ent.img.style.left = images[idx].style.left;
-                    ent.img.style.display = '';
-                }
-            } else {
-                ent.img.style.display = 'none';
-            }
-        }
+        self._paintEntities(images);
 
         var after = new Date();
         Divmod.msg("Paint took " + (after.valueOf() - before.valueOf()));

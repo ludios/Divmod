@@ -144,7 +144,7 @@ Radical.World.Scene.methods(
                 oldy = moverEntity.y;
             moverEntity.x = x;
             moverEntity.y = y;
-            self.paint();
+            self.scene._paintEntity(moverEntity);
         }
     },
 
@@ -232,6 +232,7 @@ Radical.World.Gameplay.methods(
         document.addEventListener('keyup',
                                   function(event) { return self.onKeyPress(event); },
                                   true);
+        self._walkId = 0;
     },
 
     function tryWalkTo(self, x, y) {
@@ -239,6 +240,8 @@ Radical.World.Gameplay.methods(
             // XXX Improve this
             self.character = self.childWidgets[0].observedEntities['player'];
         }
+
+        self._walkId += 1;
 
         var northsouth = '';
         var eastwest = '';
@@ -264,9 +267,11 @@ Radical.World.Gameplay.methods(
         if (d.length) {
             var moved = self.character.move(d);
             if (moved != null) {
-                moved.addCallback(function(ign) {
-                    self.tryWalkTo(x, y);
-                });
+                moved.addCallback(function(ign, walkId) {
+                    if (self._walkId == walkId) {
+                        self.tryWalkTo(x, y);
+                    }
+                }, self._walkId);
             }
         }
     },
@@ -390,7 +395,12 @@ Radical.World.Character.methods(
                 after = new Date();
                 Divmod.msg("move callback was " + (after.valueOf() - before.valueOf()));
             });
-            self.scene.paint();
+
+            if (change[0] || change[1]) {
+                self.scene.paint();
+            } else {
+                self.scene._paintEntity(self);
+            }
             return d;
         }
         return null;

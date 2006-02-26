@@ -1,4 +1,4 @@
-# -*- test-case-name: "axiom -xclickchronicle -xepsilon -xxmantissa -xnevow -xformless -xpyflakes -xxquotient -xradical -xreverend -xsine -xvertex -xxapwrap -xhyperbola" -*-
+# -*- test-case-name: "axiom -xclickchronicle -xepsilon -xxmantissa -xnevow -xformless -xpyflakes -xxquotient -xradical -xreverend -xsine -xvertex -xxapwrap -xhyperbola -xpottery" -*-
 Axiom
 ClickChronicle
 Epsilon
@@ -12,3 +12,4 @@ Sine
 Vertex
 Xapwrap
 Hyperbola
+Imaginary

@@ -3,7 +3,7 @@ from nevow import inevow
 
 from xmantissa import website, offering, provisioning
 
-from radical import model, web
+from radical import model, web, radtheme
 
 offer = offering.Offering(
     name = u"Radical",
@@ -17,4 +17,5 @@ offer = offering.Offering(
         provisioning.BenefactorFactory(
             u'Radical Game',
             u'Grants a user access to a Radical game.',
-            web.RadicalBenefactor)])
+            web.RadicalBenefactor)],
+    themes=[radtheme.XHTMLDirectoryTheme('base')])

@@ -6,7 +6,7 @@ from xmantissa import liveform, website, offering, provisioning
 
 import clickchronicle
 
-from clickchronicle import clickapp, publicpage, prods
+from clickchronicle import clickapp, publicpage, prods, cctheme
 
 ccBenefactorArgs = [
     liveform.Parameter('maxClicks',
@@ -64,5 +64,7 @@ plugin = offering.Offering(
         clickapp.StaticShellContent,
         publicpage.ClickChroniclePublicPage),
 
-    benefactorFactories = (chronicler, clicks))
+    benefactorFactories = (chronicler, clicks),
+
+    themes=[cctheme.ClickChronicleTheme('cc-base', 0)])
 

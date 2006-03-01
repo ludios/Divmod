@@ -169,6 +169,8 @@ class World(item.Item):
         return self.characters
 
 
+VISION = 16
+
 
 class RadicalCharacter(item.Item):
     """
@@ -215,7 +217,7 @@ class RadicalCharacter(item.Item):
             current location.
         """
         loc = self.getLocation()
-        boundingBox = (loc[0] - 8, loc[1] - 8, 16, 16)
+        boundingBox = (loc[0] - VISION * 2, loc[1] - VISION * 2, VISION * 4, VISION * 4)
         terrain = list(self.world.getTerrainWithin(*boundingBox))
         players = list(self.world.getCharactersWithin(*boundingBox))
         return (terrain, players)
@@ -224,9 +226,5 @@ class RadicalCharacter(item.Item):
     def move(self, (x, y)):
         _x, _y = self._transientLocation
         self._transientLocation = _x + x, _y + y
-
-        if abs(self._x - _x) > 5 or abs(self._y - _y) > 5:
-            self._x, self._y = _x, _y
-
         self.world.movementEvent(self, self._transientLocation[0], self._transientLocation[1])
         return self._transientLocation

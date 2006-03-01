@@ -11,6 +11,13 @@ var TILE_HEIGHT_PX = 64 * 0.75;
 var OBJECT_WIDTH_PX = 128;
 var OBJECT_HEIGHT_PX = 128;
 
+
+// var MAP_LEFT_PX = 250;
+// var MAP_TOP_PX = 155;
+
+var MAP_LEFT_PX = -TILE_WIDTH_PX / 2;
+var MAP_TOP_PX = 0;
+
 Radical.Geometry = {};
 
 Radical.Geometry.Viewport = Divmod.Class.subclass('Radical.Geometry.Viewport');
@@ -222,8 +229,8 @@ Radical.Geometry.Viewport.methods(
 
     function pixelPositionFromViewportCoordinates(self, col, row) {
         var result = {
-            x: col * TILE_WIDTH_PX + 250,
-            y: row * TILE_HEIGHT_PX + 155};
+            x: col * TILE_WIDTH_PX + MAP_LEFT_PX,
+            y: row * TILE_HEIGHT_PX + MAP_TOP_PX};
         return result;
     },
 
@@ -240,8 +247,8 @@ Radical.Geometry.Viewport.methods(
 
     function viewportCoordinatesFromPixelPosition(self, screenx, screeny) {
         var result = {
-            x: Math.floor((screenx - 250) / TILE_WIDTH_PX),
-            y: Math.floor((screeny - 155) / TILE_HEIGHT_PX)};
+            x: Math.floor((screenx - MAP_LEFT_PX) / TILE_WIDTH_PX),
+            y: Math.floor((screeny - MAP_TOP_PX) / TILE_HEIGHT_PX)};
         if (result.x >= 0 && result.x < self.width && result.y >= 0 && result.y < self.height) {
             return result;
         }

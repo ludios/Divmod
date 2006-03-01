@@ -3,7 +3,7 @@ from zope.interface import implements
 
 from twisted.python import components
 
-from nevow import athena, tags, url, json, rend, loaders
+from nevow import inevow, athena, tags, url, json, rend, loaders
 
 from epsilon import structlike
 
@@ -170,6 +170,8 @@ class SceneFragment(structlike.record('world character'), athena.LiveFragment):
     fragmentName = 'radical-terrain'
     jsClass = u'Radical.World.Scene'
 
+    size = model.VISION
+
     def setFragmentParent(self, parent):
         super(SceneFragment, self).setFragmentParent(parent)
         def onDisconnect(ign, f=self.world.addActiveCharacter(self)):
@@ -187,13 +189,16 @@ class SceneFragment(structlike.record('world character'), athena.LiveFragment):
                                           u'kind': t.kind} for t in terrain],
                             u'players': [{u'x': p.character.getLocation()[0],
                                           u'y': p.character.getLocation()[1],
-                                          u'name': p.character.name} for p in players if p is not self]})]]
+                                          u'name': p.character.name} for p in players if p is not self],
+                            u'size': self.size})]]
 
 
     # Observers!
     def movementObserver(self, mover, x, y):
         if mover is not self.character:
-            self.callRemote('movementObserver', mover.name, x, y)
+            loc = self.getLocation()
+            if (x is None or y is None) or (abs(loc[0] - x) < 10 and abs(loc[1] - y) < 10):
+                self.callRemote('movementObserver', mover.name, x, y)
 
 
     def terrainObserver(self, terrain):
@@ -207,7 +212,11 @@ class SceneFragment(structlike.record('world character'), athena.LiveFragment):
     def getTerrain(self):
         loc = self.character.getLocation()
         results = []
-        for t in self.world.getTerrainWithin(loc[0] - 9, loc[1] - 9, 18, 18):
+        for t in self.world.getTerrainWithin(
+            loc[0] - (self.size / 2 + 1),
+            loc[1] - (self.size / 2 + 1),
+            (self.size + 2),
+            (self.size + 2)):
             results.append({
                 u'x': t.x,
                 u'y': t.y,
@@ -302,14 +311,35 @@ class GameplayFragment(athena.LiveFragment):
         f = SceneFragment(self.world, self.character)
         f.docFactory = webtheme.getLoader(f.fragmentName) # XXX
         f.setFragmentParent(self)
+        ctx.tag[f]
 
-        e = TerrainEditor(self.world, self.character)
-        e.docFactory = webtheme.getLoader(e.fragmentName) # XXX
-        e.setFragmentParent(self)
-        return ctx.tag[f, e]
+#         e = TerrainEditor(self.world, self.character)
+#         e.docFactory = webtheme.getLoader(e.fragmentName) # XXX
+#         e.setFragmentParent(self)
+#         ctx.tag[e]
+
+        return ctx.tag
 
 
-components.registerAdapter(GameplayFragment, model.RadicalCharacter, ixmantissa.INavigableFragment)
+class GameplayPage(athena.LivePage):
+    useActiveChannel = False
+
+    docFactory = loaders.stan(tags.html[tags.head(render=tags.directive('liveglue')),
+                                        tags.body(style="overflow: hidden",
+                                                  render=tags.directive('everything'))])
+
+    def __init__(self, character):
+        self.character = character
+        super(GameplayPage, self).__init__()
+
+
+    def render_everything(self, ctx, data):
+        gf = GameplayFragment(self.character)
+        gf.docFactory = webtheme.getLoader(gf.fragmentName) # Guess what?  XXX!
+        gf.setFragmentParent(self)
+        return ctx.tag[gf]
+
+components.registerAdapter(GameplayPage, model.RadicalCharacter, inevow.IResource)
 
 class TerrainEditor(athena.LiveFragment):
     """

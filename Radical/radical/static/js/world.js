@@ -86,8 +86,9 @@ Radical.World.Scene.methods(
         var center = initargs.center;
         var terrain = initargs.terrain;
         var players = initargs.players;
+        var size = initargs.size;
 
-        self.viewport = new Radical.Geometry.Viewport(self, center[0] - 8, center[1] - 8, 16, 16);
+        self.viewport = new Radical.Geometry.Viewport(self, center[0] - size / 2, center[1] - size / 2, size, size);
         self.node.appendChild(self.viewport.evenNode);
         self.node.appendChild(self.viewport.oddNode);
 
@@ -169,58 +170,6 @@ Radical.World.Scene.methods(
         self.widgetParent.tryWalkTo(x, y);
     },
 
-    function scroll_north(self) {
-        self.viewport.y -= 1;
-    },
-
-    function scroll_south(self) {
-        self.viewport.y += 1;
-    },
-
-    function scroll_west(self) {
-        self.viewport.x -= 1;
-    },
-
-    function scroll_east(self) {
-        self.viewport.x += 1;
-    },
-
-    function scroll_northwest(self) {
-        if (self.observedEntities.player.y % 2) {
-            self.viewport.y -= 1;
-        } else {
-            self.viewport.x -= 1;
-            self.viewport.y -= 1;
-        }
-    },
-
-    function scroll_northeast(self) {
-        if (self.observedEntities.player.y % 2) {
-            self.viewport.x += 1;
-            self.viewport.y -= 1;
-        } else {
-            self.viewport.y -= 1;
-        }
-    },
-
-    function scroll_southwest(self) {
-        if (self.observedEntities.player.y % 2) {
-            self.viewport.y += 1;
-        } else {
-            self.viewport.x -= 1;
-            self.viewport.y += 1;
-        }
-    },
-
-    function scroll_southeast(self) {
-        if (self.observedEntities.player.y % 2) {
-            self.viewport.x += 1;
-            self.viewport.y += 1;
-        } else {
-            self.viewport.y += 1;
-        }
-    },
-
     function paint(self) {
         self.viewport.paint();
     });
@@ -232,7 +181,22 @@ Radical.World.Gameplay.methods(
         document.addEventListener('keyup',
                                   function(event) { return self.onKeyPress(event); },
                                   true);
+        document.addEventListener('keypress',
+                                  function(event) {
+                                      if (Radical.World.Gameplay.arrowKeys && event.keyCode in Radical.World.Gameplay.arrowKeys) {
+                                          return self.kill(event);
+                                      }
+                                  },
+                                  true);
         self._walkId = 0;
+    },
+
+    function kill(self, event) {
+        event.stopPropagation();
+        event.preventDefault();
+        event.preventBubble();
+        event.cancelBubble = true;
+        return false;
     },
 
     function tryWalkTo(self, x, y) {
@@ -297,10 +261,7 @@ Radical.World.Gameplay.methods(
         var direction = Radical.World.Gameplay.arrowKeys[event.keyCode];
         if (direction) {
             self.character.move(direction);
-            event.stopPropagation();
-            event.preventDefault();
-            event.preventBubble();
-            event.cancelBubble = true;
+            return self.kill(event);
         }
     });
 
@@ -337,6 +298,8 @@ Radical.World.Character.methods(
         self.img.style.zIndex = 1;
         self.moving = false;
 
+        self.scrollStyle = 'flip'; // or 'slide'
+
         self.x = x;
         self.y = y;
 
@@ -357,13 +320,36 @@ Radical.World.Character.methods(
             }
             var relx = self.x - self.scene.viewport.x;
             var rely = self.y - self.scene.viewport.y;
+            var scroll = false;
 
-            if (relx + change[0] < 3 || relx + change[0] > 12) {
-                self.scene.viewport.x += change[0];
+            if (self.scrollStyle == 'slide') {
+                // This version scrolls by one when you get near the edge of the screen.
+                if (relx + change[0] < 3 || relx + change[0] > self.scene.viewport.width - 3) {
+                    self.scene.viewport.x += change[0];
+                    scroll = true;
+                }
+
+                if (rely + change[1] < 3 || rely + change[1] > self.scene.viewport.height - 3) {
+                    self.scene.viewport.y += change[1];
+                    scroll = true;
+                }
+            } else if (self.scrollStyle == 'flip') {
+                // This version scrolls by the width/height of the screen when you
+                // get past the edge of the screen.
+                if (relx + change[0] < 0 || relx + change[0] >= self.scene.viewport.width) {
+                    self.scene.viewport.x += (self.scene.viewport.width * change[0]);
+                    scroll = true;
+                }
+
+                if (rely + change[1] < 0 || rely + change[1] >= self.scene.viewport.height) {
+                  self.scene.viewport.y += (self.scene.viewport.height * change[1]);
+                  scroll = true;
+                }
             }
 
-            if (rely + change[1] < 3 || rely + change[1] > 12) {
-                self.scene.viewport.y += change[1];
+            // Ha ha go cast waterwalk on yourself or something.
+            if (self.scene.getTerrainKind(self.x + change[0], self.y + change[1]) == 'water') {
+                return;
             }
 
             self.x += change[0];
@@ -396,7 +382,7 @@ Radical.World.Character.methods(
                 Divmod.msg("move callback was " + (after.valueOf() - before.valueOf()));
             });
 
-            if (change[0] || change[1]) {
+            if (scroll) {
                 self.scene.paint();
             } else {
                 self.scene.viewport._paintEntity(self);

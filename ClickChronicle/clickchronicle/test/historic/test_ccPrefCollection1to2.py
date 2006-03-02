@@ -5,13 +5,18 @@ from clickchronicle import clickapp
 from twisted.application.service import IService
 
 class CCPrefCollectionTestCase(stubloader.StubbedTest):
+    def setUp(self):
+        stubloader.StubbedTest.setUp(self)
+        self.service = IService(self.store)
+        self.service.startService()
+        return self.store.whenFullyUpgraded()
+
+
+    def tearDown(self):
+        return self.service.stopService()
+
+
     def testUpgrade(self):
-        s = self.store
-        svc = IService(s)
-        svc.startService()
-        D = s.whenFullyUpgraded()
-        def txn(_):
-            pc = s.findUnique(clickapp.CCPreferenceCollection)
-            self.failUnless(pc.shareClicks)
-            self.failUnless(hasattr(pc, 'getSections'))
-        return D.addCallback(txn)
+        pc = self.store.findUnique(clickapp.CCPreferenceCollection)
+        self.failUnless(pc.shareClicks)
+        self.failUnless(hasattr(pc, 'getSections'))

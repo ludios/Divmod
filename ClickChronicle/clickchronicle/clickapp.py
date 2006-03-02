@@ -9,6 +9,7 @@ from twisted.web.util import redirectTo
 from twisted.python.filepath import FilePath
 from twisted.cred import portal
 from twisted.python.components import registerAdapter
+from twisted.internet import defer
 
 from nevow.url import URL
 from nevow import rend, inevow, tags, flat, entities, athena
@@ -829,9 +830,9 @@ class CCSearchProvider(Item, InstallableMixin):
 
         term = ' '.join(parseSearchString(term))
         (estimated, total) = self.indexer.count(term)
-        return estimated
+        return defer.succeed(estimated)
 
-    def search(self, term, count, offset):
+    def _syncSearch(self, term, count, offset):
         if self.indexer is None:
             self._cachePowerups()
 
@@ -857,6 +858,12 @@ class CCSearchProvider(Item, InstallableMixin):
                                       summary=spec.get('values', dict()).get('summary', ''),
                                       timestamp=visit.timestamp,
                                       score=spec['score'] / 100.0)
+
+
+    def search(self, term, count, offset):
+        return defer.succeed(self._syncSearch(term, count, offset))
+
+
 
 class URLGrabber(rend.Page):
     """I handle Bookmarker/ClickRecorder's HTTP action.  i am not an Item

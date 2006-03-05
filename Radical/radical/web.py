@@ -207,8 +207,13 @@ class SceneFragment(structlike.record('world character'), athena.LiveFragment):
                                             u'kind': terrain.kind})
 
 
+
+    def speechObserver(self, speaker, message):
+        self.callRemote('speechObserver', speaker.name, message)
+
+
     # Remote methods
-    allowedMethods = ('getTerrain', 'getLocation', 'move')
+    allowedMethods = ('getTerrain', 'getLocation', 'move', 'say')
     def getTerrain(self):
         loc = self.character.getLocation()
         results = []
@@ -283,6 +288,10 @@ class SceneFragment(structlike.record('world character'), athena.LiveFragment):
                 [{u'x': p.character.getLocation()[0],
                   u'y': p.character.getLocation()[1],
                   u'name': p.character.name} for p in players if p is not self])
+
+
+    def say(self, message):
+        self.character.say(message)
 
 
 

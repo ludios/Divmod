@@ -5,6 +5,7 @@
 // import Mantissa.LiveForm
 
 // import Radical
+// import Radical.Dialog
 // import Radical.Artwork
 // import Radical.Geometry
 
@@ -44,27 +45,51 @@ Radical.World.Entity = Divmod.Class.subclass('Radical.World.Entity');
 Radical.World.Entity.methods(
     function __init__(self, scene, /* optional */ imageLocation) {
         self.scene = scene;
-        self.img = null;
+
+        self.node = document.createElement('div');
+        self.node.style.position = 'absolute';
+        document.body.appendChild(self.node);
+
         if (imageLocation != undefined) {
             self.setImage(imageLocation);
         }
     },
 
+    function visible(self) {
+        return true;
+    },
+
+    function size(self) {
+        return {'x': self.img.width, 'y': self.img.height};
+    },
+
+    function setDisplayPosition(self, x, y) {
+        var left = x + 'px';
+        var top = (y - self.img.height) + 'px';
+        self.node.style.left = left;
+        self.node.style.top = top;
+        self.node.style.display = 'inline';
+    },
+
+    function hide(self) {
+        self.node.style.display = 'none';
+    },
+
     function setImage(self, imageLocation) {
-        if (self.img && self.img.parentNode) {
-            self.img.parentNode.removeChild(self.img);
+        if (self.img == undefined) {
+            self.img = document.createElement('img');
+            self.img.style.position = 'absolute';
+            self.img.style.display = 'none';
+            self.node.appendChild(self.img);
         }
-        self.img = document.createElement('img');
-        self.img.style.position = 'absolute';
-        self.img.style.display = 'none';
-        self.img.src = imageLocation;
         self.img.onload = function() {
             self.img.onload = null;
+            self.img.style.display = 'inline';
             Divmod.msg("Entity loaded, painting viewport");
             self.scene.viewport.paint();
-            self.img.style.display = '';
         };
-        document.body.appendChild(self.img);
+        self.img.src = imageLocation;
+
         Divmod.msg("An entity arrived on the page: " + self.img.src);
     });
 
@@ -159,6 +184,15 @@ Radical.World.Scene.methods(
         }
     },
 
+    function speechObserver(self, speaker, message) {
+        var ent = self.observedEntities[speaker];
+        if (ent != undefined) {
+            if (self.viewport.visible(ent.x, ent.y)) {
+                (new Radical.Dialog.Monolog(ent.node, speaker + ': ' + message)).display(5000);
+            }
+        }
+    },
+
     function initializeEntity(self, entityId) {
         var e = new Radical.World.Entity(self, Radical.Artwork.playerLocation('medium-red'));
         self.observedEntities[entityId] = e;
@@ -178,17 +212,29 @@ Radical.World.Gameplay = Nevow.Athena.Widget.subclass('Radical.World.Gameplay');
 Radical.World.Gameplay.methods(
     function __init__(self, node) {
         Radical.World.Gameplay.upcall(self, '__init__', node);
+
+        self.onKeyPress = self.input_interacting;
+
         document.addEventListener('keyup',
                                   function(event) { return self.onKeyPress(event); },
-                                  true);
+                                  false);
         document.addEventListener('keypress',
                                   function(event) {
-                                      if (Radical.World.Gameplay.arrowKeys && event.keyCode in Radical.World.Gameplay.arrowKeys) {
+                                      if (self.handledEvent(event)) {
                                           return self.kill(event);
                                       }
                                   },
                                   true);
         self._walkId = 0;
+    },
+
+    function handledEvent(self, event) {
+        if (Radical.World.Gameplay.arrowKeys && event.keyCode in Radical.World.Gameplay.arrowKeys) {
+            return true;
+        }
+        if (event.keyCode == event.DOM_VK_QUOTE || event.keyCode == event.DOM_VK_BACKSPACE) {
+            return true;
+        }
     },
 
     function kill(self, event) {
@@ -240,13 +286,14 @@ Radical.World.Gameplay.methods(
         }
     },
 
-    function onKeyPress(self, event) {
+    function input_interacting(self, event) {
+        // Input state when the character is just walking around the world.
         if (!self.character) {
             // XXX Improve this
             self.character = self.childWidgets[0].observedEntities['player'];
         }
 
-        if (!Radical.World.Gameplay.arrowKeys) {
+        if (!Radical.World.Gameplay.movementKeys) {
             var m = {};
             m[event.DOM_VK_LEFT] = 'west';
             m[event.DOM_VK_RIGHT] = 'east';
@@ -256,14 +303,36 @@ Radical.World.Gameplay.methods(
             m[event.DOM_VK_PAGE_UP] = 'northeast';
             m[event.DOM_VK_END] = 'southwest';
             m[event.DOM_VK_PAGE_DOWN] = 'southeast';
-            Radical.World.Gameplay.arrowKeys = m;
+            Radical.World.Gameplay.movementKeys = m;
         }
-        var direction = Radical.World.Gameplay.arrowKeys[event.keyCode];
+        var direction = Radical.World.Gameplay.movementKeys[event.keyCode];
         if (direction) {
             self.character.move(direction);
             return self.kill(event);
         }
+
+        if (event.keyCode == event.DOM_VK_QUOTE) {
+            var input = document.createElement('input');
+            input.onchange = function() {
+                var message = input.value;
+                input.parentNode.removeChild(input);
+                self.character.say(message);
+            };
+            input.type = 'text';
+            input.style.position = 'absolute';
+            input.style.left = 100 + 'px';
+            input.style.top = 100 + 'px';
+            self.node.appendChild(input);
+            input.focus();
+            return self.kill(event);
+        }
+        return true;
+    },
+
+    function input_talking(self, event) {
+        // Input state where we are accepting text for a speech event.
     });
+
 
 Radical.World.Character = Radical.World.Entity.subclass('Radical.World.Character');
 Radical.World.Character._oddMovementOffsets = {
@@ -295,10 +364,10 @@ Radical.World.Character._evenMovementOffsets = {
 Radical.World.Character.methods(
     function __init__(self, scene, x, y) {
         Radical.World.Character.upcall(self, '__init__', scene, Radical.Artwork.playerLocation('medium-red'));
-        self.img.style.zIndex = 1;
+        self.node.style.zIndex = 1;
         self.moving = false;
 
-        self.scrollStyle = 'flip'; // or 'slide'
+        self.scrollStyle = 'slide'; // or 'flip'
 
         self.x = x;
         self.y = y;
@@ -349,7 +418,7 @@ Radical.World.Character.methods(
 
             // Ha ha go cast waterwalk on yourself or something.
             if (self.scene.getTerrainKind(self.x + change[0], self.y + change[1]) == 'water') {
-                return;
+                return null;
             }
 
             self.x += change[0];
@@ -390,4 +459,9 @@ Radical.World.Character.methods(
             return d;
         }
         return null;
+    },
+
+    function say(self, message) {
+        (new Radical.Dialog.Monolog(self.node, "You: " + message)).display(5000);
+        self.scene.callRemote('say', message);
     });

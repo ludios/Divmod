@@ -104,8 +104,11 @@ class World(item.Item):
         self.movementEvent(character.character, *character.getLocation())
         removeMovementObserver = self.observeMovement(character.movementObserver)
         removeTerrainObserver = self.observeTerrain(character.terrainObserver)
+        removeSpeechObserver = self.observeSpeech(character.speechObserver)
         def removeActiveCharacter():
             removeMovementObserver()
+            removeTerrainObserver()
+            removeSpeechObserver()
             self.characters.remove(character)
             self.quitEvent(character.character)
         return removeActiveCharacter
@@ -126,9 +129,19 @@ class World(item.Item):
              obs(terrain)
 
 
+    def speechEvent(self, speaker, message):
+        for obs in self.observers.get('speech', ()):
+            obs(speaker, message)
+
+
     def observeMovement(self, observer):
         self.observers.setdefault('movement', []).append(observer)
         return lambda: self.observers['movement'].remove(observer)
+
+
+    def observeSpeech(self, observer):
+        self.observers.setdefault('speech', []).append(observer)
+        return lambda: self.observers['speech'].remove(observer)
 
 
     def observeTerrain(self, observer):
@@ -228,3 +241,7 @@ class RadicalCharacter(item.Item):
         self._transientLocation = _x + x, _y + y
         self.world.movementEvent(self, self._transientLocation[0], self._transientLocation[1])
         return self._transientLocation
+
+
+    def say(self, message):
+        self.world.speechEvent(self, message)

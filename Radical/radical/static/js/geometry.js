@@ -157,20 +157,18 @@ Radical.Geometry.Viewport.methods(
         }
 
         var idx;
-        if (self.visible(ent.x, ent.y)) {
+        if (self.visible(ent.x, ent.y) && ent.visible()) {
             idx = ((ent.y - self.y) * self.width + (ent.x - self.x));
             if (images[idx].style.top) {
                 var terrainTop = images[idx].style.top;
                 var topInt = terrainTop.slice(0, terrainTop.length - 2);
                 var intint = parseInt(topInt);
-                var realTopInt = intint + images[idx].height - ent.img.height;
+                var realTopInt = intint + images[idx].height;
 
-                ent.img.style.top = realTopInt + 'px';
-                ent.img.style.left = images[idx].style.left;
-                ent.img.style.display = '';
+                ent.setDisplayPosition(images[idx].style.left.slice(0, images[idx].style.left.length - 2), realTopInt);
             }
         } else {
-            ent.img.style.display = 'none';
+            ent.hide();
         }
     },
 

@@ -10,6 +10,7 @@ def path(file):
 
 radjs = athena.JSPackage({
     'Radical': path('radical'),
+    'Radical.Dialog': path('dialog'),
     'Radical.Geometry': path('geometry'),
     'Radical.World': path('world'),
     'Radical.Artwork': path('artwork'),

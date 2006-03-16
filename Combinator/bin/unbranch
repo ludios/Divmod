@@ -3,5 +3,8 @@
 import sys
 from combinator.branchmgr import theBranchManager
 
-theBranchManager.mergeProjectBranch(*sys.argv[1:])
+if len(sys.argv) != 2:
+    raise SystemExit("Usage: %s <project>" % (sys.argv[0],))
+else:
+    theBranchManager.mergeProjectBranch(*sys.argv[1:])
 

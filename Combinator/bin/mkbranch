@@ -3,5 +3,7 @@
 import sys
 from combinator.branchmgr import theBranchManager
 
-theBranchManager.newProjectBranch(*sys.argv[1:])
-
+if len(sys.argv) != 3:
+    raise SystemExit("Usage: %s <project> <branch name>" % (sys.argv[0],))
+else:
+    theBranchManager.newProjectBranch(*sys.argv[1:])

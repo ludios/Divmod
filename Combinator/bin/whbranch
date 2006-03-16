@@ -4,10 +4,12 @@ import sys
 
 from combinator.branchmgr import theBranchManager
 
-if len(sys.argv) > 1:
+if len(sys.argv) == 1:
+    whichBranch = None
+elif len(sys.argv) == 2:
     whichBranch = sys.argv[1]
 else:
-    whichBranch = None
+    raise SystemExit("Usage: %s [project]" % (sys.argv[0],))
 
 for k, v in theBranchManager.getCurrentBranches():
     if whichBranch is not None:

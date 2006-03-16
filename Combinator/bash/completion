@@ -1,3 +1,7 @@
+if [ ! -e /etc/bash_completion ]; then
+	exit
+fi
+
 . /etc/bash_completion
 
 SVNLOOK=/usr/bin/svnlook

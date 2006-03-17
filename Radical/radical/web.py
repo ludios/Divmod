@@ -331,7 +331,7 @@ class GameplayFragment(athena.LiveFragment):
 
 
 class GameplayPage(athena.LivePage):
-    useActiveChannel = False
+    useActiveChannels = False
 
     docFactory = loaders.stan(tags.html[tags.head(render=tags.directive('liveglue')),
                                         tags.body(style="overflow: hidden",
@@ -339,7 +339,9 @@ class GameplayPage(athena.LivePage):
 
     def __init__(self, character):
         self.character = character
-        super(GameplayPage, self).__init__()
+        super(GameplayPage, self).__init__(
+            jsModuleRoot=url.root.child('private').child('jsmodule'),
+            transportRoot=url.root.child('live'))
 
 
     def render_everything(self, ctx, data):

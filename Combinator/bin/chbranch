@@ -3,8 +3,7 @@
 import sys
 from combinator.branchmgr import theBranchManager
 
-if len(sys.argv) != 3:
-    raise SystemExit("Usage: %s <project> <branch name>" % (sys.argv[0],))
-else:
+if 3 <= len(sys.argv) <= 4:
     theBranchManager.changeProjectBranch(*sys.argv[1:])
-
+else:
+    raise SystemExit("Usage: %s <project> <branch name> [trunk url]" % (sys.argv[0],))

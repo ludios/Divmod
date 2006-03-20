@@ -65,6 +65,6 @@ plugin = offering.Offering(
         publicpage.ClickChroniclePublicPage),
 
     benefactorFactories = (chronicler, clicks),
-
+    loginInterfaces = (),
     themes=[cctheme.ClickChronicleTheme('cc-base', 0)])
 

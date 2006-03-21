@@ -59,6 +59,8 @@ class Env:
                 ffunc = lambda x: x # Windows does not like quoting in SET
                                     # lines at *all*
                 fstr = 'set %s=%s'
+            elif how == 'msh':
+                fstr = '$env:%s=%s'
             else:
                 fstr = 'export %s=%s;'
         for k, v in z:

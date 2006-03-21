@@ -120,14 +120,17 @@ def generatePathVariable(nv):
                         if os.name != 'nt':
                             os.chmod(dst, 0755)
 
+
+userShell = os.environ.get('SHELL', '')
+
 def gethow():
     if len(sys.argv) > 1:
         return sys.argv[1]
     if sys.platform == 'win32':
         return 'bat'
-    elif 'zsh' in os.environ['SHELL']:
+    elif 'zsh' in userShell:
         return 'zsh'
-    elif 'bash' in os.environ['SHELL']:
+    elif 'bash' in userShell:
         return 'bash'
     else:
         return 'sh'

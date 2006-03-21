@@ -230,7 +230,8 @@ class ClickList(Item, InstallableMixin):
        and PrivateApplication will find me when when it looks in the user's
        store"""
 
-    implements(ixmantissa.INavigableElement)
+    implements(ixmantissa.INavigableElement,
+               iclickchronicle.IClickList)
     typeName = 'clickchronicle_clicklist'
     schemaVersion = 1
 
@@ -250,7 +251,6 @@ class ClickList(Item, InstallableMixin):
          clickbrowser.privateVisitToggleAction,
          clickbrowser.deleteAction)
 
-    sharing.allow('clicks', 'store')
 
 class DomainList(Item, InstallableMixin):
     """similar to Preferences, i am an implementor of INavigableElement,
@@ -309,7 +309,7 @@ class ClickListFragment(tdbview.TabularDataView):
         return self
 
 registerAdapter(ClickListFragment,
-                ClickList,
+                iclickchronicle.IClickList,
                 ixmantissa.INavigableFragment)
 
 class BookmarkList(Item, InstallableMixin):

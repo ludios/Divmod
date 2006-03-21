@@ -1,4 +1,4 @@
-from zope.interface import Interface
+from zope.interface import Interface, Attribute
 
 class IDisplayableVisit(Interface):
     """
@@ -66,3 +66,11 @@ class IClickRecorder(Interface):
     """
     ClickRecorder interface.
     """
+
+class IClickList(Interface):
+    """
+    An upgrader will need to be written here.
+    """
+
+    clicks = Attribute('allowed for sharing')
+    store = Attribute('allowed for sharing')

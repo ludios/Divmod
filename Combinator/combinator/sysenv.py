@@ -5,7 +5,7 @@ import os
 
 from combinator import branchmgr
 
-PATHVARS = 'PYTHONPATH', 'PATH', 'LD_LIBRARY_PATH', 'PATHEXT', "FPATH"
+PATHVARS = 'PYTHONPATH', 'PATH', 'LD_LIBRARY_PATH', 'PATHEXT'
 
 def uniq(l):
     tmpd = {}
@@ -73,7 +73,7 @@ class Env:
 
         if how == 'zsh':
             print """
-            export FPATH="$FPATH:%s"
+            fpath=($fpath %s)
             """ % os.path.join(combinator, "zsh")
         elif how == 'bash':
             print ". " + os.path.join(combinator, "bash", "completion")

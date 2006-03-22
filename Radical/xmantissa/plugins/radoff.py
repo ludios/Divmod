@@ -18,4 +18,5 @@ offer = offering.Offering(
             u'Radical Game',
             u'Grants a user access to a Radical game.',
             web.RadicalBenefactor)],
+    loginInterfaces=(),
     themes=[radtheme.XHTMLDirectoryTheme('base')])

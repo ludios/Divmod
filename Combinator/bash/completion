@@ -1,8 +1,3 @@
-if [ ! -e /etc/bash_completion ]; then
-	exit
-fi
-
-. /etc/bash_completion
 
 SVNLOOK=/usr/bin/svnlook
 
@@ -40,8 +35,6 @@ function _chbranch() {
 	esac
 }
 
-complete -F _chbranch chbranch
-
 function _unbranch_mkbranch() {
 	case ${COMP_CWORD} in
 		1)
@@ -53,6 +46,11 @@ function _unbranch_mkbranch() {
 	esac
 }
 
-complete -F _unbranch_mkbranch unbranch
-complete -F _unbranch_mkbranch mkbranch
+if [ -e /etc/bash_completion ]; then
 
+	. /etc/bash_completion
+
+	complete -F _chbranch chbranch
+	complete -F _unbranch_mkbranch unbranch
+	complete -F _unbranch_mkbranch mkbranch
+fi

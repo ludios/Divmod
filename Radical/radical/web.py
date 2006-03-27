@@ -107,22 +107,20 @@ class ApplicationFragment(athena.LiveFragment):
         pass
 
 
-    def render_chargenForm(self, ctx, data):
-        f = CharacterCreationForm(self.original)
-        f.setFragmentParent(self)
-        return ctx.tag[f]
-
-
-    def render_initArgs(self, ctx, data):
+    def getInitialArguments(self):
         charInfo = []
         wtrans = ixmantissa.IWebTranslator(self.original.store)
         for ch in self.original.getCharacters():
             charInfo.append({u'name': ch.name,
                              u'href': unicode(wtrans.linkTo(ch.storeID), 'ascii')})
-        return ctx.tag[
-            tags.textarea(id='init-args-' + str(self._athenaID),
-                          style='display: none;')[
-                json.serialize(charInfo)]]
+        return [charInfo]
+
+
+    def render_chargenForm(self, ctx, data):
+        f = CharacterCreationForm(self.original)
+        f.setFragmentParent(self)
+        return ctx.tag[f]
+
 
 components.registerAdapter(ApplicationFragment, RadicalUserApplication, ixmantissa.INavigableFragment)
 
@@ -179,18 +177,17 @@ class SceneFragment(structlike.record('world character'), athena.LiveFragment):
         self.page.notifyOnDisconnect().addBoth(onDisconnect)
 
 
-    def render_initArgs(self, ctx, data):
+    def getInitialArguments(self):
         terrain, players = self.character.getVisibleSurroundings()
-        return ctx.tag[tags.textarea(id='scene-args-' + str(self._athenaID),
-                                     style='display: none;')[
-            json.serialize({u'center': self.character.getLocation(),
-                            u'terrain': [{u'x': t.x,
-                                          u'y': t.y,
-                                          u'kind': t.kind} for t in terrain],
-                            u'players': [{u'x': p.character.getLocation()[0],
-                                          u'y': p.character.getLocation()[1],
-                                          u'name': p.character.name} for p in players if p is not self],
-                            u'size': self.size})]]
+        return [
+            self.character.getLocation(),
+            [{u'x': t.x,
+              u'y': t.y,
+              u'kind': t.kind} for t in terrain],
+            [{u'x': p.character.getLocation()[0],
+              u'y': p.character.getLocation()[1],
+              u'name': p.character.name} for p in players if p is not self],
+            self.size]
 
 
     # Observers!

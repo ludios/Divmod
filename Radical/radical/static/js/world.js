@@ -13,10 +13,9 @@ Radical.World = {};
 
 Radical.World.Application = Nevow.Athena.Widget.subclass('Radical.World.Application');
 Radical.World.Application.methods(
-    function __init__(self, node) {
+    function __init__(self, node, characterNames) {
         Radical.World.Application.upcall(self, '__init__', node);
-        var e = document.getElementById('init-args-' + self.objectID);
-        self.characterNames = eval('(' + e.value + ')');
+        self.characterNames = characterNames;
         self.addCharacterLinks(self.characterNames);
     },
 
@@ -102,16 +101,10 @@ Radical.World.Scene.methods(
      * of terrain which is updated when the character moves around.  Is
      * responsible for telling the viewport to redraw and move around and such.
      */
-    function __init__(self, node) {
+    function __init__(self, node, center, terrain, players, size) {
         Radical.World.Scene.upcall(self, '__init__', node);
 
         self.terrainCache = {};
-
-        var initargs = eval('(' + document.getElementById('scene-args-' + self.objectID).value + ')');
-        var center = initargs.center;
-        var terrain = initargs.terrain;
-        var players = initargs.players;
-        var size = initargs.size;
 
         self.viewport = new Radical.Geometry.Viewport(self, center[0] - size / 2, center[1] - size / 2, size, size);
         self.node.appendChild(self.viewport.evenNode);

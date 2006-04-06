@@ -367,12 +367,12 @@ class PublicIndexPage(CCPublicPageMixin, PublicAthenaLivePage):
         @param forUser: a unicode user identifier
         """
         templateContent = staticTemplate("index.html")
-        super(PublicIndexPage, self).__init__(templateContent, staticContent, forUser)
+        super(PublicIndexPage, self).__init__(publicPage.store.parent, templateContent, staticContent, forUser)
 
         self.clickContainerPattern = inevow.IQ(templateContent).patternGenerator('click-container')
 
         def mkchild(tmplname, title):
-            p = CCPublicPage(publicPage, staticTemplate(tmplname), staticContent, forUser)
+            p = CCPublicPage(publicPage, publicPage.store.parent, staticTemplate(tmplname), staticContent, forUser)
             p.title = title
             return p
 

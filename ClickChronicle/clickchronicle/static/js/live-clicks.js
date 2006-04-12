@@ -1,6 +1,4 @@
-if(typeof(ClickChronicle) == "undefined") {
-    ClickChronicle = {};
-}
+// import ClickChronicle
 
 ClickChronicle.LiveClicks = Nevow.Athena.Widget.subclass('ClickChronicle.LiveClicks');
 ClickChronicle.LiveClicks.methods(

@@ -9,8 +9,6 @@
 // import Radical.Artwork
 // import Radical.Geometry
 
-Radical.World = {};
-
 Radical.World.Application = Nevow.Athena.Widget.subclass('Radical.World.Application');
 Radical.World.Application.methods(
     function __init__(self, node, characterNames) {

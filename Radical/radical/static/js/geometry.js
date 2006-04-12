@@ -18,8 +18,6 @@ var OBJECT_HEIGHT_PX = 128;
 var MAP_LEFT_PX = -TILE_WIDTH_PX / 2;
 var MAP_TOP_PX = 0;
 
-Radical.Geometry = {};
-
 Radical.Geometry.Viewport = Divmod.Class.subclass('Radical.Geometry.Viewport');
 Radical.Geometry.Viewport.methods(
     /*

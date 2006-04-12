@@ -3,8 +3,6 @@
 
 // import Radical
 
-Radical.Terrain = {};
-
 Radical.Terrain.Editor = Nevow.Athena.Widget.subclass("Radical.Terrain.EditorWidget");
 Radical.Terrain.Editor.methods(
     function setTerrainType(self, kind) {

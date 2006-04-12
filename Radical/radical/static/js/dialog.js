@@ -2,8 +2,6 @@
 // import Divmod
 // import Radical
 
-Radical.Dialog = {};
-
 Radical.Dialog.Monolog = Divmod.Class.subclass('Radical.Dialog.Monolog');
 Radical.Dialog.Monolog.methods(
     function __init__(self, parent, text) {

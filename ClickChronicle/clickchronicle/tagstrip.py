@@ -11,7 +11,7 @@ def _massageMicrosoftBytes(match):
 BeautifulStoneSoup.PARSER_MASSAGE[-1] = (
     re.compile("([\x80-\x9f])", re.M),
     _massageMicrosoftBytes)
-    
+
 
 
 class Minestrone(BeautifulSoup):

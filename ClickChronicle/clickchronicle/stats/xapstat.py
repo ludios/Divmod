@@ -21,7 +21,7 @@ def buildDict(doc):
     tle=doc.termlist_end()
 
     thisDoc = {}
-    
+
     while tlb != tle:
         term = tlb.get_term()
         occ = tlb.get_wdf()
@@ -47,7 +47,7 @@ def z_values(text, overall, n_t, n_o, ignore, title, url):
     """calculate the z values for each word in the given text relative to the overall text"""
     t = text
     o = overall
-            
+
     result = {}
     for word in t:
         if word not in ignore:

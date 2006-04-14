@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from os import path
-
 def getversion(fname):
     from xml.dom import minidom
     doc = minidom.parse(fname)

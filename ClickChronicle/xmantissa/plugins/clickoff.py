@@ -4,8 +4,6 @@ from axiom import iaxiom, scheduler, userbase
 
 from xmantissa import liveform, website, offering, provisioning
 
-import clickchronicle
-
 from clickchronicle import clickapp, publicpage, prods, cctheme
 
 ccBenefactorArgs = [

@@ -3,18 +3,17 @@ import random, datetime
 
 from zope.interface import implements, Interface
 
-from twisted.plugin import IPlugin
 from twisted.python.components import registerAdapter
 from twisted.python import util
 
-from nevow import rend, loaders, livepage, flat, static, json, tags as T
+from nevow import livepage, static, json, tags as T
 
 from epsilon import extime
 
-from axiom import iaxiom, store, item
+from axiom import iaxiom, item
 from axiom.attributes import reference, integer, text, timestamp, inmemory
 
-from xmantissa.ixmantissa import INavigableFragment, INavigableElement, ISessionlessSiteRootPlugin, ISiteRootPlugin
+from xmantissa.ixmantissa import INavigableFragment, INavigableElement, ISessionlessSiteRootPlugin
 from xmantissa import webnav, website, webapp, signup
 
 VOID, MOUNTAIN, GRASS, WATER, FOREST, DESERT = range(6)

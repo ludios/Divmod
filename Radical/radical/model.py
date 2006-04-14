@@ -5,7 +5,7 @@ from twisted.python import filepath
 
 from nevow import rend, static
 
-from axiom import item, attributes, queryutil
+from axiom import item, attributes
 
 from xmantissa import ixmantissa
 

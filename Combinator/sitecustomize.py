@@ -1,7 +1,6 @@
 
 import sys
 import os
-import warnings
 
 from combinator.branchmgr import init
 init()

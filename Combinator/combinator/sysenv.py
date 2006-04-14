@@ -3,8 +3,6 @@
 import sys
 import os
 
-from combinator import branchmgr
-
 PATHVARS = 'PYTHONPATH', 'PATH', 'LD_LIBRARY_PATH', 'PATHEXT'
 
 def uniq(l):

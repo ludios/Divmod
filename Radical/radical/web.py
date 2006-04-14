@@ -3,7 +3,7 @@ from zope.interface import implements
 
 from twisted.python import components
 
-from nevow import inevow, athena, tags, url, json, rend, loaders
+from nevow import inevow, athena, tags, url, rend, loaders
 
 from epsilon import structlike
 

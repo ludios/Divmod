@@ -15,7 +15,7 @@ from axiom.tags import Catalog, Tag
 from axiom.upgrade import registerUpgrader
 from zope.interface import implements
 from xmantissa import ixmantissa
-from vertex import juice
+from epsilon import juice
 
 AGGREGATION_PROTOCOL = 'clickchronicle-click-aggregation-protocol'
 ONLY_INCREMENT = '_ONLY_INCREMENT__'

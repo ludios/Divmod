@@ -1,8 +1,8 @@
 # Copyright 2005 Divmod, Inc.  See LICENSE file for details
 
 
-from vertex import juice
-from vertex.test import iosim
+from epsilon import juice
+from epsilon.test import iosim
 from twisted.trial import unittest
 from twisted.internet import protocol, defer
 

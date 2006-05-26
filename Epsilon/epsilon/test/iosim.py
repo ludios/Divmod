@@ -6,7 +6,7 @@ from cStringIO import StringIO
 
 from twisted.internet import error
 
-from vertex.test import utils
+from epsilon.test import utils
 
 
 def readAndDestroy(iodata):

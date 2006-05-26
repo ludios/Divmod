@@ -1,11 +1,9 @@
-# -*- test-case-name: vertex.test.test_juice -*-
+# -*- test-case-name: epsilon.test.test_juice -*-
 # Copyright 2005 Divmod, Inc.  See LICENSE file for details
 
 __metaclass__ = type
 
 import warnings, pprint
-
-from vertex.liner import LineReceiver
 
 from twisted.internet.main import CONNECTION_LOST
 from twisted.internet.defer import Deferred, maybeDeferred, fail
@@ -13,9 +11,10 @@ from twisted.internet.protocol import ServerFactory, ClientFactory
 from twisted.python.failure import Failure
 from twisted.python import log, filepath
 
+from epsilon.liner import LineReceiver
 from epsilon import extime
 
-from vertex.sslverify import Certificate, problemsFromTransport, PeerVerifyError
+from epsilon.sslverify import Certificate, problemsFromTransport, PeerVerifyError
 
 ASK = '_ask'
 ANSWER = '_answer'

@@ -1,4 +1,4 @@
-# -*- test-case-name: vertex.test.test_sslverify -*-
+# -*- test-case-name: epsilon.test.test_sslverify -*-
 # Copyright 2005 Divmod, Inc.  See LICENSE file for details
 
 import itertools, md5

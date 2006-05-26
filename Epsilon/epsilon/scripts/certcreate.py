@@ -4,7 +4,7 @@ import sys
 
 from twisted.python import usage
 
-from vertex import sslverify
+from epsilon import sslverify
 
 class Options(usage.Options):
     optParameters = [

@@ -10,7 +10,7 @@ from twisted.trial import unittest
 from twisted.internet import protocol, defer, reactor
 from twisted.python import log
 
-from epsilon import sslverify
+from vertex import sslverify
 
 counter = itertools.count().next
 def makeCertificate(**kw):

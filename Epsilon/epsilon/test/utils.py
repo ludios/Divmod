@@ -3,8 +3,6 @@ from zope.interface import implements
 
 from twisted.internet import interfaces
 
-from vertex import q2q
-
 class FileWrapper:
     """A wrapper around a file-like object to make it behave as a Transport.
 
@@ -81,5 +79,6 @@ class FileWrapper:
 
     # Additional Q2Q Transport requirements
     def getQ2QPeer(self):
+        from vertex import q2q
         return q2q.Q2QAddress('file.domain', 'peer.resource')
 

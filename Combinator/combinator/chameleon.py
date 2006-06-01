@@ -12,14 +12,25 @@ def naturalName(n):
 def nostop(*a):
     pass
 
+def findscript(cmdname):
+    """
+    Given a command name in the bincache namespace, return a full filesystem
+    path for the script it is intended to invoke.
+    """
+    # this is necessary to support the fact that Twisted puts *directories* in
+    # bin/, for some strange reason.  let's fix that soon...
+    for p in sys.path:
+        binpath = os.path.join(p, 'bin')
+        for dirpath, dirnames, filenames in os.walk(binpath):
+            if cmdname in filenames:
+                return os.path.join(dirpath, cmdname)
+    return None
+
 def remain(argv):
     # sys.stderr.write('<chameleon script activated: %r>\n' % (argv))
     cmdname = naturalName(argv[0])
-    for p in sys.path:
-        binpath = os.path.join(p, 'bin', cmdname)
-        if os.path.exists(binpath):
-            break
-    else:
+    binpath = findscript(cmdname)
+    if binpath is None:
         sys.stderr.write('<chameleon could not change form!>\n')
         os._exit(254)
 

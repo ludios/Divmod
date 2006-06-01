@@ -105,21 +105,33 @@ def generatePathVariable(nv):
     for ent in sys.path:
         branchBinDir = os.path.join(ent, 'bin')
         if os.path.isdir(branchBinDir):
-            for binary in os.listdir(branchBinDir):
-                if not binary.startswith('.'):
-                    dst = os.path.join(branchmgr.theBranchManager.binCachePath,
-                                       binary)
-                    if os.name == 'nt':
-                        dst += '.py'
-                    src = os.path.join(
-                        os.path.dirname(os.path.dirname(__file__)),
-                        'bin', 'cham.py')
-                    if not os.path.exists(dst):
-                        sys.stderr.write('link: %r => %r\n <on account of %r>\n' % (dst, src, ent))
-                        file(dst, 'w').write(file(src).read())
-                        if os.name != 'nt':
-                            os.chmod(dst, 0755)
+            for binary in scriptsPresentIn(branchBinDir):
+                dst = os.path.join(branchmgr.theBranchManager.binCachePath,
+                                   binary)
+                if os.name == 'nt':
+                    dst += '.py'
+                src = os.path.join(
+                    os.path.dirname(os.path.dirname(__file__)),
+                    'bin', 'cham.py')
+                if not os.path.exists(dst):
+                    sys.stderr.write('link: %r => %r\n <on account of %r>\n' % (dst, src, ent))
+                    file(dst, 'w').write(file(src).read())
+                    if os.name != 'nt':
+                        os.chmod(dst, 0755)
 
+def scriptsPresentIn(directory):
+    for dirpath, dirnames, filenames in os.walk(directory):
+        if '/.' in dirpath:
+            # Don't descend into hidden directories, e.g. ".svn"
+            continue
+        for filename in filenames:
+            if (filename not in ('cham.py', 'cham.bat')
+                # let's skip these combinator-internal scripts.
+                and not filename.startswith(".")):
+                    # and hidden files
+                sys.stderr.write("FILENAME: "+repr(filename)+'\n')
+                sys.stderr.flush()
+                yield filename
 
 userShell = os.environ.get('SHELL', '')
 

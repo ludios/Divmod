@@ -129,8 +129,6 @@ def scriptsPresentIn(directory):
                 # let's skip these combinator-internal scripts.
                 and not filename.startswith(".")):
                     # and hidden files
-                sys.stderr.write("FILENAME: "+repr(filename)+'\n')
-                sys.stderr.flush()
                 yield filename
 
 userShell = os.environ.get('SHELL', '')

@@ -1,3 +1,2 @@
-from combinator import sysenv
-
-sysenv.export()
+from combinator.scripts.environment import run
+run()

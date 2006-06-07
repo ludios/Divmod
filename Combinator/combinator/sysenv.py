@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import sys
 import os
 
@@ -81,11 +79,11 @@ def generatePythonPathVariable(nv):
     nv.prePath('PYTHONPATH', os.path.split(os.path.split(__file__)[0])[0])
 
 
-def generatePathVariable(nv):
+def generatePathVariable(nv, svnProjectsDir=None, sitePathsPath=None):
     from combinator import branchmgr
     # since we're probably bootstrapping we need to make sure path entries are
     # set up for this one run... this is a harmless no-op if not.
-    branchmgr.init()
+    branchmgr.init(svnProjectsDir, sitePathsPath)
 
     nv.prePath('PATH', branchmgr.theBranchManager.binCachePath)
     if os.name == 'nt':
@@ -98,6 +96,9 @@ def generatePathVariable(nv):
         nv.prePath("PATH", userBinPath)
     if os.path.exists(userLibPath):
         nv.prePath("LD_LIBRARY_PATH", userLibPath)
+
+    nv.d['COMBINATOR_PROJECTS'] = branchmgr.theBranchManager.svnProjectsDir
+    nv.d['COMBINATOR_PATHS'] = branchmgr.theBranchManager.sitePathsPath
 
     # XXX move to separate command?
     if not os.path.isdir(branchmgr.theBranchManager.binCachePath):
@@ -145,9 +146,9 @@ def gethow():
     else:
         return 'sh'
 
-def export():
+def export(svnProjectsDir=None, sitePathsPath=None):
     e = Env()
     generatePythonPathVariable(e)
-    generatePathVariable(e)
+    generatePathVariable(e, svnProjectsDir, sitePathsPath)
     how = gethow()
     e.export(how)

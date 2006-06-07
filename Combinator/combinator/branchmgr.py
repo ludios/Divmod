@@ -266,7 +266,8 @@ def getDefaultPath():
     saf = splitall(__file__)
     if not saf[-5:-2] == ['Divmod', 'trunk', 'Combinator']:
         warnings.warn(
-            'Combinator sitecustomize located outside of Combinator directory, aborting')
+            'Combinator sitecustomize located outside of Combinator directory, '
+            'aborting (try passing --projects-dir)')
         return
 
     return os.path.join(*saf[:-5])
@@ -276,9 +277,10 @@ def init(svnProjectsDir=None, sitePathsPath=None):
     if theBranchManager is not None:
         return theBranchManager
     if svnProjectsDir is None:
-        svnProjectsDir = getDefaultPath()
+        svnProjectsDir = os.getenv('COMBINATOR_PROJECTS') or getDefaultPath()
     if sitePathsPath is None:
-        sitePathsPath = os.path.join(svnProjectsDir, "combinator_paths")
+        sitePathsPath = (os.getenv('COMBINATOR_PATHS') or
+            os.path.join(svnProjectsDir, "combinator_paths"))
     theBranchManager = BranchManager(svnProjectsDir, sitePathsPath)
     theBranchManager.addPaths()
     return theBranchManager

@@ -1,5 +1,5 @@
 #!/usr/bin/python
 # Copyright 2005 Divmod, Inc.  See LICENSE file for details
 
-from vertex.scripts import certcreate
+from epsilon.scripts import certcreate
 certcreate.main()

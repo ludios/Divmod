@@ -120,9 +120,19 @@ def generatePathVariable(nv, svnProjectsDir=None, sitePathsPath=None):
                     if os.name != 'nt':
                         os.chmod(dst, 0755)
 
+def splitup(pathname):
+    # split into a sequence of path segments.
+    return os.path.normpath(pathname).split(os.sep)
+
+def inHiddenDirectory(dirpath):
+    for segment in splitup(dirpath):
+        if segment.startswith('.'):
+            return True
+    return False
+
 def scriptsPresentIn(directory):
     for dirpath, dirnames, filenames in os.walk(directory):
-        if '/.' in dirpath:
+        if inHiddenDirectory(dirpath):
             # Don't descend into hidden directories, e.g. ".svn"
             continue
         for filename in filenames:

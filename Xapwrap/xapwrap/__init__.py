@@ -1,4 +1,5 @@
+# -*- test-case-name: xapwrap.test -*-
 
-from epsilon.versions import Version
+from twisted.python.versions import Version
 
 version = Version(__name__, 0, 3, 1)

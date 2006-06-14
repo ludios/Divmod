@@ -1,5 +1,5 @@
 # -*- test-case-name: clickchronicle.test -*-
 
-from epsilon.versions import Version
+from twisted.python.versions import Version
 
 version = Version(__name__, 0, 2, 0)

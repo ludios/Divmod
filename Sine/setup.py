@@ -1,20 +1,19 @@
 from epsilon import setuphelper
 
-from vertex import version
+from sine import version
 
 setuphelper.autosetup(
-    name="Vertex",
+    name="Sine",
     version=version.short(),
     maintainer="Divmod, Inc.",
     maintainer_email="support@divmod.org",
-    url="http://divmod.org/trac/wiki/DivmodVertex",
+    url="http://divmod.org/trac/wiki/DivmodSine",
     license="MIT",
     platforms=["any"],
     description=
         """
-        Divmod Vertex is the first implementation of the Q2Q protocol, which
-        is a peer-to-peer communication protocol for establishing
-        stream-based communication between named endpoints.
+        Divmod Sine is a standards-based voice-over-IP application server,
+        built as an offering for the Mantissa application server platform.
         """,
     classifiers=[
         "Intended Audience :: Developers",

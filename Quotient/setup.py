@@ -1,20 +1,19 @@
 from epsilon import setuphelper
 
-from vertex import version
+from xquotient import version
 
 setuphelper.autosetup(
-    name="Vertex",
+    name="Quotient",
     version=version.short(),
     maintainer="Divmod, Inc.",
     maintainer_email="support@divmod.org",
-    url="http://divmod.org/trac/wiki/DivmodVertex",
+    url="http://divmod.org/trac/wiki/DivmodQuotient",
     license="MIT",
     platforms=["any"],
     description=
         """
-        Divmod Vertex is the first implementation of the Q2Q protocol, which
-        is a peer-to-peer communication protocol for establishing
-        stream-based communication between named endpoints.
+        Divmod Quotient is a messaging platform developed as an Offering for
+        Divmod Mantissa.
         """,
     classifiers=[
         "Intended Audience :: Developers",

@@ -12,11 +12,11 @@ from twisted.python.components import registerAdapter
 from twisted.internet import defer
 
 from nevow.url import URL
-from nevow import rend, inevow, tags, flat, entities, athena
+from nevow import rend, inevow, tags, flat, entities, athena, loaders
 
 from epsilon.extime import Time
 
-from axiom.item import Item, InstallableMixin
+from axiom.item import Item, InstallableMixin, declareLegacyItem
 from axiom import upgrade, userbase, scheduler, attributes, errors
 from axiom.tags import Catalog, Tag
 
@@ -222,8 +222,17 @@ def initializer1To2(oldInit):
         maxClicks=oldInit.maxClicks)
     return newInit
 
+def initializer2To3(oldInit):
+    newInit = oldInit.upgradeVersion(oldInit.typeName, 2, 3)
+    newInit.store.powerDown(newInit, ixmantissa.INavigableElement)
+    newInit.deleteFromStore()
+
+declareLegacyItem('clickchronicle_password_initializer', 2,
+                  dict(installedOn=attributes.reference(),
+                       maxClicks=attributes.integer()))
+
 upgrade.registerUpgrader(initializer1To2, 'clickchronicle_password_initializer', 1, 2)
-upgrade.registerUpgrader(lambda old: None, 'clickchronicle_password_initializer', 2, 3)
+upgrade.registerUpgrader(initializer2To3, 'clickchronicle_password_initializer', 2, 3)
 
 class ClickList(Item, InstallableMixin):
     """similar to Preferences, i am an implementor of INavigableElement,
@@ -838,7 +847,7 @@ class CCSearchProvider(Item, InstallableMixin):
 
         term = ' '.join(parseSearchString(term))
 
-        doSearch = lambda **k: self.indexer.search(term, startingIndex=offset,
+        doSearch = lambda **k: self.indexer.search(str(term), startingIndex=offset,
                                                    batchSize=count, **k)
 
         # this try/except is for compatability with indices created before
@@ -854,14 +863,24 @@ class CCSearchProvider(Item, InstallableMixin):
 
         for spec in specs:
             visit = self.store.getItemByID(int(spec['values']['_STOREID']))
-            yield search.SearchResult(description=visit.title, url=visit.url,
-                                      summary=spec.get('values', dict()).get('summary', ''),
-                                      timestamp=visit.timestamp,
-                                      score=spec['score'] / 100.0)
+            yield dict(description=visit.title, url=visit.url,
+                       summary=spec.get('values', dict()).get('summary', ''),
+                       timestamp=visit.timestamp,
+                       score=spec['score'] / 100.0)
 
 
-    def search(self, term, count, offset):
-        return defer.succeed(self._syncSearch(term, count, offset))
+    def _wrapResults(self, results):
+        class Results(athena.LiveFragment):
+            docFactory = loaders.stan(
+                            tags.ul[
+                                list(
+                                    tags.li[
+                                        tags.a(href=d['url'])[d['url']]]
+                                    for d in results)])
+        return Results()
+
+    def search(self, term, keywords, count, offset):
+        return defer.succeed(self._wrapResults(self._syncSearch(term, count, offset)))
 
 
 

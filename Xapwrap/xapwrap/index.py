@@ -108,9 +108,7 @@ exceptions defined in this file that inherit from xapwrap.XapianError.
 
 Logging
 -------
-Xapwrap will use twisted's logging facilities if available. In any
-event, a custom logging function can be supplied by setting xapwrap.log.
-
+Xapwrap will use twisted's logging facilities.
 
 Future Work
 -----------
@@ -121,84 +119,8 @@ future version will.
 import xapian, cPickle, sets, glob, os
 from xapwrap.document import makePairForWrite, StandardAnalyzer, Document, SortKey, Keyword
 
-try:
-    from atop.tpython import FilesystemLock
-except ImportError:
-    from os import symlink, readlink, remove as rmlink
-    import errno
-
-    class FilesystemLock:
-        """A mutex.
-
-        This relies on the filesystem property that creating
-        a symlink is an atomic operation and that it will
-        fail if the symlink already exists.  Deleting the
-        symlink will release the lock.
-
-        @ivar name: The name of the file associated with this lock.
-        @ivar clean: Indicates whether this lock was released cleanly by its
-        last owner.  Only meaningful after C{lock} has been called and returns
-        True.
-        """
-
-        clean = None
-        locked = False
-
-        def __init__(self, name):
-            self.name = name
-
-        def lock(self):
-            """Acquire this lock.
-
-            @rtype: C{bool}
-            @return: True if the lock is acquired, false otherwise.
-
-            @raise: Any exception os.symlink() may raise, other than
-            EEXIST.
-            """
-            try:
-                pid = readlink(self.name)
-            except (OSError, IOError), e:
-                if e.errno != errno.ENOENT:
-                    raise
-                self.clean = True
-            else:
-                if not hasattr(os, 'kill'):
-                    return False
-                try:
-                    os.kill(int(pid), 0)
-                except (OSError, IOError), e:
-                    if e.errno != errno.ESRCH:
-                        raise
-                    rmlink(self.name)
-                    self.clean = False
-                else:
-                    return False
-
-            symlink(str(os.getpid()), self.name)
-            self.locked = True
-            return True
-
-        def unlock(self):
-            """Release this lock.
-
-            This deletes the directory with the given name.
-
-            @raise: Any exception os.readlink() may raise, or
-            ValueError if the lock is not owned by this process.
-            """
-            pid = readlink(self.name)
-            if int(pid) != os.getpid():
-                raise ValueError("Lock %r not owned by this process" % (self.name,))
-            rmlink(self.name)
-            self.locked = False
-
-try:
-    from twisted.python.log import msg as log
-except ImportError:
-    def log(*args):
-        pass
-
+from twisted.python.lockfile import FilesystemLock
+from twisted.python import log
 
 # max number of bytes that can be indexed without forcing an index
 # flush. this limits memory consumption
@@ -384,7 +306,7 @@ def makeProtectedDBMethod(method, setupDB = True):
 ##             self.reopen()
 ##             return protectedMethod(self, *args, **kwargs)
         except XapianError, e:
-            #log("error encountered while performing xapian index operation %s: %s"
+            #log.msg("error encountered while performing xapian index operation %s: %s"
             #    % (method.__name__, e))
             self.close()
             raise
@@ -500,14 +422,14 @@ class ReadOnlyIndex:
             self.qp.set_default_op(self.DEFAULT_QUERY_COMBINER_OP)
             self._configure()
 
-            log("Index %s contains %s documents" %
-                (self.names, self.get_doccount()))
+            log.msg("Index %s contains %s documents" %
+                    (self.names, self.get_doccount()))
 
     def _setupDB(self):
         self.db = ExceptionTranslater.openIndex(True, *self.names)
 
     def close(self):
-        log("closing xapian index %s" % self.names)
+        log.msg("closing xapian index %s" % self.names)
         for query in self._searchSessions.keys():
             del self._searchSessions[query]
         self.qp = None
@@ -746,12 +668,12 @@ class Index(ReadOnlyIndex):
             errorMsg = ("cannot acquire lock file for xapian index %s"
                         "because it is owned by process %s" %
                         (self.name, owningPid))
-            log(errorMsg)
+            log.msg(errorMsg)
             raise DatabaseLockError(errorMsg)
         xapLockFilePath = os.path.join(self.name, XAPIAN_LOCK_FILENAME)
         if os.path.exists(xapLockFilePath):
-            log("Stale database lock found in ",
-                xapLockFilePath, ". Deleting it now.")
+            log.msg("Stale database lock found in ",
+                    xapLockFilePath, ". Deleting it now.")
             os.remove(xapLockFilePath)
 
         # actually try to open a xapian DB
@@ -761,8 +683,8 @@ class Index(ReadOnlyIndex):
             except DatabaseCorruptionError, e:
                 # the index is trashed, so there's no harm in blowing it
                 # away and starting from scratch
-                log("Xapian index at %s is corrupted and will be destroyed"
-                    % self.name)
+                log.msg("Xapian index at %s is corrupted and will be destroyed"
+                        % self.name)
                 if self.lockFile.locked:
                     self.lockFile.unlock()
                 for idxFname in glob.glob(os.path.join(self.name, '*')):

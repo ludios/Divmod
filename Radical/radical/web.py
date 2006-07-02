@@ -4,6 +4,7 @@ from zope.interface import implements
 from twisted.python import components
 
 from nevow import inevow, athena, tags, url, rend, loaders
+from nevow.athena import expose
 
 from epsilon import structlike
 
@@ -210,7 +211,6 @@ class SceneFragment(structlike.record('world character'), athena.LiveFragment):
 
 
     # Remote methods
-    allowedMethods = ('getTerrain', 'getLocation', 'move', 'say')
     def getTerrain(self):
         loc = self.character.getLocation()
         results = []
@@ -225,10 +225,12 @@ class SceneFragment(structlike.record('world character'), athena.LiveFragment):
                 u'kind': t.kind,
                 u'passable': True})
         return results
+    expose(getTerrain)
 
 
     def getLocation(self):
         return self.character.getLocation()
+    expose(getLocation)
 
 
     def move(self, direction):
@@ -285,10 +287,12 @@ class SceneFragment(structlike.record('world character'), athena.LiveFragment):
                 [{u'x': p.character.getLocation()[0],
                   u'y': p.character.getLocation()[1],
                   u'name': p.character.name} for p in players if p is not self])
+    expose(move)
 
 
     def say(self, message):
         self.character.say(message)
+    expose(say)
 
 
 
@@ -361,7 +365,6 @@ class TerrainEditor(athena.LiveFragment):
         self.world = world
         self.character = character
 
-    allowedMethods = ('setTerrainType',)
     def setTerrainType(self, kind):
         assert kind in (model.BARREN, model.MOUNTAIN, model.GRASS, model.WATER, model.FOREST)
         x, y = self.character.getLocation()
@@ -369,3 +372,5 @@ class TerrainEditor(athena.LiveFragment):
         t.kind = kind
         self.world.terrainEvent(t)
         return x, y
+    expose(setTerrainType)
+

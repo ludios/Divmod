@@ -13,6 +13,7 @@ from twisted.internet import defer
 
 from nevow.url import URL
 from nevow import rend, inevow, tags, flat, entities, athena, loaders
+from nevow.athena import expose
 
 from epsilon.extime import Time
 
@@ -349,7 +350,6 @@ class BookmarkListFragment(athena.LiveFragment):
     jsClass = u'ClickChronicle.BookmarkList'
     fragmentName = 'bookmark-list'
     live = 'athena'
-    iface = allowedMethods = dict(filterBookmarks=True)
 
     magicWord = u'-- All --'
 
@@ -363,6 +363,7 @@ class BookmarkListFragment(athena.LiveFragment):
         self.bookmarkTDB.original.baseComparison = comparison
         self.bookmarkTDB.original.firstPage()
         return self.bookmarkTDB.replaceTable()
+    expose(filterBookmarks)
 
     def getBookmarkTDB(self):
         if self._bookmarkTDB is None:

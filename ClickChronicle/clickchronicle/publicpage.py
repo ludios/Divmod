@@ -3,19 +3,30 @@
 from __future__ import division
 
 import time, struct, collections
-from epsilon import extime
-from xmantissa.publicresource import PublicAthenaLivePage, PublicPage
-from nevow import inevow, tags, static, athena
-from clickchronicle.util import makeStaticURL, staticTemplate
-from clickchronicle.urltagger import tagURL
-from axiom.item import Item, InstallableMixin
+
+from zope.interface import implements
+
 from twisted.python import util
+
+from epsilon import extime
+
+from nevow import inevow, tags, static, athena
+from nevow.athena import expose
+
+from epsilon import juice
+
+from axiom.item import Item, InstallableMixin
 from axiom import attributes, errors
 from axiom.tags import Catalog, Tag
 from axiom.upgrade import registerUpgrader
-from zope.interface import implements
+
 from xmantissa import ixmantissa
-from epsilon import juice
+from xmantissa.publicresource import PublicAthenaLivePage, PublicPage
+
+from clickchronicle.util import makeStaticURL, staticTemplate
+from clickchronicle.urltagger import tagURL
+
+
 
 AGGREGATION_PROTOCOL = 'clickchronicle-click-aggregation-protocol'
 ONLY_INCREMENT = '_ONLY_INCREMENT__'
@@ -334,7 +345,6 @@ class CCPublicPage(CCPublicPageMixin, PublicPage):
     pass
 
 class ClickObserverFragment(athena.LiveFragment):
-    iface = allowedMethods = dict(getClickBacklog=True)
     jsClass = 'ClickChronicle.LiveClicks'
 
     def __init__(self, indexPage, tag):
@@ -346,6 +356,7 @@ class ClickObserverFragment(athena.LiveFragment):
     def getClickBacklog(self):
         return list((self.indexPage.trimTitle(t), unicode(u))
                         for (t, u) in self.indexPage.registerClient(self, self.tag))
+    expose(getClickBacklog)
 
     def observeClick(self, title, url):
         self.callRemote('addClick', self.indexPage.trimTitle(title), unicode(url))

@@ -10,17 +10,19 @@ function projectDir() {
 }
 
 function branchURI() {
-	local buri=`python -c '\
+	local projectName=$1;
+	local buri=`python -c "\
 
 import sys
 from combinator.branchmgr import theBranchManager as bm
-print bm.projectBranchURI(sys.argv[1], "")
+print bm.projectBranchURI(sys.argv[1], \"\")
 
-' "$(projectDir)"`
+" "$projectName"`
 	echo -n "$buri"
 }
 
 function _chbranch() {
+	local word=$3;
 	case ${COMP_CWORD} in
 		1)
 			pushd `dirname "$(projectDir)"` > /dev/null
@@ -29,7 +31,7 @@ function _chbranch() {
 			return 0
 			;;
 		2)
-			COMPREPLY=(`svn ls --non-interactive "$(branchURI)"`)
+			COMPREPLY=(`svn ls --non-interactive "$(branchURI $word)"`)
 			return 0
 			;;
 	esac

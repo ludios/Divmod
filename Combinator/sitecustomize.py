@@ -17,7 +17,7 @@ if sys.platform != 'darwin':
         # buggy...?
         execprefix = os.path.abspath(os.path.expanduser("~/.local"))
 
-    import distutils.command.install
+    import sys
 
     class DistSysProxy:
         def __getattr__(self, attr):
@@ -26,4 +26,4 @@ if sys.platform != 'darwin':
             else:
                 return getattr(sys, attr)
 
-    distutils.command.install.sys = DistSysProxy()
+    sys.modules['distutils.command.sys'] = DistSysProxy()

@@ -1,14 +1,14 @@
-
 import os
-import glob
 import site
-import warnings
 import sys
-import re
-import shutil
 
-_cmdLineQuoteRe = re.compile(r'(\\*)"')
+_cmdLineQuoteRe = None
+
 def _cmdLineQuote(s):
+    global _cmdLineQuoteRe
+    if _cmdLineQuoteRe is None:
+        import re
+        _cmdLineQuoteRe = re.compile(r'(\\*)"')
     if ' ' in s or '"' in s:
         return '"' + _cmdLineQuoteRe.sub(r'\1\1\\"', s) + '"'
     return s
@@ -16,6 +16,11 @@ def _cmdLineQuote(s):
 def prompt(s):
     p = os.getcwd().replace(os.path.expanduser('~'), '~')
     return p + '$ ' + s
+
+def warn(*a, **k):
+    import warnings
+    warnings.warn(*a, **k)
+
 
 def runcmd(*x):
     popenstr = ' '.join(map(_cmdLineQuote, x))
@@ -43,11 +48,15 @@ def runcmd(*x):
         raise ValueError("Command: %r exited with unexpected code: %d" % (
             popenstr, code))
 
-from xml.dom.minidom import parse
+def parse(*a, **k):
+    # We're in the critical path for sitecustomize, so let's not import
+    # anything that we don't need to.
+    from xml.dom.minidom import parse
+    return parse(*a, **k)
 
-# Yes, I know I wrote microdom, but this is a stdlib feature and microdom is
-# not.  this module really can't use *anything* outside the stdlib, because one
-# of its primary purposes is managing the path of your Twisted install!!
+    # Yes, I know I wrote microdom, but this is a stdlib feature and microdom is
+    # not.  this module really can't use *anything* outside the stdlib, because one
+    # of its primary purposes is managing the path of your Twisted install!!
 
 def addSiteDir(fsPath):
     if fsPath not in sys.path:
@@ -56,8 +65,8 @@ def addSiteDir(fsPath):
     elif 0:                     # We SHOULD emit a warning here, but all kinds
                                 # of tests set PYTHONPATH invalidly and cause
                                 # havoc.
-        warnings.warn("Duplicate path entry %r" % (fsPath,),
-                      UserWarning )
+        warn("Duplicate path entry %r" % (fsPath,),
+             UserWarning )
 
 
 
@@ -117,10 +126,12 @@ class BranchManager:
             addSiteDir(fsp)
 
     def getCurrentBranches(self):
-        for yth in glob.glob(os.path.join(self.sitePathsPath, "*.bch")):
-            projName = os.path.splitext(os.path.split(yth)[-1])[0]
-            branchPath = file(yth).read().strip()
-            yield projName, branchPath
+        for yth in os.listdir(self.sitePathsPath):
+            if yth.endswith('.bch'):
+                yth = os.path.join(self.sitePathsPath, yth)
+                projName = os.path.splitext(os.path.split(yth)[-1])[0]
+                branchPath = file(yth).read().strip()
+                yield projName, branchPath
 
     def getPaths(self):
         """ Yield all .bch-file paths as well as a locally-installed directory.
@@ -132,13 +143,13 @@ class BranchManager:
                 if branchPath != 'trunk':
                     m = "branch %s:%s at %r does not exist, trying trunk" % (
                         projName, branchPath, fsPath)
-                    warnings.warn(m, UserWarning)
+                    warn(m, UserWarning)
                     trunkFsPath = self.projectBranchDir(projName)
             if os.path.isdir(fsPath):
                 yield fsPath
             else:
-                warnings.warn('Not even trunk existed for %r' % (projName,),
-                              UserWarning )
+                warn('Not even trunk existed for %r' % (projName,),
+                     UserWarning )
 
         # platform-specific entry
 
@@ -189,6 +200,8 @@ class BranchManager:
         Swap which branch of a particular project we are 'working on'.  Adjust
         path files to note this difference.
         """
+        import shutil
+
         branchDirectory = self.projectBranchDir(projectName, branchRelativePath)
         trunkDirectory = self.projectBranchDir(projectName)
         if branchRelativePath == 'trunk' and not os.path.exists(trunkDirectory):
@@ -265,7 +278,7 @@ def getDefaultPath():
     # Am I somewhere I recognize?
     saf = splitall(__file__)
     if not saf[-5:-2] == ['Divmod', 'trunk', 'Combinator']:
-        warnings.warn(
+        warn(
             'Combinator sitecustomize located outside of Combinator directory, '
             'aborting (try passing --projects-dir)')
         return

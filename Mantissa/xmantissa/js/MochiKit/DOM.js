@@ -8,6 +8,8 @@ See <http://mochikit.com/> for documentation, downloads, license, etc.
 
 ***/
 
+// import MochiKit.Iter
+
 if (typeof(dojo) != 'undefined') {
     dojo.provide("MochiKit.DOM");
     dojo.require("MochiKit.Iter");

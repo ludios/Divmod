@@ -126,6 +126,8 @@ class BranchManager:
             addSiteDir(fsp)
 
     def getCurrentBranches(self):
+        if not os.path.isdir(self.sitePathsPath):
+            return
         for yth in os.listdir(self.sitePathsPath):
             if yth.endswith('.bch'):
                 yth = os.path.join(self.sitePathsPath, yth)

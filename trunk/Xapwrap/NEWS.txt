@@ -1,0 +1,8 @@
+0.3.2 (2006-07-05):
+  - Depend on Twisted
+  - Don't depend on Atop
+  - Don't silently drop log messages
+
+0.3.1 (2005-11-02):
+  - Use Epsilon Version
+  - Switch to Twisted Trial for unit tests

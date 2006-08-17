@@ -1,0 +1,164 @@
+import sys
+import os
+
+PATHVARS = 'PYTHONPATH', 'PATH', 'LD_LIBRARY_PATH', 'PATHEXT'
+
+def uniq(l):
+    tmpd = {}
+    nl = []
+    for x in l:
+        if not tmpd.has_key(x):
+            nl.append(x)
+            tmpd[x] = 1
+    return nl
+
+class Env:
+    def __init__(self):
+        self._d = {}
+        for k, v in os.environ.items():
+            if k in PATHVARS:
+                v = [(0, x) for x in uniq(v.split(os.pathsep)) if x]
+            self._d[k] = v
+        self.d = {}
+
+    def __setitem__(self, k, v):
+        self.d[k] = v
+
+    def setupList(self, k):
+        if not self.d.has_key(k):
+            if self._d.has_key(k):
+                self.d[k] = self._d[k]
+            else:
+                self.d[k] = []
+
+    def prePath(self, k, *paths):
+        self.setupList(k)
+        for path in paths:
+            self.d[k].insert(0, (-1, path))
+
+    def postPath(self, k, *paths):
+        self.setupList(k)
+        for path in paths:
+            self.d[k].append((1, path))
+
+    def export(self, how):
+        z = self.d.items()
+        z.sort()
+        if how == 'emacs':
+            fstr = '(setenv "%s" "%s")'
+            ffunc = lambda x: x.replace("\\", "\\\\").replace('"', '\\"')
+        else:
+            ffunc = repr
+            if how == 'tcsh':
+                fstr = 'setenv %s %s ;'
+            elif how == 'bat':
+                ffunc = lambda x: x # Windows does not like quoting in SET
+                                    # lines at *all*
+                fstr = 'set %s=%s'
+            elif how == 'msh':
+                fstr = '$env:%s=%s'
+            else:
+                fstr = 'export %s=%s;'
+        for k, v in z:
+            if isinstance(v, list):
+                v.sort()
+                v = os.pathsep.join(uniq([x[1] for x in v]))
+            print fstr % (k, ffunc(v))
+
+        combinator = os.path.split(os.path.split(__file__)[0])[0]
+
+        if how == 'zsh':
+            print """
+            fpath=($fpath %s)
+            """ % os.path.join(combinator, "zsh")
+        elif how == 'bash':
+            print ". " + os.path.join(combinator, "bash", "completion")
+
+
+def generatePythonPathVariable(nv):
+    nv.prePath('PYTHONPATH', os.path.split(os.path.split(__file__)[0])[0])
+
+
+def generatePathVariable(nv, svnProjectsDir=None, sitePathsPath=None):
+    from combinator import branchmgr
+    # since we're probably bootstrapping we need to make sure path entries are
+    # set up for this one run... this is a harmless no-op if not.
+    branchmgr.init(svnProjectsDir, sitePathsPath)
+
+    nv.prePath('PATH', branchmgr.theBranchManager.binCachePath)
+    if os.name == 'nt':
+        nv.postPath('PATHEXT', '.PY')
+    userBinPath = os.path.abspath(
+        os.path.expanduser("~/.local/bin"))
+    userLibPath = os.path.abspath(
+        os.path.expanduser("~/.local/lib"))
+    if os.path.exists(userBinPath):
+        nv.prePath("PATH", userBinPath)
+    if os.path.exists(userLibPath):
+        nv.prePath("LD_LIBRARY_PATH", userLibPath)
+
+    nv.d['COMBINATOR_PROJECTS'] = branchmgr.theBranchManager.svnProjectsDir
+    nv.d['COMBINATOR_PATHS'] = branchmgr.theBranchManager.sitePathsPath
+
+    # XXX move to separate command?
+    if not os.path.isdir(branchmgr.theBranchManager.binCachePath):
+        os.makedirs(branchmgr.theBranchManager.binCachePath)
+    for ent in sys.path:
+        branchBinDir = os.path.join(ent, 'bin')
+        if os.path.isdir(branchBinDir):
+            for binary in scriptsPresentIn(branchBinDir):
+                dst = os.path.join(branchmgr.theBranchManager.binCachePath,
+                                   binary)
+                if os.name == 'nt':
+                    dst += '.py'
+                src = os.path.join(
+                    os.path.dirname(os.path.dirname(__file__)),
+                    'bin', 'cham.py')
+                if not os.path.exists(dst):
+                    sys.stderr.write('link: %r => %r\n <on account of %r>\n' % (dst, src, ent))
+                    file(dst, 'w').write(file(src).read())
+                    if os.name != 'nt':
+                        os.chmod(dst, 0755)
+
+def splitup(pathname):
+    # split into a sequence of path segments.
+    return os.path.normpath(pathname).split(os.sep)
+
+def inHiddenDirectory(dirpath):
+    for segment in splitup(dirpath):
+        if segment.startswith('.'):
+            return True
+    return False
+
+def scriptsPresentIn(directory):
+    for dirpath, dirnames, filenames in os.walk(directory):
+        if inHiddenDirectory(dirpath):
+            # Don't descend into hidden directories, e.g. ".svn"
+            continue
+        for filename in filenames:
+            if (filename not in ('cham.py', 'cham.bat')
+                # let's skip these combinator-internal scripts.
+                and not filename.startswith(".")):
+                    # and hidden files
+                yield filename
+
+userShell = os.environ.get('SHELL', '')
+
+def gethow():
+    if len(sys.argv) > 1:
+        return sys.argv[1]
+    if sys.platform == 'win32':
+        return 'bat'
+    elif 'zsh' in userShell:
+        return 'zsh'
+    elif 'bash' in userShell:
+        return 'bash'
+    else:
+        return 'sh'
+
+def export(svnProjectsDir=None, sitePathsPath=None):
+    e = Env()
+    generatePythonPathVariable(e)
+    generatePathVariable(e, svnProjectsDir, sitePathsPath)
+    how = gethow()
+    e.export(how)

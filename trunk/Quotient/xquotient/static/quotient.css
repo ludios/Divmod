@@ -1,0 +1,663 @@
+table.tdb > tbody > tr > td { cursor: pointer; }
+
+.cancel-link {
+    margin-right: 4px;
+}
+
+.detail-toggle {
+    font-size: .8em;
+    font-style: italic;
+}
+
+.msg-detail-sent-date {
+    padding-right: 4px;
+    float: right;
+}
+
+.msg-detail-field-name {
+    color: #CCCCCC;
+    font-weight: bold;
+    padding-right: 6px;
+    text-align: right;
+    font-size: 1.2em;
+    white-space: nowrap;
+}
+
+.msg-subject {
+    font-weight: bold;
+}
+
+.msg-detail-field-body, .tags-container {
+    white-space: nowrap;
+}
+
+.msg-detail-field-body {
+    width: 100%;
+}
+
+.attach-dialog {
+    position: absolute;
+    background-color: #FFFFFF;
+    border: 3px double #999999;
+    z-index: 99;
+}
+
+#attach-dialog-bg {
+    background-color: #000000;
+    opacity: .4;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+}
+
+.cc-link:visited, .cc-link:link {
+    color: #0099CC;
+}
+
+.attach-dialog > tbody > tr > td {
+    border-bottom: solid 1px #999999;
+}
+
+.attach-dialog-header {
+    padding: 4px;
+    font-size: 1.2em;
+}
+
+iframe.cabinet {
+    border: 0px;
+    height: 60px;
+    width: 400px;
+    margin-top: 4px;
+}
+
+.dialog-title {
+    font-size: 1.3em;
+    border-bottom: solid 1px #999999;
+    color: #999999;
+    padding: 4px;
+    margin-bottom: 4px;
+}
+
+ul.file-list, ul.file-list li {
+    margin-top: 0px;
+    margin-bottom: 0px;
+    padding: none;
+}
+
+.header-table .buttons {
+    margin: 4px 0px 0px 4px;
+}
+
+.menubar-separator {
+    width: 2px;
+    background: #7FCCE5 url(/Quotient/static/images/menubar-separator.png) top left repeat-y;
+    margin: 0px 8px 0px 8px;
+    height: 20px;
+    float: left;
+}
+
+.quotient-menubar {
+    border-top: solid 1px #0099CC;
+    background-color: #7FCCE5;
+    border-bottom: solid 1px #0099CC;
+    width: 100%;
+}
+
+.extract-text > span {
+    background-color: #FFA366;
+    padding: 1px;
+}
+
+.complexity-icons {
+    padding-left: 4px;
+    float: left;
+}
+
+.person-message-list {
+    border-spacing: 4px;
+    color: #666666;
+    white-space: nowrap;
+}
+
+.no-messages {
+    padding: 6px;
+    font-size: 1.4em;
+}
+
+.unread-person-message:link, .unread-person-message:visited {
+    font-weight: bold;
+}
+
+.person-message-subject {
+    width: 100%;
+}
+
+.person-message-subject .subject-wrapper {
+    overflow: hidden;
+}
+
+/* the content table and the table that contains the bottom corners
+ * are both padded by 50px to the left so their left edges line up
+ * with each-other and the end of the divmod menubar icon */
+.content-table, .corner-footer {
+    padding-left: 50px;
+}
+
+.corner-footer {
+    position: relative;
+    top: -6px;
+    line-height: 0px;
+}
+
+.tags-container {
+    margin: 0px 2px 4px 2px;
+}
+
+.header-panel {
+    margin-bottom: 6px;
+    border-bottom: solid 1px #CACACA;
+}
+
+.view-pane-header {
+    background-color: #D9F0F7;
+}
+
+.message-source-container {
+    border-top: solid 1px #CACACA;
+    margin: 4px 2px 0px 2px;
+    clear: both;
+}
+
+.sender-container {
+    margin: 4px;
+    float: left;
+}
+
+.loading {
+    position: fixed;
+    z-index: 99;
+    background-color: #FFFFFF;
+    height: 100%;
+    width: 100%;
+}
+
+.excerpt-column {
+    clear: left;
+    padding: 4px 8px 4px 9px;
+    overflow: hidden;
+    border: solid 1px #000000;
+    border-left: none;
+}
+
+img.complexity-icon:hover {
+    cursor: pointer;
+}
+
+.complexity-icon, .selected-complexity-icon {
+    margin: 2px 0px 2px 2px;
+    vertical-align: middle;
+}
+
+img.corner {
+    vertical-align: top;
+}
+
+select.defer, table.button {
+    float: left;
+    margin-right: 4px;
+}
+
+a.button-container:link, a.button-container:visited, a.button-container:active {
+    color: #FFFFFF;
+}
+
+table.button {
+    table-layout: fixed;
+}
+
+.button-row {
+    line-height: 0px;
+}
+
+.button-top-edge {
+    background-image: url(/Quotient/static/images/button-top-edge.png);
+}
+
+.button-top-edge, .button-bottom-edge {
+    height: 3px;
+    background-repeat: repeat-x;
+}
+
+.button-bottom-edge {
+    background-image: url(/Quotient/static/images/button-bottom-edge.png);
+}
+
+.button-left-edge {
+    background-image: url(/Quotient/static/images/button-left-edge.png);
+}
+
+.button-right-edge {
+    background-image: url(/Quotient/static/images/button-right-edge.png);
+}
+
+.button-left-edge, .button-right-edge {
+    width: 3px;
+    background-repeat: repeat-y;
+}
+
+.button-content {
+    font: bold 90% Helvetica, Arial, sans-serif;
+    text-transform: uppercase;
+    background-color: #0099CC;
+}
+
+.button-content > a:active {
+    text-decoration: none;
+}
+
+.button-content > a:visited, .button-content > a:link {
+    color: #FFFFFF;
+}
+
+.scrolltable-cell {
+    width: 300px;
+}
+
+.scrolltable-header {
+    width: 100%;
+}
+
+.scrolltable-header-container {
+    background-color: #D9F0F7;
+}
+
+.left-block-footer, .mid-block-footer, .right-block-footer {
+    background-color: #D9F0F7;
+    border-left: solid 1px #7FCCE5;
+    border-bottom: solid 1px #7FCCE5;
+    border-top: solid 1px #7FCCE5;
+}
+
+.right-block-footer {
+    border-right: solid 1px #7FCCE5;
+}
+
+.view-shortcut-container {
+    white-space: nowrap;
+}
+
+.message-block {
+    width: 100%;
+}
+
+.sender {
+    color: #109FCF;
+}
+
+.subject {
+    font-size: 1.2em;
+}
+
+.sender-person-name {
+    color: #006600;
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+#overlay {
+    background-image: url(/Quotient/static/images/overlay.png);
+}
+
+.masthead-br {
+    float: right;
+    clear: right;
+}
+
+.selected-view-shortcut:link, .selected-view-shortcut:visited {
+    font-weight: bold;
+    color: #000000;
+}
+
+.view-shortcut:link, .view-shortcut:visited {
+    font-weight: bold;
+    color: #0099CC;
+}
+
+.masthead-bl {
+    float: left;
+    clear: left;
+}
+
+.corner-spacer {
+    position: relative;
+    margin-left: 6px;
+    width: 100%;
+}
+
+.left-corner {
+    float: left;
+}
+
+.right-corner {
+    position: absolute;
+    right: 0px;
+}
+
+.rounded-corner-spacer {
+    margin: 0px;
+    padding: 0px;
+    border: 0px;
+    clear: both;
+    font-size: 1px;
+    line-height: 1px;
+}
+
+.masthead-bl { margin: -7px 0px 0px -1px; }
+.masthead-br { margin: -7px -1px 0px 0px; }
+
+.message-detail-fragment { padding-left: 8px }
+.masthead-tr { margin: -1px -1px 0px 0px }
+.view-pane-tl { margin: 0px 0px 0px -1px }
+
+.masthead-content, .masthead-content-bottom {
+    background-color: #D2E6FF;
+    border: solid 1px #7FCCE5;
+    border-top: none;
+    border-left: none;
+    padding-top: 2px;
+}
+
+.masthead-content {
+    border-bottom: none;
+}
+
+.masthead-content {
+    padding-right: 4px;
+}
+
+.view-pane-container {
+    height: 100%;
+}
+
+.view-pane {
+    width: 200px;
+    height: 100%;
+    border-left: solid 1px #7FCCE5;
+    overflow: auto;
+}
+
+.view-pane-content {
+    border-bottom: solid 1px #7FCCE5;
+}
+
+.pane-body {
+    margin-bottom: 4px;
+}
+
+.view-pane-cell {
+    width: 200px;
+    height: 100%;
+    padding-bottom: 1px;
+}
+
+.views-collapsible-pane {
+    cursor: pointer;
+    font-weight: bold;
+    color: #11A0CF;
+    margin-bottom: 6px;
+}
+
+.list-option {
+    margin-top: 1px;
+    margin-bottom: 1px;
+}
+
+.list-option > span.opt-name, .selected-list-option > span.opt-name {
+    margin-left: 18px;
+}
+
+.list-option, .selected-list-option {
+    overflow: hidden;
+}
+
+.list-option:hover {
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.selected-list-option {
+    margin-top: 1px;
+    margin-bottom: 1px;
+    color: #FFFFFF;
+    background-color: #7FCCE5;
+}
+
+.q-scroll-row {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    font-size: .8em;
+    width: 99%;
+    margin: 0px 1px 1px 1px;
+    padding: 8px 0px 8px 0px;
+    background-color: #EDF8FB;
+}
+
+.q-scroll-row:visited, .q-scroll-row:link {
+    color: #000000;
+}
+
+.progress-bar {
+    height: 4px;
+    background: #D1FFA3 url(/Quotient/static/images/progress-bar-bg.png) top left repeat-x;
+}
+
+.progress-meter {
+    background-color: #6699CC;
+    border: solid 1px #6699CC;
+    margin-top: 2px;
+}
+
+.next-message-preview {
+    padding: 2px;
+    margin-left: 4px;
+    margin-bottom: 4px;
+    background-color: #DCF0FF;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.next-message > .next {
+    color: #81B1E2;
+}
+
+.actions-row {
+    background-color: #CCEBF5;
+    border-bottom: solid 1px #7FCCE5;
+    border-left: solid 1px #7FCCE5;
+}
+
+.progress-meter, .message-actions {
+    margin-left: 4px;
+}
+
+#add-person-fragment {
+    background-color: #FFFFFF;
+    position: absolute;
+    z-index: 99;
+}
+
+.draft-dialog {
+    background: #4ca1d8 url(/Mantissa/images/nav_bg.gif) top left repeat-x;
+    text-shadow: 2px 2px 1px #2A7DB3;
+    color: #FFFFFF;
+    padding: 2px 2px 0px 2px;
+    font-weight: bold;
+}
+
+* html #overlay{
+    background-color: #000;
+    back\ground-color: transparent;
+    background-image: url(/Quotient/static/images/blank.gif);
+}
+
+a.collapse-arrow {
+    color: #000000;
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+img.collapse-arrow {
+    padding-left: 4px;
+}
+
+.collapsible-pane {
+    background: #4ca1d8 url(/Mantissa/images/nav_bg.gif) top left repeat-x;
+    padding: 0px 2px 2px 2px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+#lightbox {
+    background-color:#eee;
+    padding: 10px;
+    border-bottom: 2px solid #666;
+    border-right: 2px solid #666;
+}
+
+#lightboxCaption {
+    font-size: 0.8em;
+    padding-top: 0.4em;
+}
+
+#lightbox img { border: none; }
+#overlay img { border: none; }
+
+.unread-message {
+    display: block;
+    font-weight: bold;
+}
+
+.read-message {
+    display: block;
+}
+
+#add-person-fragment {
+    position: absolute;
+    padding: 4px;
+    border: solid 1px #000000;
+}
+
+/* the header table */
+
+table.header-table {
+    width: 100%;
+    background-color: #CCEBF5;
+    border: solid 1px #7FCCE5;
+}
+
+.header-table-last-col {
+    width: 100%;
+}
+
+.header-table-first-col {
+    white-space: nowrap;
+    color: #666666;
+    font-weight: bold;
+}
+
+/* put a grey border around all other rows */
+table.header-table > tbody > tr > td {
+    padding: 1px 1px 8px 1px;
+}
+
+/* gallery stuff */
+
+.gallery-image {
+    background-image: url(/Quotient/static/images/slide-dark.png);
+    float: left;
+    padding: 4px;
+    margin-right: 4px;
+    width: 180px;
+    height: 180px;
+    background-position: top right;
+    background-repeat: no-repeat;
+    overflow: hidden;
+    white-space: nowrap;
+    text-align: center;
+    cursor: pointer;
+}
+
+.gallery-image-alt {
+    background-image: url(/Quotient/static/images/slide.png);
+    float: left;
+    padding: 4px;
+    margin-right: 4px;
+    width: 180px;
+    height: 180px;
+    background-position: top right;
+    background-repeat: no-repeat;
+    overflow: hidden;
+    white-space: nowrap;
+    text-align: center;
+}
+
+img.thumbnail { border: none; }
+
+.address-completions {
+    border: solid 1px #000000;
+    background-color: #FFFFFF;
+    padding: 2px;
+    overflow: hidden;
+    font-size: 1.1em;
+}
+
+.selected-address-completion {
+    background-color: #F1F1F1;
+}
+
+.quote-one {
+    border-left: solid 1px red;
+    margin-left: 4px;
+    padding-left: 2px;
+}
+
+.quote-two {
+    border-left: solid 1px blue;
+    margin-left: 4px;
+    padding-left: 2px;
+}
+.quote-three {
+    border-left: solid 1px green;
+    margin-left: 4px;
+    padding-left: 2px;
+}
+
+.message-detail {
+    overflow: auto;
+    height: 100%;
+    background-color: #FFFFFF;
+    border: solid 1px #7FCCE5;
+    border-top: none;
+    border-bottom: none;
+}
+
+.message-body {
+    font-family: monospace;
+    font-size: 1.6em;
+    padding-top: 2px;
+    padding-right: 6px;
+}
+
+.attachment, .image-attachment {
+    margin-left: 4px;
+    float: left;
+}
+
+div.attachment-panel > div.pane-body {
+    top: -1000px;
+    left: -1000px;
+    margin: 4px 0px 4px 0px;
+}

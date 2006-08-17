@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<?xml-stylesheet href="chrome://clickchronicle/content/css/clickchronicle.css" type="text/css"?>
+
+<window id="clickchronicle-login" title="Login" orient="horizontal" 
+  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+  xmlns:html="http://www.w3.org/1999/xhtml"
+  onload="gClickChronicleLoginPrompt.onLoadWindow()"
+  onclose="gClickChronicleLoginPrompt.onCloseWindow()"
+  style="padding: 5px;">
+
+  <script src="chrome://clickchronicle/content/js/login-prompt.js" type="application/x-javascript"/>
+
+  <keyset>
+    <key id="close_cmd" keycode="VK_ESCAPE"
+      oncommand="gClickChronicleLoginPrompt.onCloseWindow(); window.close();"/>
+    <key id="ok_cmd" keycode="VK_RETURN"
+      oncommand="gClickChronicleLoginPrompt.onClickLogin();"/>
+  </keyset>
+
+  <vbox flex="1">
+    <grid>
+      <columns>
+        <column/>
+        <column/>
+      </columns>
+
+      <rows>
+        <row>
+          <vbox>
+            <hbox style="padding: 0" align="center">
+              <label style="font-size: 1.2em; font-weight: bold" value="Login"/>
+              <label id="hostname"/>
+            </hbox>
+            <label value="Please enter your ClickChronicle login details"/>
+          </vbox>
+          <html:img src="../images/logo_small.png" width="43" height="39"/>
+        </row>
+      </rows>
+    </grid>
+
+    <html:hr/>
+    <spacer style="height: 1em"/>
+      <grid>
+        <columns>
+          <column/>
+          <column/>
+        </columns>
+
+        <rows>
+          <row align="center">
+            <label style="font-weight: bold;" value="Username"/>
+            <textbox id="username" name="username" formelement="true"/>
+          </row>
+
+          <row align="center">
+            <label style="font-weight: bold;" value="Password"/>
+            <textbox type="password" name="password" formelement="true"/>
+          </row>
+
+          <row align="center">
+            <label style="font-weight: bold;" value="Remember Me"/>
+            <checkbox align="start" name="rememberMe" formelement="true"/>
+          </row>
+
+        </rows>
+      </grid>
+
+      <hbox align="right">
+
+        <button label="Cancel" 
+          oncommand="gClickChronicleLoginPrompt.onCloseWindow(); window.close()"
+          accesskey="C"/>
+
+        <button label="Login" 
+          oncommand="gClickChronicleLoginPrompt.onClickLogin();"
+          accesskey="L"/>
+
+      </hbox>
+
+  </vbox>
+</window>
+

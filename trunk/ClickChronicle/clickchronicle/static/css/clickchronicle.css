@@ -1,0 +1,201 @@
+body { 
+    background-color: #FFFFFF;
+    font-family: "Trebuchet MS", Verdana, Arial, Helvetica, sans-serif;
+}
+
+.clickchronicle-favicon {
+    padding: 2px;
+    vertical-align: middle;
+}
+
+.hidden { display: none; }
+
+.footer {
+    margin-top: 5px;
+    color: #999999;
+    font-size: .8em;
+}
+
+#clicks-chronicled-container {
+    color: #999999;
+    font-style: italic;
+}
+
+#toolTipBox {
+    display: none;
+    padding: 5px;
+    border: black solid 1px;
+    position: absolute;
+    font-size: .9em;
+    opacity: .9;
+    background-color: #B0B0B0;
+    color: #000000;
+}
+
+form { margin-bottom: 4px; }
+#filterDialog { display: none }
+#filterDialog > form { margin-top: 4px; }
+
+.click-actions {
+    white-space: nowrap;
+}
+
+input.submit {
+    border: 3px double #999999;
+    border-top-color: #CCCCCC;
+    border-left-color: #CCCCCC;
+    background-color: #FFFFFF;
+    color: #333333;
+    font-size: 75%;
+    font-weight: bold;
+    margin-top: 4px;
+}
+
+input.text {
+    border: 1px solid #999999;
+    border-top-color: #CCCCCC;
+    border-left-color: #CCCCCC;
+    margin-right: 2px;
+    padding: 0.25em;
+    background-color: #FFFFFF;
+    color: #333333;
+    font-size: 75%;
+    font-weight: bold;
+}
+
+
+.firstInput { margin-right: 2px; }
+
+a:link    { color: #7c7777; text-decoration: none }
+a:visited { color: #7c7777; text-decoration: none }
+a:hover   { color: #575757; text-decoration: none }
+a:active  { color: #FFFFFF; text-decoration: underline }
+
+.navRow { 
+    background-image: url(/Mantissa/images/header_bg.png);
+    background-repeat: repeat-x;
+    background-position: bottom;
+    vertical-align: middle;
+}
+
+.navColFirst {
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+#navTable { 
+    border: solid 1px #CACACA;
+    margin-top: 5px;
+}
+
+img.navIcon { 
+    border: none; 
+    vertical-align: middle; 
+    display: none; 
+}
+
+.dialog { 
+    color: #9B9B9B;
+    font-size: 3em;
+    font-weight: bold;
+    text-align: center;
+    width: 100%;
+}
+
+.completionDialog {
+    color: #04a700;
+    font-weight: bold;
+    text-align: center;
+    width: 100%;
+}
+
+#tableContainer { width: 100%; }
+
+.fancyTable { 
+    width: 100%;
+    margin-top: 10px; 
+    margin-left: 15px; 
+    padding: 0; 
+    border: solid 1px #B0B0B0;
+    border-bottom: none;
+}
+
+.thinFancyTable {
+    width: 60%;
+    margin: 10px;
+    margin-left: 20px;
+    border: solid 1px #B0B0B0;
+    border-bottom: none;
+}
+
+tr.fancyRowFirst { 
+    background-color: #FFFFFF;
+    background-image: url(/Mantissa/images/header_bg.png);
+    background-repeat: repeat-x;
+    background-position: bottom left 
+}
+
+.fancyRowAlt { background: #DADADA }
+
+.fancyRowFirst > td { 
+    border-bottom: solid 1px #B0B0B0;
+    padding: 4px 4px 4px 4px;
+    font-weight: bold;
+    color: #9B9B9B;
+    letter-spacing: 1.5px;
+}
+
+.fancyRowHeader { 
+    border-bottom: solid 1px #B0B0B0;
+    border-right: solid 1px #B0B0B0;
+    padding: 4px 4px 4px 4px;
+    font-weight: bold;
+    color: #9B9B9B;
+    letter-spacing: 1.5px;
+}
+
+.fancyCellHeader {
+    text-align: center;
+    border-bottom: solid 1px #000000;
+    padding: 4px 4px 4px 4px;
+    font-weight: bold;
+    color: #9B9B9B;
+    letter-spacing: 1.5px;
+}
+
+.fancyCell {
+    background: #DADADA;
+    border-bottom: solid 1px #B0B0B0;
+    padding: 4px 4px 4px 4px;
+}
+
+.editCell { 
+    border-bottom: solid 1px #B0B0B0;
+    border-left: solid 1px #B0B0B0;
+    padding: 4px 4px 4px 4px;
+}
+
+.fancyCol { 
+    padding: 4px 4px 4px 4px; 
+    border-right: solid 1px #B0B0B0;
+    border-bottom: solid 1px #B0B0B0 
+}
+
+.sFancyCol { 
+    padding: 4px 4px 4px 4px; 
+    border-right:  solid 1px #B0B0B0;
+    border-bottom: solid 1px #B0B0B0;
+}
+
+td.sFancyCol:hover { 
+    background-image: url(/Mantissa/images/header_bg_hover.png);
+}
+
+.lastFancyCol  { padding: 4px 4px 4px 4px; border-bottom: solid 1px #B0B0B0 }
+.sLastFancyCol { padding: 4px 4px 4px 4px; border-bottom: solid 1px #B0B0B0 }
+
+td.sLastFancyCol:hover {
+    background-image: url(/Mantissa/images/header_bg_hover.png);
+}
+
+.linkIcon { border: 0; vertical-align: middle; }

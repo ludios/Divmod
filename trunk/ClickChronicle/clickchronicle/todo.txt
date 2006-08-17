@@ -1,0 +1,160 @@
+Features/Fixes to do:
+---------------------
+
+-Page processing
+Discover page encoding more effectively using BeautfiulSoup
+Discover page title using BS
+Create queue for indexing and removing from index to defend against
+race conditions and batch index changes for efficiency
+Ignore pages with a Content-Length header or number of bytes 
+over a threshold
+Look for rel="icon" link elements in HTML (some sites, like ours,
+don't put the icon at /favicon.ico)
+
+-UI
+Visual tweaks (bring back old nav style or better)
+Display username at the top of the page
+Display current view somewhere including search term
+Provide feedback on actions
+Rejig Nav some more
+Visually distinguish visits that are already bookmarks
+Visually distinguish each day in history
+Calendar view
+Build some tagging UI.
+Some kind of disk space usage statistics
+Charts of activity over time (clicks per hour/day. different sites)
+Define 2 additional actions: delete visit (as opposed to block domain) and "get info"
+Info page for visits and domains
+Display referrer information on visit info
+Allow blocked domains to be browsed and edited
+Implement domain browser that allows visits to domains to be viewed.
+Bookmarklet
+Quick search thingy
+Incorporate Alexa info:
+http://www.amazon.com/gp/browse.html/104-7021508-1251135?node=12782661
+Look at other APIs that may be relevant/useful:
+http://www.programmableweb.com/apis
+
+- Import/Export
+base64 each domain's favicon and embed in exported bookmarks, because ffox supports it
+RSS clickstream output
+Allow export of clicks and bookmarks in .zip or email. Use mozilla
+bookmark format.
+
+- Signup
+Enter email address
+Receive email from cc.com
+Go to cc.com and see "Welcome moe@divmod.com" please enter password
+Email address entry checks (empty string, no @, etc. Quotient may have some code for this)
+
+- Options
+Number of items per page (remove from browser page)
+Don't share anonymous clicks
+Password
+Export data
+
+- Public site (i.e. non-logged in view of cc.com)
+Scrolling "Recent clicks"
+Privacy Policy
+FAQ
+Popular most clicks
+Zeitgeist highest rate of change of clicks
+Clicks per day chart
+Sites per day chart
+
+- Private stats
+Same as public site
+
+- Extension
+Compile Greasemonkey script into standalone extension OR Fix our
+extension and move title stuff to server
+Allow uname, pword to be set so user does not need to log in
+Implement "exits from this page" option in extention.
+Use https to post urls to the server
+Allow user to define a tag that all their clicks get given for a
+particular length of time. e.g. If someone is researching a vacation
+they can tell us that they want all their clicks to be tagged vacation
+until they switch it off.
+
+- Environment for going live
+Set XAPIAN_PREFER_FLINT=1 in the environment to ensure flint format xapian db
+Install additional encoding a la erin
+
+-Misc.
+Replace asDict() with IContainer adaptation
+Even though favicons are cached we seem to request them every time the
+page loads :-/
+Figure out how to deal unicode search (depends on Xapian changes)
+Make SearchClicks a LivePage, not a live fragment
+
+
+Tests to do:
+------------
+Search fragment test
+Performance tests
+Automated code coverage reporting
+Functional tests e.g. login, click around the table, change password, search
+Unicode indexing
+Unicode search
+Queuing
+SubScheduler
+
+
+-----------------------------------------------------------------------------
+DONE!
+-----------------------------------------------------------------------------
+
+Features/Fixed done:
+--------------------
+Allow "bookmark this" function from browser and/or clicks list. (DONE)
+Bookmarks view (DONE)
+Force favicon to display at 16x16 (DONE)
+Allow clicky sorting of table by visits, etc. (DONE)
+Display favicon (DONE)
+Strip css out of html (DONE)
+The visible text for anchors does not get indexed (it's gobbled up by the html tag stripper) (DONE)
+Investigate beautiful soup for html parsing (DONE)
+Add "ignore" attribute to domains (DONE)
+Track and record referrer information. (DONE)
+Figure out how to do unicode indexing (DONE)
+Logout link to __logout__ (DONE)
+Extension/Add record/pause UI
+
+Tests done:
+-----------
+Visit MRU
+- set maxVisits to a small number and ensure that visits get removed correclty (DONE)
+- try revisiting a site in the list and make sure it does the right thing (DONE)
+  
+Referrer
+- referrer set to Visit or BookmarkVisit as needed (DONE)
+
+Visit added
+- Domain created (DONE)
+- Visit count adjusted (DONE)
+
+Visit cached
+- File exists (DONE)
+- Length of file is not 0 (DONE)
+
+Visit counts
+- Visit an url multiple times and ensure domain and visit visitCounts increment (DONE)
+
+Repeat visits
+- New visit is not created (DONE)
+- visitCount is incremented (DONE)
+- Existing visit time is updated (DONE)
+
+Visit removed/forgotten
+- document with Visit storeID is removed from index (DONE)
+- cached file is removed (DONE)
+
+Domain Blocked
+- Flag is set correctly on domain (DONE)
+- Exisiting visits removed; counts adjusted (DONE)
+- Subsequent visits to blocked domain do not create visits or increment counts (DONE)
+
+Visit indexed
+- able to retrieve Documente by storeID (DONE)
+- number of docs in index makes sense (NB. an empty SmartIndex contains 1 doc before any have been added) (DONE)
+- get a hit when searching (DONE)

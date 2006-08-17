@@ -1,8 +1,0 @@
-window.dialog { padding: 10px }
-label.enabled  { color: blue; text-decoration: underline }
-label.disabled { color: red;  text-decoration: underline } 
-label.title { font-size: 1.5em; font-weight: bold; text-align: right }
-label.field { font-weight: bold }
-treecell.field { font-style: italic }
-caption { font-weight: bold; font-size: 1.2em }
-description { font-size: .9em }

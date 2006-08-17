@@ -1,6 +1,0 @@
-#!/usr/bin/python
-
-from prime.gtk2prime import main
-
-# DO IT, DO IT NOW@$#!@
-main()

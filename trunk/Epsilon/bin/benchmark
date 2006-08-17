@@ -1,4 +1,0 @@
-#!/usr/bin/python
-
-from epsilon.scripts import benchmark
-benchmark.main()

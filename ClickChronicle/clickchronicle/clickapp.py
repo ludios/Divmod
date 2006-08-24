@@ -23,7 +23,7 @@ from axiom.tags import Catalog, Tag
 
 from vertex import q2q
 
-from xmantissa import ixmantissa, webnav, website, webapp, prefs, tdbview, sharing, liveform
+from xmantissa import ixmantissa, webnav, website, webapp, prefs, search, tdbview, sharing
 from xmantissa.webtheme import getLoader
 
 from clickchronicle import iclickchronicle, indexinghelp, clickbrowser
@@ -88,15 +88,34 @@ def benefactor1To2(oldBene):
 upgrade.registerUpgrader(benefactor1To2, 'clickchronicle_benefactor', 1, 2)
 
 
-class CCPreferenceCollection(Item, InstallableMixin, prefs.PreferenceCollectionMixin):
+class _ShareClicks(prefs.MultipleChoicePreference):
+    def __init__(self, value, collection):
+        valueToDisplay = {True:"Yes", False:"No"}
+        desc = 'If set to "Yes", your clicks will be aggregated anonymously'
+        super(_ShareClicks, self).__init__('shareClicks', value,
+                                           'Share Clicks (Anonymously)',
+                                           collection, desc,
+                                           valueToDisplay)
+
+class _PublicPagePreference(prefs.MultipleChoicePreference):
+    def __init__(self, value, collection):
+        valueToDisplay = {True: "Yes", False: "No"}
+        desc = 'If set To "Yes", you will get a public page'
+        super(_PublicPagePreference, self).__init__('publicPage', value,
+                                                    'Give me a public page',
+                                                    collection, desc,
+                                                    valueToDisplay)
+
+class CCPreferenceCollection(Item, InstallableMixin):
     implements(ixmantissa.IPreferenceCollection)
 
     schemaVersion = 2
     typeName = 'clickchronicle_preference_collection'
-    collectionName = 'ClickChronicle'
+    applicationName = 'ClickChronicle'
 
     installedOn = attributes.reference()
     shareClicks = attributes.boolean(default=True)
+    _cachedPrefs = attributes.inmemory()
 
     def publicPage():
         def get(self):
@@ -125,21 +144,21 @@ class CCPreferenceCollection(Item, InstallableMixin, prefs.PreferenceCollectionM
         super(CCPreferenceCollection, self).installOn(other)
         other.powerUp(self, ixmantissa.IPreferenceCollection)
 
-    def getPreferenceParameters(self):
-        return (liveform.Parameter('shareClicks',
-                                   liveform.CHECKBOX_INPUT,
-                                   bool,
-                                   'Share Clicks'),
-                liveform.Parameter('publicPage',
-                                   liveform.CHECKBOX_INPUT,
-                                   bool,
-                                   'Give Me A Public Page'))
+    def activate(self):
+        self._cachedPrefs = {"shareClicks" : _ShareClicks(self.shareClicks, self),
+                             "publicPage" : _PublicPagePreference(self.publicPage, self)}
+
+    def getPreferences(self):
+        return self._cachedPrefs
+
+    def setPreferenceValue(self, pref, value):
+        # see comment in xmantissa.prefs.DefaultPreferenceCollection
+        assert hasattr(self, pref.key)
+        setattr(pref, 'value', value)
+        self.store.transact(lambda: setattr(self, pref.key, value))
 
     def getSections(self):
         return None
-
-    def getTabs(self):
-        return (webnav.Tab('ClickChronicle', self.storeID, 0.0),)
 
 def ccPreferenceCollection1To2(old):
     return old.upgradeVersion('clickchronicle_preference_collection', 1, 2,

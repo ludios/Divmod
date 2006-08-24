@@ -1,14 +1,16 @@
+# -*- test-case-name: clickchronicle.test.test_theme -*-
 from xmantissa import webtheme
 from nevow import tags
 
 class ClickChronicleTheme(webtheme.XHTMLDirectoryTheme):
-    def head(self, website):
-        root = website.cleartextRoot()
+    def head(self, req, website):
+        root = website.cleartextRoot(req.getHeader('host'))
+        static = root.child('ClickChronicle').child('static')
         yield tags.link(
             rel="stylesheet",
             type="text/css",
-            href=root + "/ClickChronicle/static/css/clickchronicle.css")
+            href=static.child('css').child('clickchronicle.css'))
         yield tags.link(
             rel="icon",
             type="image/png",
-            href=root + "/ClickChronicle/static/images/favicon.png")
+            href=static.child('images').child('favicon.png'))

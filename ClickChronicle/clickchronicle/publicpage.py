@@ -103,6 +103,8 @@ class ClickStats(Item):
     lastClickInterval = attributes.integer(default=0)
     statKeeper = attributes.reference()
 
+    attributes.compoundIndex(statKeeper, url)
+
     def _getInterval(self):
         return self.statKeeper.interval
 
@@ -431,8 +433,14 @@ class PublicIndexPage(CCPublicPageMixin, PublicAthenaLivePage):
 
     def asDicts(self, clickStats):
         for item in clickStats:
+            clickQualifier = 'click'
+            if 1 < item.totalClicks:
+                clickQualifier += 's'
+
             yield dict(title=self.trimTitle(item.title),
-                       url=item.url, clicks=item.totalClicks)
+                       url=item.url,
+                       clicks=item.totalClicks,
+                       clickQualifier=clickQualifier)
 
     def render_totalClicks(self, ctx, data):
         return ctx.tag[self.publicPage.totalClicks]

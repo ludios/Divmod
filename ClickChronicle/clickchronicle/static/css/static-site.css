@@ -1,4 +1,4 @@
-body { 
+body {
     background-color: #FFFFFF;
     background-image: url(/ClickChronicle/static/images/divmod_watermark.png);
     background-position: bottom right;
@@ -7,10 +7,33 @@ body {
     font-family: "Trebuchet MS", Verdana, Arial, Helvetica, sans-serif;
 }
 
+.clickchronicle-tab {
+    padding: 4px;
+    margin-top: 4px;
+    white-space: nowrap;
+    font-size: 1.3em;
+    border: solid 1px #999999;
+    display: block;
+    background-image: url(/Mantissa/images/header_bg.png);
+    background-color: #FFFFFF;
+    background-position: bottom left;
+    background-repeat: repeat-x;
+}
+
+.clickchronicle-tab:hover {
+    border-color: #000000;
+    color: #000000;
+}
+
+.clickchronicle-nav {
+    margin: 0px 20px 0px 10px;
+}
+
 .footer {
     margin-top: 5px;
     color: #999999;
     font-size: .8em;
+    text-align: center;
 }
 
 a:link    { color: #7c7777; text-decoration: none }
@@ -76,7 +99,6 @@ input.text {
 
 .click-container {
     padding: 2px;
-    font-size: .8em;
     vertical-align: top;
 }
 
@@ -85,10 +107,11 @@ input.text {
 }
 
 .click-set-collection {
+    margin-left: 20px;
     width: 85%;
 }
 
-.click-set-collection > thead > tr > td {
+.click-set-title-row td {
     width: 50%;
     border: solid 1px #999999;
     background-image: url(/Mantissa/images/header_bg.png);
@@ -96,4 +119,5 @@ input.text {
     background-position: bottom left;
     background-repeat: repeat-x;
     text-align: center;
+    font-size: 1.3em;
 }

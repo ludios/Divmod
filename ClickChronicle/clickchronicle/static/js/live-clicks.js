@@ -1,4 +1,5 @@
 // import ClickChronicle
+// import MochiKit.DOM
 
 ClickChronicle.LiveClicks = Nevow.Athena.Widget.subclass('ClickChronicle.LiveClicks');
 ClickChronicle.LiveClicks.methods(

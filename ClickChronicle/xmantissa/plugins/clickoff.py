@@ -10,8 +10,9 @@ ccBenefactorArgs = [
     liveform.Parameter('maxClicks',
          liveform.TEXT_INPUT,
          int,
+         u'Max Clicks',
          u'The number of clicks users will be allowed to store at once.',
-         u'1000')
+         1000)
     ]
 
 chronicler = provisioning.BenefactorFactory(
@@ -25,8 +26,9 @@ ccIncreaserArgs = [
     liveform.Parameter('clickChange',
          liveform.TEXT_INPUT,
          int,
+         u'Click Change',
          u'The number of additional clicks users will be allowed to store at once.',
-         u'1000')
+         1000)
     ]
 
 clicks = provisioning.BenefactorFactory(

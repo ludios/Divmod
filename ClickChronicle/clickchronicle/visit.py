@@ -111,7 +111,7 @@ class Visit(Item, VisitMixin, DisplayableVisitMixin):
     """I correspond to a webpage-visit logged by a clickchronicle user"""
     implements(iclickchronicle.IIndexable)
 
-    timestamp = attributes.timestamp()
+    timestamp = attributes.timestamp(indexed=True)
     url = attributes.bytes(allowNone=False)
     title = attributes.text(allowNone=False)
     visitCount = attributes.integer(default=0)

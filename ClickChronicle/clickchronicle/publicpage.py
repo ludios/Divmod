@@ -347,7 +347,7 @@ class CCPublicPage(CCPublicPageMixin, PublicPage):
     pass
 
 class ClickObserverFragment(athena.LiveFragment):
-    jsClass = 'ClickChronicle.LiveClicks'
+    jsClass = u'ClickChronicle.LiveClicks'
 
     def __init__(self, indexPage, tag):
         self.indexPage = indexPage

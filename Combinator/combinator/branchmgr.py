@@ -60,8 +60,13 @@ def parse(*a, **k):
 
 def addSiteDir(fsPath):
     if fsPath not in sys.path:
-        sys.path.insert(0, fsPath)
+        chop = len(sys.path)
         site.addsitedir(fsPath)
+        # Put everything at the beginning of the path (overriding the site
+        # installation directory), since Python likes to put it at the end.
+        spc = sys.path[chop:]
+        del sys.path[chop:]
+        sys.path[0:0] = spc
     elif 0:                     # We SHOULD emit a warning here, but all kinds
                                 # of tests set PYTHONPATH invalidly and cause
                                 # havoc.

@@ -4,7 +4,6 @@ from twisted.internet import defer
 from twisted.application import service
 
 from axiom import store, item, attributes, scheduler
-from axiom.dependency import installOn
 
 from clickchronicle import queue
 
@@ -20,9 +19,9 @@ class TestTask(item.Item):
 class QueueTestCase(unittest.TestCase):
     def setUp(self):
         self.store = store.Store()
-
+        self.scheduler = scheduler.Scheduler(store=self.store)
+        self.scheduler.installOn(self.store)
         self.queue = queue.Queue(store=self.store)
-        installOn(self.queue, self.store)
 
         service.IService(self.store).startService()
 

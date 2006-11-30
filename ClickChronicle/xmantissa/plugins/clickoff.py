@@ -63,7 +63,7 @@ plugin = offering.Offering(
     appPowerups = (
         clickapp.StaticShellContent,
         publicpage.ClickChroniclePublicPage),
-    installablePowerups = (),
+
     benefactorFactories = (chronicler, clicks),
     loginInterfaces = (),
     themes=[cctheme.ClickChronicleTheme('cc-base', 0)])

@@ -6,8 +6,6 @@ from twisted.python import log, reflect
 from epsilon import extime
 
 from axiom import iaxiom, item, attributes
-from axiom.scheduler import Scheduler
-from axiom.dependency import dependsOn
 
 class TaskError(Exception):
     """
@@ -64,8 +62,6 @@ class Queue(item.Item):
 
     running = attributes.inmemory()
     _waitingForQuiet = attributes.inmemory()
-
-    scheduler = dependsOn(Scheduler)
 
     def __len__(self):
         return self.store.count(_Task, _Task.queue == self)
@@ -124,8 +120,8 @@ class Queue(item.Item):
                 d.callback(None)
 
     def _reschedule(self):
-
-        self.scheduler.schedule(
+        sch = iaxiom.IScheduler(self.store)
+        sch.schedule(
             self,
             extime.Time())
 

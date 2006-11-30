@@ -15,7 +15,7 @@ from nevow.athena import expose
 
 from epsilon import juice
 
-from axiom.item import Item
+from axiom.item import Item, InstallableMixin
 from axiom import attributes, errors
 from axiom.tags import Catalog, Tag
 from axiom.upgrade import registerUpgrader
@@ -196,7 +196,7 @@ def nextInterval(now, interval):
     return (now // interval * interval) + interval
 
 HISTORY_DEPTH = 25
-class ClickChroniclePublicPage(Item):
+class ClickChroniclePublicPage(Item, InstallableMixin):
     implements(ixmantissa.IPublicPage)
 
     typeName = 'clickchronicle_public_page'
@@ -222,7 +222,9 @@ class ClickChroniclePublicPage(Item):
         self.clickLogFile = self.store.newFilePath('clicks.log').open('a')
         self.updateLowestPopularScore()
 
-    powerupInterfaces = (ixmantissa.IPublicPage)
+    def installOn(self, other):
+        super(ClickChroniclePublicPage, self).installOn(other)
+        other.powerUp(self, ixmantissa.IPublicPage)
 
     def getResource(self):
         return PublicIndexPage(self, ixmantissa.IStaticShellContent(self.installedOn, None))

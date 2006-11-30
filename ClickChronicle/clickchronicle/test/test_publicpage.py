@@ -5,7 +5,6 @@ from twisted.trial import unittest
 from epsilon import extime
 
 from axiom import store
-from axiom.dependency import installOn
 
 from clickchronicle import publicpage
 
@@ -230,7 +229,7 @@ class ClickStatsTests(unittest.TestCase):
 
     def testTagPopularity(self):
         pp = publicpage.ClickChroniclePublicPage(store=self.store)
-        installOn(pp, self.store)
+        pp.installOn(self.store)
         # just a simple sanity check until we add configurable
         # tag-assigners
         clicks = list(pp.highestScoredByTag(unicode(self.mktemp()), limit=1))

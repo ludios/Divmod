@@ -7,7 +7,6 @@ from twisted.web import error as weberror
 from axiom.item import Item
 from axiom import attributes
 from axiom.upgrade import registerUpgrader
-from axiom.dependency import installOn
 
 from nevow.url import URL
 from nevow import rend
@@ -35,7 +34,8 @@ class SyncIndexer(Item):
 
     implements(IIndexer)
 
-    powerupInterfaces = (IIndexer)
+    def installOn(self, other):
+        other.powerUp(self, IIndexer)
 
     def _setIndexCount(self, newCount):
         def txn():
@@ -113,7 +113,6 @@ class FaviconViewer(rend.Page):
 
 class FaviconView(Item, website.PrefixURLMixin):
     implements(ixmantissa.ISiteRootPlugin)
-    powerupInterfaces = (ixmantissa.ISiteRootPlugin)
     typeName = 'clickchronicle_favicon_viewer'
     schemaVersion = 1
 
@@ -134,7 +133,7 @@ class FaviconMixin(object):
             break
         else:
             fv = FaviconView(store=self.store)
-            installOn(fv, self.store)
+            fv.installOn(self.store)
 
         self.faviconView = fv
 
@@ -307,10 +306,13 @@ class CacheManager(Item):
     tasks = attributes.reference()
 
     implements(ICache)
-    powerupInterfaces = (ICache)
+
     def __init__(self, **kw):
         super(CacheManager, self).__init__(**kw)
         self.tasks = queue.Queue(store=self.store)
+
+    def installOn(self, other):
+        other.powerUp(self, ICache)
 
     def rememberVisit(self, visit, cacheIt=False, indexIt=True, storeFavicon=True):
         """

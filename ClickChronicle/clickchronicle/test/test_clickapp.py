@@ -1,5 +1,6 @@
 from twisted.trial.unittest import TestCase
 from nevow.url import URL
+from axiom.dependency import installOn, uninstallFrom
 from clickchronicle.clickapp import ClickRecorder
 from clickchronicle.visit import Visit, Domain, BookmarkVisit, Bookmark
 from clickchronicle.test.base import CCTestBase
@@ -7,7 +8,7 @@ from clickchronicle.test.base import CCTestBase
 allTitles = lambda visits: (v.title for v in visits)
 
 class ClickRecorderTestCase(CCTestBase, TestCase):
-    def setUpClass(self):
+    def setUp(self):
         self.setUpStore()
 
     def tearDown(self):
@@ -54,11 +55,12 @@ class ClickRecorderTestCase(CCTestBase, TestCase):
         self.assertEqual(refereeVisit.referrer.url, visit.url)
 
     def testDeletionOfOldestVisit(self, maxCount=5):
+        uninstallFrom(self.recorder, self.substore)
         self.recorder.deleteFromStore()
         del self.recorder
 
         self.recorder = ClickRecorder(store=self.substore, maxCount=maxCount)
-        self.recorder.installOn(self.substore)
+        installOn(self.recorder, self.substore)
         urls = list(self.urlsWithSameDomain(count=maxCount+1))
 
         limitUrls = urls[:-1]

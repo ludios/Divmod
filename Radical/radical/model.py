@@ -10,7 +10,7 @@ from axiom import item, attributes
 from xmantissa import ixmantissa
 
 
-class Game(item.Item, item.InstallableMixin):
+class Game(item.Item):
     """
     Application powerup which contains all of the non-player game
     state.
@@ -28,9 +28,7 @@ class Game(item.Item, item.InstallableMixin):
             self.world = World(store=self.store)
 
 
-    def installOn(self, other):
-        super(Game, self).installOn(other)
-        other.powerUp(self, ixmantissa.IPublicPage)
+    powerupInterfaces = (ixmantissa.IPublicPage)
 
 
     def getResource(self):

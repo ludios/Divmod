@@ -23,7 +23,7 @@ def cssLocation(name):
     return _static.child('css').child(name + '.css')
 
 
-class RadicalUserApplication(item.Item, item.InstallableMixin):
+class RadicalUserApplication(item.Item):
     """
     User Powerup which lets someone enter a Radical game.
     """
@@ -33,9 +33,7 @@ class RadicalUserApplication(item.Item, item.InstallableMixin):
     A reference to the avatar on which this application has been installed.
     """)
 
-    def installOn(self, other):
-        super(RadicalUserApplication, self).installOn(other)
-        other.powerUp(self, ixmantissa.INavigableElement)
+    powerupInterfaces = (ixmantissa.INavigableElement)
 
 
     def getWorld(self):

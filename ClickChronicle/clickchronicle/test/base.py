@@ -5,6 +5,8 @@ from nevow.url import URL
 
 from axiom.store import Store
 from axiom.scripts import axiomatic
+from axiom.dependency import installOn
+from axiom.userbase import LoginSystem
 
 from xmantissa import signup, offering
 from xmantissa.plugins import clickoff
@@ -35,22 +37,18 @@ class CCTestBase:
             {})
 
         booth = store.findOrCreate(signup.TicketBooth)
-        booth.installOn(store)
-
-        benefactor = clickapp.ClickChronicleBenefactor(
-            store=store,
-            maxClicks=1000)
-        benefactor.installOn(store)
-
-        ticket = booth.createTicket(booth, u'x@y.z', benefactor)
-        ticket.claim()
+        installOn(booth, store)
 
         self.superstore = store
-        self.substore = ticket.avatar.avatars.substore
+        self.loginSystem = LoginSystem(store=store)
+        installOn(self.loginSystem, store)
 
-        self.recorder = self.firstItem(self.substore, clickapp.ClickRecorder)
+        self.substore = self.loginSystem.addAccount(u"foo", u"example.com", None).avatars.open()
+
+        self.recorder = clickapp.ClickRecorder(store=self.substore)
+        installOn(self.recorder, self.substore)
         self.recorder.caching = False
-        self.clicklist = self.firstItem(self.substore, clickapp.ClickList)
+        self.clicklist = self.recorder.clickList
 
     def makeVisit(self, url='http://some.where', title='Some Where', indexIt=True):
         rootUrl = str(URL.fromString(url).click('/'))

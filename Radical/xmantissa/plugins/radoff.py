@@ -13,6 +13,7 @@ offer = offering.Offering(
     siteRequirements = [
         (inevow.IResource, website.WebSite)],
     appPowerups = [model.Game],
+    installablePowerups = [],
     benefactorFactories = [
         provisioning.BenefactorFactory(
             u'Radical Game',

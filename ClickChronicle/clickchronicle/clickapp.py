@@ -17,9 +17,10 @@ from nevow.athena import expose
 
 from epsilon.extime import Time
 
-from axiom.item import Item, InstallableMixin, declareLegacyItem
+from axiom.item import Item, declareLegacyItem
 from axiom import upgrade, userbase, scheduler, attributes, errors
 from axiom.tags import Catalog, Tag
+from axiom.dependency import dependsOn
 
 from vertex import q2q
 
@@ -53,31 +54,6 @@ class ClickChronicleBenefactor(Item):
     # able to store.
     maxClicks = attributes.integer(default=1000)
 
-    def installOn(self, other):
-        other.powerUp(self, ixmantissa.IBenefactor)
-
-    def endow(self, ticket, avatar):
-        self.endowed += 1
-
-        avatar.findOrCreate(website.WebSite).installOn(avatar)
-        avatar.findOrCreate(webapp.PrivateApplication).installOn(avatar)
-
-        avatar.findOrCreate(scheduler.SubScheduler).installOn(avatar)
-        avatar.findOrCreate(StaticShellContent).installOn(avatar)
-
-        rec = avatar.findOrCreate(ClickRecorder)
-        rec.maxCount = self.maxClicks
-        rec.installOn(avatar)
-
-        for item in (ClickList, BlockedDomainList, DomainList, indexinghelp.SyncIndexer,
-                     BookmarkList, CCSearchProvider, indexinghelp.CacheManager,
-                     GetExtension, CCPreferenceCollection):
-            avatar.findOrCreate(item).installOn(avatar)
-
-    def deprive(self, ticket, avatar):
-        avatar.findFirst(StaticShellContent).deleteFromStore()
-        avatar.findFirst(ClickRecorder).deleteFromStore()
-
 
 def benefactor1To2(oldBene):
     newBene = oldBene.upgradeVersion(
@@ -87,16 +63,43 @@ def benefactor1To2(oldBene):
     return newBene
 upgrade.registerUpgrader(benefactor1To2, 'clickchronicle_benefactor', 1, 2)
 
+class ClickList(Item):
+    """similar to Preferences, i am an implementor of INavigableElement,
+       and PrivateApplication will find me when when it looks in the user's
+       store"""
 
-class CCPreferenceCollection(Item, InstallableMixin, prefs.PreferenceCollectionMixin):
+    implements(ixmantissa.INavigableElement,
+               iclickchronicle.IClickList)
+    typeName = 'clickchronicle_clicklist'
+    schemaVersion = 1
+
+    installedOn = attributes.reference()
+    clicks = attributes.integer(default = 0)
+
+    powerupInterfaces = (ixmantissa.INavigableElement,)
+
+    def getTabs(self):
+        """show a link to myself in the navbar"""
+        return [webnav.Tab('Clicks', self.storeID, 0.9)]
+
+    allowedActions = (clickbrowser.bookmarkAction,
+         clickbrowser.ignoreVisitAction,
+         clickbrowser.privateVisitToggleAction,
+         clickbrowser.deleteAction)
+
+
+
+class CCPreferenceCollection(Item, prefs.PreferenceCollectionMixin):
     implements(ixmantissa.IPreferenceCollection)
 
-    schemaVersion = 2
+    schemaVersion = 3
     typeName = 'clickchronicle_preference_collection'
     collectionName = 'ClickChronicle'
 
-    installedOn = attributes.reference()
     shareClicks = attributes.boolean(default=True)
+
+    clicklist = dependsOn(ClickList)
+    powerupInterfaces = (ixmantissa.IPreferenceCollection,)
 
     def publicPage():
         def get(self):
@@ -110,20 +113,16 @@ class CCPreferenceCollection(Item, InstallableMixin, prefs.PreferenceCollectionM
                 return False
 
         def set(self, value):
-            theClickList = list(self.store.query(ClickList))[0]
             if value:
                 sharing.shareItem(
-                        theClickList,
+                        self.clicklist,
                         shareID=u'clicks',
                         toRole=sharing.getEveryoneRole(self.store))
             else:
-                sharing.unShare(theClickList)
+                sharing.unShare(self.clicklist)
         return get, set
     publicPage = property(*publicPage())
 
-    def installOn(self, other):
-        super(CCPreferenceCollection, self).installOn(other)
-        other.powerUp(self, ixmantissa.IPreferenceCollection)
 
     def getPreferenceParameters(self):
         return (liveform.Parameter('shareClicks',
@@ -146,9 +145,18 @@ def ccPreferenceCollection1To2(old):
                               installedOn=old.installedOn,
                               shareClicks=old.shareClicks)
 
-upgrade.registerUpgrader(ccPreferenceCollection1To2, 'clickchronicle_preference_collection', 1, 2)
+def ccPreferenceCollection2to3(old):
+    return old.upgradeVersion('clickchronicle_preference_collection', 2, 3,
+                              clicklist=old.store.findOrCreate(ClickList),
+                              shareClicks=old.shareClicks)
 
-class ClickChronicleInitializer(Item, InstallableMixin):
+declareLegacyItem('clickchronicle_preference_collection', 2,
+                  dict(installedOn=attributes.reference(),
+                       shareClicks=attributes.boolean()))
+upgrade.registerUpgrader(ccPreferenceCollection1To2, 'clickchronicle_preference_collection', 1, 2)
+upgrade.registerUpgrader(ccPreferenceCollection2to3, 'clickchronicle_preference_collection', 2, 3)
+
+class ClickChronicleInitializer(Item):
     """
     Installed by the Click Chronicle benefactor, this Item presents
     itself as a page for initializing your password.  Once done, the
@@ -162,9 +170,7 @@ class ClickChronicleInitializer(Item, InstallableMixin):
     installedOn = attributes.reference()
     maxClicks = attributes.integer()
 
-    def installOn(self, other):
-        super(ClickChronicleInitializer, self).installOn(other)
-        other.powerUp(self, ixmantissa.INavigableElement)
+    powerupInterfaces = (ixmantissa.INavigableElement,)
 
     def getTabs(self):
         # This won't ever actually show up
@@ -181,21 +187,6 @@ class ClickChronicleInitializer(Item, InstallableMixin):
             acc.password = password
             self._reallyEndow()
             return
-
-    def _reallyEndow(self):
-        avatar = self.installedOn
-
-        rec = avatar.findOrCreate(ClickRecorder)
-        rec.maxCount = self.maxClicks
-        rec.installOn(avatar)
-
-        for item in (ClickList, DomainList, indexinghelp.SyncIndexer,
-                     BookmarkList, CCSearchProvider, indexinghelp.CacheManager,
-                     GetExtension, CCPreferenceCollection):
-            avatar.findOrCreate(item).installOn(avatar)
-
-        avatar.powerDown(self, ixmantissa.INavigableElement)
-        self.deleteFromStore()
 
 def initializer1To2(oldInit):
     newInit = oldInit.upgradeVersion(
@@ -216,34 +207,8 @@ declareLegacyItem('clickchronicle_password_initializer', 2,
 upgrade.registerUpgrader(initializer1To2, 'clickchronicle_password_initializer', 1, 2)
 upgrade.registerUpgrader(initializer2To3, 'clickchronicle_password_initializer', 2, 3)
 
-class ClickList(Item, InstallableMixin):
-    """similar to Preferences, i am an implementor of INavigableElement,
-       and PrivateApplication will find me when when it looks in the user's
-       store"""
 
-    implements(ixmantissa.INavigableElement,
-               iclickchronicle.IClickList)
-    typeName = 'clickchronicle_clicklist'
-    schemaVersion = 1
-
-    installedOn = attributes.reference()
-    clicks = attributes.integer(default = 0)
-
-    def installOn(self, other):
-        super(ClickList, self).installOn(other)
-        other.powerUp(self, ixmantissa.INavigableElement)
-
-    def getTabs(self):
-        """show a link to myself in the navbar"""
-        return [webnav.Tab('Clicks', self.storeID, 0.9)]
-
-    allowedActions = (clickbrowser.bookmarkAction,
-         clickbrowser.ignoreVisitAction,
-         clickbrowser.privateVisitToggleAction,
-         clickbrowser.deleteAction)
-
-
-class DomainList(Item, InstallableMixin):
+class DomainList(Item):
     """similar to Preferences, i am an implementor of INavigableElement,
        and PrivateApplication will find me when when it looks in the user's
        store"""
@@ -254,25 +219,19 @@ class DomainList(Item, InstallableMixin):
 
     installedOn = attributes.reference()
     clicks = attributes.integer(default = 0)
-
-    def installOn(self, other):
-        super(DomainList, self).installOn(other)
-        other.powerUp(self, ixmantissa.INavigableElement)
+    powerupInterfaces = (ixmantissa.INavigableElement,)
 
     def getTabs(self):
         '''show a link to myself in the navbar'''
         return [webnav.Tab('Domains', self.storeID, 0.8)]
 
-class BlockedDomainList(Item, InstallableMixin):
+class BlockedDomainList(Item):
     implements(ixmantissa.INavigableElement)
     typeName = 'clickchronicle_blocked_domain_list'
     schemaVersion = 1
 
     installedOn = attributes.reference()
-
-    def installOn(self, other):
-        super(BlockedDomainList, self).installOn(other)
-        other.powerUp(self, ixmantissa.INavigableElement)
+    powerupInterfaces = (ixmantissa.INavigableElement,)
 
     def getTabs(self):
         return [webnav.Tab('Filtered Domains', self.storeID, 0.7)]
@@ -303,7 +262,7 @@ registerAdapter(ClickListFragment,
                 iclickchronicle.IClickList,
                 ixmantissa.INavigableFragment)
 
-class BookmarkList(Item, InstallableMixin):
+class BookmarkList(Item):
     """similar to Preferences, i am an implementor of INavigableElement,
        and PrivateApplication will find me when when it looks in the user's
        store"""
@@ -314,10 +273,7 @@ class BookmarkList(Item, InstallableMixin):
 
     installedOn = attributes.reference()
     clicks = attributes.integer(default = 0)
-
-    def installOn(self, other):
-        super(BookmarkList, self).installOn(other)
-        other.powerUp(self, ixmantissa.INavigableElement)
+    powerupInterfaces = (ixmantissa.INavigableElement,)
 
     def getTabs(self):
         '''show a link to myself in the navbar'''
@@ -421,16 +377,13 @@ registerAdapter(BlockedDomainListFragment,
                 BlockedDomainList,
                 ixmantissa.INavigableFragment)
 
-class GetExtension(Item, InstallableMixin):
+class GetExtension(Item):
     implements(ixmantissa.INavigableElement)
     typeName = 'clickchronicle_get_extension'
     schemaVersion = 1
 
     installedOn = attributes.reference()
-
-    def installOn(self, other):
-        super(GetExtension, self).installOn(other)
-        other.powerUp(self, ixmantissa.INavigableElement)
+    powerupInterfaces = (ixmantissa.INavigableElement,)
 
     def getTabs(self):
         return [webnav.Tab('Get Extension', self.storeID, 0.5)]
@@ -467,6 +420,86 @@ def sendToPublicPage(senderAvatar, toAddress, protocol, message):
     else:
         assert False, 'shock horror. cannot find a system user'
 
+class StaticShellContent(Item):
+    implements(ixmantissa.IStaticShellContent)
+
+    schemaVersion = 2
+    typeName = 'clickchronicle_static_shell_content'
+
+    installedOn = attributes.reference()
+    powerupInterfaces = (ixmantissa.IStaticShellContent,)
+
+    def getHeader(self):
+        return tags.a(href="/")[tags.img(border=0, src=makeStaticURL("images/logo.png"))]
+
+    def getFooter(self):
+        return (entities.copy, "Divmod 2005")
+
+class CCSearchProvider(Item):
+    implements(ixmantissa.ISearchProvider)
+    installedOn = attributes.reference()
+    schemaVersion = 1
+    typeName = 'clickchronicle_search_provider'
+
+    indexer = attributes.inmemory()
+    powerupInterfaces = (ixmantissa.ISearchProvider,)
+
+    def activate(self):
+        self.indexer = None
+
+    def _cachePowerups(self):
+        self.indexer = iclickchronicle.IIndexer(self.installedOn)
+
+    def count(self, term):
+        if self.indexer is None:
+            self._cachePowerups()
+
+        term = ' '.join(parseSearchString(term))
+        (estimated, total) = self.indexer.count(term)
+        return defer.succeed(estimated)
+
+    def _syncSearch(self, term, count, offset):
+        if self.indexer is None:
+            self._cachePowerups()
+
+        term = ' '.join(parseSearchString(term))
+
+        doSearch = lambda **k: self.indexer.search(str(term), startingIndex=offset,
+                                                   batchSize=count, **k)
+
+        # this try/except is for compatability with indices created before
+        # we started storing a Value with the key "summary".  if a user
+        # with such a index does a search, and xapwrap explodes, we'll do
+        # the search again, and wont ask for the summary key.  this will
+        # be a non-issue once said user records a click
+
+        try:
+            specs = doSearch(valuesWanted=('summary','_STOREID'))
+        except NoIndexValueFound:
+            specs = doSearch()
+
+        for spec in specs:
+            visit = self.store.getItemByID(int(spec['values']['_STOREID']))
+            yield dict(description=visit.title, url=visit.url,
+                       summary=spec.get('values', dict()).get('summary', ''),
+                       timestamp=visit.timestamp,
+                       score=spec['score'] / 100.0)
+
+
+    def _wrapResults(self, results):
+        class Results(athena.LiveFragment):
+            docFactory = loaders.stan(
+                            tags.ul[
+                                list(
+                                    tags.li[
+                                        tags.a(href=d['url'])[d['url']]]
+                                    for d in results)])
+        return Results()
+
+    def search(self, term, keywords, count, offset):
+        return defer.succeed(self._wrapResults(self._syncSearch(term, count, offset)))
+
+
 class ClickRecorder(Item, website.PrefixURLMixin):
     """
     I exist independently of the rest of the application and accept
@@ -475,10 +508,25 @@ class ClickRecorder(Item, website.PrefixURLMixin):
     implements(ixmantissa.ISiteRootPlugin, iclickchronicle.IClickRecorder)
 
     typeName = 'clickchronicle_clickrecorder'
-    schemaVersion = 1
+    schemaVersion = 2
 
     sessioned = True
     prefixURL = 'private/record'
+
+    privateApplication = dependsOn(webapp.PrivateApplication)
+    scheduler = dependsOn(scheduler.SubScheduler)
+    shell = dependsOn(StaticShellContent)
+
+    #all the UI bits
+    clickList = dependsOn(ClickList)
+    blockedDomainList = dependsOn(BlockedDomainList)
+    domainList = dependsOn(DomainList)
+    indexer = dependsOn(indexinghelp.SyncIndexer)
+    bookmarkList = dependsOn(BookmarkList)
+    searchProvider = dependsOn(CCSearchProvider)
+    cacheManager = dependsOn(indexinghelp.CacheManager)
+    getExtension = dependsOn(GetExtension)
+    prefs = dependsOn(CCPreferenceCollection)
 
     # Total number of clicks we have ever received
     clickCount = attributes.integer(default = 0)
@@ -494,14 +542,10 @@ class ClickRecorder(Item, website.PrefixURLMixin):
     maxCount = attributes.integer(default=1000)
 
     installedOn = attributes.reference()
-
-    bookmarkVisit = attributes.inmemory()
     prefAggregator = attributes.inmemory()
+    bookmarkVisit = attributes.inmemory()
     _tzinfo = attributes.inmemory()
-
-    def installOn(self, other):
-        super(ClickRecorder, self).installOn(other)
-        other.powerUp(self, iclickchronicle.IClickRecorder)
+    powerupInterfaces = (iclickchronicle.IClickRecorder,)
 
     def activate(self):
         self._tzinfo = None
@@ -622,13 +666,13 @@ class ClickRecorder(Item, website.PrefixURLMixin):
 
     def publicize(self, title, url):
         if self.prefAggregator is None:
-            self.prefAggregator = ixmantissa.IPreferenceAggregator(self.installedOn)
+            self.prefAggregator = ixmantissa.IPreferenceAggregator(self.store)
 
         if not self.prefAggregator.getPreferenceValue("shareClicks"):
             url = ONLY_INCREMENT
 
         sendToPublicPage(
-            self.installedOn,
+            self.store,
             q2q.Q2QAddress("clickchronicle.com", "clickchronicle"),
             AGGREGATION_PROTOCOL,
             AggregateClick(title=title, url=url))
@@ -771,23 +815,6 @@ class ClickRecorder(Item, website.PrefixURLMixin):
             domain.deleteFromStore()
         self.store.transact(txn)
 
-class StaticShellContent(Item, InstallableMixin):
-    implements(ixmantissa.IStaticShellContent)
-
-    schemaVersion = 2
-    typeName = 'clickchronicle_static_shell_content'
-
-    installedOn = attributes.reference()
-
-    def installOn(self, other):
-        super(StaticShellContent, self).installOn(other)
-        other.powerUp(self, ixmantissa.IStaticShellContent)
-
-    def getHeader(self):
-        return tags.a(href="/")[tags.img(border=0, src=makeStaticURL("images/logo.png"))]
-
-    def getFooter(self):
-        return (entities.copy, "Divmod 2005")
 
 def staticShellContent1To2(oldShell):
     newShell = oldShell.upgradeVersion(
@@ -795,74 +822,6 @@ def staticShellContent1To2(oldShell):
         installedOn=oldShell.store)
     return newShell
 upgrade.registerUpgrader(staticShellContent1To2, 'clickchronicle_static_shell_content', 1, 2)
-
-
-class CCSearchProvider(Item, InstallableMixin):
-    implements(ixmantissa.ISearchProvider)
-    installedOn = attributes.reference()
-    schemaVersion = 1
-    typeName = 'clickchronicle_search_provider'
-
-    indexer = attributes.inmemory()
-
-    def installOn(self, other):
-        super(CCSearchProvider, self).installOn(other)
-        other.powerUp(self, ixmantissa.ISearchProvider)
-
-    def activate(self):
-        self.indexer = None
-
-    def _cachePowerups(self):
-        self.indexer = iclickchronicle.IIndexer(self.installedOn)
-
-    def count(self, term):
-        if self.indexer is None:
-            self._cachePowerups()
-
-        term = ' '.join(parseSearchString(term))
-        (estimated, total) = self.indexer.count(term)
-        return defer.succeed(estimated)
-
-    def _syncSearch(self, term, count, offset):
-        if self.indexer is None:
-            self._cachePowerups()
-
-        term = ' '.join(parseSearchString(term))
-
-        doSearch = lambda **k: self.indexer.search(str(term), startingIndex=offset,
-                                                   batchSize=count, **k)
-
-        # this try/except is for compatability with indices created before
-        # we started storing a Value with the key "summary".  if a user
-        # with such a index does a search, and xapwrap explodes, we'll do
-        # the search again, and wont ask for the summary key.  this will
-        # be a non-issue once said user records a click
-
-        try:
-            specs = doSearch(valuesWanted=('summary','_STOREID'))
-        except NoIndexValueFound:
-            specs = doSearch()
-
-        for spec in specs:
-            visit = self.store.getItemByID(int(spec['values']['_STOREID']))
-            yield dict(description=visit.title, url=visit.url,
-                       summary=spec.get('values', dict()).get('summary', ''),
-                       timestamp=visit.timestamp,
-                       score=spec['score'] / 100.0)
-
-
-    def _wrapResults(self, results):
-        class Results(athena.LiveFragment):
-            docFactory = loaders.stan(
-                            tags.ul[
-                                list(
-                                    tags.li[
-                                        tags.a(href=d['url'])[d['url']]]
-                                    for d in results)])
-        return Results()
-
-    def search(self, term, keywords, count, offset):
-        return defer.succeed(self._wrapResults(self._syncSearch(term, count, offset)))
 
 
 

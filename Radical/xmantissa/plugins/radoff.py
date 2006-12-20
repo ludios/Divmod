@@ -1,7 +1,7 @@
 
 from nevow import inevow
 
-from xmantissa import website, offering, provisioning
+from xmantissa import website, offering
 
 from radical import model, web, radtheme
 
@@ -13,10 +13,6 @@ offer = offering.Offering(
     siteRequirements = [
         (inevow.IResource, website.WebSite)],
     appPowerups = [model.Game],
-    benefactorFactories = [
-        provisioning.BenefactorFactory(
-            u'Radical Game',
-            u'Grants a user access to a Radical game.',
-            web.RadicalBenefactor)],
+    installablePowerups = [],
     loginInterfaces=(),
     themes=[radtheme.XHTMLDirectoryTheme('base')])

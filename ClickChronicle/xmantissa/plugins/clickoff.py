@@ -2,42 +2,9 @@
 
 from axiom import iaxiom, scheduler, userbase
 
-from xmantissa import liveform, website, offering, provisioning
+from xmantissa import website, offering
 
-from clickchronicle import clickapp, publicpage, prods, cctheme
-
-ccBenefactorArgs = [
-    liveform.Parameter('maxClicks',
-         liveform.TEXT_INPUT,
-         int,
-         u'Max Clicks',
-         u'The number of clicks users will be allowed to store at once.',
-         1000)
-    ]
-
-chronicler = provisioning.BenefactorFactory(
-    name = u'clickchronicle',
-    description = u'An application with which to chronicle the clicks of you.',
-    benefactorClass = clickapp.ClickChronicleBenefactor,
-    parameters = ccBenefactorArgs,
-    )
-
-ccIncreaserArgs = [
-    liveform.Parameter('clickChange',
-         liveform.TEXT_INPUT,
-         int,
-         u'Click Change',
-         u'The number of additional clicks users will be allowed to store at once.',
-         1000)
-    ]
-
-clicks = provisioning.BenefactorFactory(
-    name = u'clickchronicle-clicks',
-    description = u'Add some clicks to the click limit',
-    benefactorClass = prods.ClickIncreaser,
-    dependencies = [chronicler],
-    parameters = ccIncreaserArgs,
-    )
+from clickchronicle import clickapp, publicpage, cctheme
 
 plugin = offering.Offering(
     name = u"ClickChronicle",
@@ -63,8 +30,7 @@ plugin = offering.Offering(
     appPowerups = (
         clickapp.StaticShellContent,
         publicpage.ClickChroniclePublicPage),
-
-    benefactorFactories = (chronicler, clicks),
+    installablePowerups = (),
     loginInterfaces = (),
     themes=[cctheme.ClickChronicleTheme('cc-base', 0)])
 

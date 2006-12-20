@@ -8,6 +8,5 @@ class FreeTicketSignupTestCase(stubloader.StubbedTest):
 
         ae(fts.prefixURL, '/a/b')
         ae(fts.booth, self.store)
-        ae(fts.benefactor, self.store)
         ae(fts.emailTemplate, 'TEMPLATE!')
         ae(fts.prompt, 'Sign Up')

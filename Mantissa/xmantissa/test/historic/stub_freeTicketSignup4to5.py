@@ -1,12 +1,16 @@
 from axiom.test.historic.stubloader import saveStub
 
-from xmantissa.signup import FreeTicketSignup
+from xmantissa.signup import FreeTicketSignup, Multifactor
+from xmantissa.webadmin import AdministrativeBenefactor
 
 def createDatabase(s):
+    ab = AdministrativeBenefactor(store=s)
+    mf = Multifactor(store=s)
+    mf.add(ab)
     FreeTicketSignup(store=s,
                      prefixURL=u'/a/b',
                      booth=s,
-                     benefactor=s,
+                     benefactor=mf,
                      emailTemplate=u'TEMPLATE!',
                      prompt=u'OK?')
 

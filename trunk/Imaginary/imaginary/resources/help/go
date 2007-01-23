@@ -1,5 +1,0 @@
-GO
-
-Usage: go <north | south | east | west>
-
-Travel in the indicated direction.

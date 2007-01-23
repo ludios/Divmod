@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+
+<RDF:RDF xmlns:RDF="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:em="http://www.mozilla.org/2004/em-rdf#">
+
+  <RDF:Description about="urn:mozilla:install-manifest">
+    <em:id>clickchronicle@clickchronicle.com</em:id>
+    <em:name>ClickChronicle</em:name>
+    <em:version>0.5</em:version>
+    <em:creator>Divmod, Inc</em:creator>
+    <em:description>Click/Visit Recorder</em:description>
+    <em:updateURL>http://divmod.org:81/update.rdf</em:updateURL>
+    <em:homepageURL>http://www.clickchronicle.com</em:homepageURL>
+    <em:optionsURL>chrome://clickchronicle/content/xul/options.xul</em:optionsURL>
+    <em:iconURL>chrome://clickchronicle/content/images/logo_small.png</em:iconURL>
+
+    <em:file>
+      <RDF:Description about="urn:mozilla:extension:file:content.jar">
+        <em:package>content/</em:package>
+      </RDF:Description>
+    </em:file>
+
+    <!-- firefox -->
+    <em:targetApplication>
+      <RDF:Description>
+        <em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
+        <em:minVersion>1.0</em:minVersion>
+        <em:maxVersion>1.6</em:maxVersion>
+      </RDF:Description>
+    </em:targetApplication>
+    <!-- flock -->
+    <em:targetApplication>
+      <RDF:description>
+        <em:id>{a463f10c-3994-11da-9945-000d60ca027b}</em:id>
+        <em:minVersion>0.2</em:minVersion>
+        <em:maxVersion>6.02</em:maxVersion>
+      </RDF:description>
+    </em:targetApplication>
+  </RDF:Description>
+
+</RDF:RDF>
+

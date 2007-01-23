@@ -1,0 +1,3 @@
+Mantissa 0.1
+Xapwrap 0.3
+BeautifulSoup 2.1.0

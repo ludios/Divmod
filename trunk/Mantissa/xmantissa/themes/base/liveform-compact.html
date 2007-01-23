@@ -1,0 +1,114 @@
+<div xmlns:nevow="http://nevow.com/ns/nevow/0.1">
+  <nevow:invisible nevow:render="form">
+    <nevow:slot name="form" />
+  </nevow:invisible>
+
+  <form nevow:pattern="liveform"
+    action="#" nevow:render="liveElement"
+    onsubmit="Mantissa.LiveForm.FormWidget.get(this).submit(); return false;">
+
+    <table>
+      <nevow:slot name="inputs" />
+      <tr>
+        <td colspan="2" align="right">
+          <nevow:invisible nevow:render="submitbutton" />
+        </td>
+      </tr>
+    </table>
+  </form>
+
+  <table nevow:pattern="subform" nevow:render="liveElement">
+    <nevow:slot name="inputs" />
+  </table>
+
+  <tr nevow:pattern="description">
+    <td colspan="2" class="liveform-param-description"
+      ><nevow:slot name="description" /></td>
+  </tr>
+
+  <nevow:invisible nevow:pattern="parameter-input">
+    <nevow:slot name="input" />
+    <nevow:slot name="description" />
+  </nevow:invisible>
+
+  <!-- Note that any whitespace in the textarea tag will appear in the
+  output, and so none should be included, if at all possible. -->
+  <tr nevow:pattern="textarea-input-container">
+    <td><nevow:slot name="label" /></td>
+    <td>
+      <textarea><nevow:attr name="name"><nevow:slot name="name" /></nevow:attr><nevow:slot name="value" /></textarea>
+    </td>
+  </tr>
+
+  <tr nevow:pattern="text-input-container">
+    <td><nevow:slot name="label" /></td>
+    <td><nevow:slot name="input" /></td>
+  </tr>
+
+  <tr nevow:pattern="multi-text-input-container" valign="top">
+    <td><nevow:slot name="label" /></td>
+    <td class="multi-text-input-list"><nevow:slot name="inputs" /></td>
+  </tr>
+
+  <tr nevow:pattern="password-input-container">
+    <td><nevow:slot name="label" /></td>
+    <td><nevow:slot name="input" /></td>
+  </tr>
+
+  <tr nevow:pattern="radio-input-container">
+    <td><nevow:slot name="input" /></td>
+    <td><nevow:slot name="label" /></td>
+  </tr>
+
+  <tr nevow:pattern="form-input-container">
+    <td colspan="2"><nevow:slot name="input" /></td>
+  </tr>
+
+  <tr nevow:pattern="checkbox-input-container">
+    <td colspan="2">
+      <nevow:slot name="input" />
+      <nevow:slot name="label" />
+    </td>
+  </tr>
+
+
+  <input nevow:pattern="input">
+    <nevow:attr name="value"><nevow:slot name="value" /></nevow:attr>
+    <nevow:attr name="name"><nevow:slot name="name" /></nevow:attr>
+    <nevow:attr name="type"><nevow:slot name="type" /></nevow:attr>
+  </input>
+
+  <input nevow:pattern="checked-checkbox-input" type="checkbox" checked="true">
+    <nevow:attr name="name"><nevow:slot name="name" /></nevow:attr>
+  </input>
+
+  <tr nevow:pattern="choice-input-container">
+    <td><nevow:slot name="label" /></td>
+    <td>
+    <select>
+      <nevow:attr name="name"><nevow:slot name="name" /></nevow:attr>
+      <nevow:slot name="options" />
+    </select>
+    </td>
+  </tr>
+
+  <tr nevow:pattern="multi-choice-input-container">
+    <td><nevow:slot name="label" /></td>
+    <td>
+    <select multiple="multiple">
+      <nevow:attr name="name"><nevow:slot name="name" /></nevow:attr>
+      <nevow:slot name="options" />
+    </select>
+    </td>
+  </tr>
+
+  <option selected="selected" nevow:pattern="selected-option">
+    <nevow:attr name="value"><nevow:slot name="code" /></nevow:attr>
+    <nevow:slot name="text" />
+  </option>
+
+  <option nevow:pattern="unselected-option">
+    <nevow:attr name="value"><nevow:slot name="code" /></nevow:attr>
+    <nevow:slot name="text" />
+  </option>
+</div>

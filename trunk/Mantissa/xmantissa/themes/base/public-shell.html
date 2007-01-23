@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns:nevow="http://nevow.com/ns/nevow/0.1">
+
+  <nevow:invisible nevow:pattern="login-links">
+    <nevow:slot name="signups" /> <a href="/login/private">Sign in</a>
+  </nevow:invisible>
+
+  <nevow:invisible nevow:pattern="signup">
+    <a>
+      <nevow:attr name="href"><nevow:slot name="url" /></nevow:attr>
+      <nevow:slot name="prompt" />
+    </a> |
+  </nevow:invisible>
+
+  <head nevow:render="head">
+    <title nevow:render="title" />
+  </head>
+
+  <body>
+
+    <table cellspacing="0" cellpadding="0" class="control-panel">
+      <tr valign="top">
+        <td class="header" nevow:render="header" />
+        <td class="logged-in-panel" nevow:render="username">
+          <span class="username"><nevow:slot name="username" /></span>
+          | <a href="/private/">Home</a>
+          | <a class="logout-link" href="/__logout__">Sign out</a>
+        </td>
+      </tr>
+    </table>
+
+    <div class="shell-content">
+
+      <table>
+        <tr class="page-body">
+          <td class="nav-panel">
+            <span nevow:render="navigation" />
+          </td>
+          <td class="fragment-container">
+            <div class="fragment-content" nevow:render="content" />
+          </td>
+        </tr>
+      </table>
+
+    </div>
+
+    <div class="footer" nevow:render="footer" />
+  </body>
+</html>

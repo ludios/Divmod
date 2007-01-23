@@ -1,0 +1,27 @@
+<div xmlns:nevow="http://nevow.com/ns/nevow/0.1">
+
+  <!-- Map tiles and game content goes here -->
+  <div id="map-node" />
+
+
+  <!-- This is an area where events are announced -->
+  <div id="notification" />
+
+  <!-- Wrap the form in an element that prevent events from getting
+       any higher in the document - this lets us use normal input
+       handling to edit the value of the text input without also
+       processing those events in the main document keypress handler
+    -->
+  <span onkeypress="event.cancelBubble = true">
+
+    <!-- A nicer way of finding the input element would be... nicer -->
+    <form
+       id="input-form"
+       style="visibility: hidden"
+       onsubmit="return inputSubmitted(event, this, this.firstChild.nextSibling)">
+      Say<input type="text" />
+    </form>
+
+  </span>
+
+</div>

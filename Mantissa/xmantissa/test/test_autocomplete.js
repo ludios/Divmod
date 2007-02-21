@@ -1,13 +1,13 @@
 // Copyright (c) 2006 Divmod.
 // See LICENSE for details.
 
-// import Quotient.AutoComplete
+// import Mantissa.AutoComplete
 
 /**
- * Make a L{Quotient.AutoComplete.Model} with some completions
+ * Make a L{Mantissa.AutoComplete.Model} with some completions
  */
 function makeModel() {
-    return Quotient.AutoComplete.Model(
+    return Mantissa.AutoComplete.Model(
             ['a', 'aaa', 'aaab', 'abba', 'abracadabra', 'zoop']);
 }
 
@@ -33,7 +33,7 @@ function makeKeypressEvent(keyCode) {
 }
 
 /**
- * L{Quotient.AutoComplete.View} subclass which doesn't depend on the presence
+ * L{Mantissa.AutoComplete.View} subclass which doesn't depend on the presence
  * of any DOM functionality
  *
  * @ivar visibleCompletions: list of completions that would be being presented
@@ -45,7 +45,7 @@ function makeKeypressEvent(keyCode) {
  * @ivar keypressListener: function which the controller asked us to hook up
  * to keypress events
  */
-var MockAutoCompleteView = Quotient.AutoComplete.View.subclass('MockAutoCompleteView');
+var MockAutoCompleteView = Mantissa.AutoComplete.View.subclass('MockAutoCompleteView');
 MockAutoCompleteView.methods(
     function __init__(self) {
         self._displayingCompletions = false;
@@ -132,17 +132,17 @@ MockAutoCompleteView.methods(
     });
 
 /**
- * Make a L{Quotient.AutoComplete.Controller} with a
- * L{Quotient.AutoComplete.Model}, as obtained from L{makeModel}, and a
+ * Make a L{Mantissa.AutoComplete.Controller} with a
+ * L{Mantissa.AutoComplete.Model}, as obtained from L{makeModel}, and a
  * L{MockAutoCompleteView}
  *
- * @rype: L{Quotient.AutoComplete.Controller}
+ * @rype: L{Mantissa.AutoComplete.Controller}
  */
 function makeController() {
     var view = MockAutoCompleteView(),
         model = makeModel();
 
-    return Quotient.AutoComplete.Controller(model, view,
+    return Mantissa.AutoComplete.Controller(model, view,
             function(f, when) {
                 f();
             });
@@ -150,7 +150,7 @@ function makeController() {
 
 runTests([
     /**
-     * Test L{Quotient.AutoComplete.Model.complete}
+     * Test L{Mantissa.AutoComplete.Model.complete}
      */
     function test_modelCompletion() {
         var model = makeModel();
@@ -160,7 +160,7 @@ runTests([
     },
 
     /**
-     * Test that L{Quotient.AutoComplete.Model.complete} doesn't think the
+     * Test that L{Mantissa.AutoComplete.Model.complete} doesn't think the
      * empty string has any completions
      */
     function test_modelCompletionEmpty() {
@@ -169,7 +169,7 @@ runTests([
     },
 
     /**
-     * Test L{Quotient.AutoComplete.Model.complete} when the string it is
+     * Test L{Mantissa.AutoComplete.Model.complete} when the string it is
      * passed is comma-separated
      */
     function test_modelCompletionCSV() {
@@ -180,7 +180,7 @@ runTests([
     },
 
     /**
-     * Test L{Quotient.AutoComplete.Model.appendCompletion}
+     * Test L{Mantissa.AutoComplete.Model.appendCompletion}
      */
     function test_modelAppendCompletion() {
         var model = makeModel();
@@ -190,7 +190,7 @@ runTests([
     },
 
     /**
-     * Test L{Quotient.AutoComplete.Model.isCompletion}
+     * Test L{Mantissa.AutoComplete.Model.isCompletion}
      */
     function test_modelIsCompletion() {
         var model = makeModel();
@@ -200,7 +200,7 @@ runTests([
     },
 
     /**
-     * Test L{Quotient.AutoComplete.Model.isCompletion}, when the things we
+     * Test L{Mantissa.AutoComplete.Model.isCompletion}, when the things we
      * pass it are not completions
      */
     function test_modelIsCompletionNeg() {
@@ -211,7 +211,7 @@ runTests([
     },
 
     /**
-     * Test L{Quotient.AutoComplete.Controller} and its model/view
+     * Test L{Mantissa.AutoComplete.Controller} and its model/view
      * interactions by telling it to find out about completions for the
      * contents of our imaginary textbox.
      */
@@ -229,7 +229,7 @@ runTests([
     },
 
     /**
-     * Test that L{Quotient.AutoComplete.Controller}'s keypress event handler
+     * Test that L{Mantissa.AutoComplete.Controller}'s keypress event handler
      * correctly interprets up/down keypresses as hints that the selection
      * should be moved up/down
      */
@@ -252,8 +252,8 @@ runTests([
     },
 
     /**
-     * Test that L{Quotient.AutoComplete.View.moveSelectionUp} and
-     * L{Quotient.AutoComplete.View.moveSelectionDown} correctly wrap the
+     * Test that L{Mantissa.AutoComplete.View.moveSelectionUp} and
+     * L{Mantissa.AutoComplete.View.moveSelectionDown} correctly wrap the
      * selection around
      */
     function test_completionNavigationWraparound() {
@@ -272,7 +272,7 @@ runTests([
     },
 
     /**
-     * Test that L{Quotient.AutoComplete.Controller} understands that ENTER
+     * Test that L{Mantissa.AutoComplete.Controller} understands that ENTER
      * means we'd like to have the currently selected completion spliced onto
      * the current value of the view's imaginary textbox
      */

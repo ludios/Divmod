@@ -1,8 +1,6 @@
 // Copyright (c) 2006 Divmod.
 // See LICENSE for details.
 
-// import Quotient.Common
-
 /**
  * This class contains the autocomplete logic
  *
@@ -12,8 +10,8 @@
  * there is a use case for another kind of autocomplete, maybe the delimiter
  * specific stuff should go in a subclass of something
  */
-Quotient.AutoComplete.Model = Divmod.Class.subclass('Quotient.AutoComplete.Model');
-Quotient.AutoComplete.Model.methods(
+Mantissa.AutoComplete.Model = Divmod.Class.subclass('Mantissa.AutoComplete.Model');
+Mantissa.AutoComplete.Model.methods(
     /**
      * @param possibilities: sequence of possible completions.  The default
      * implementations of L{isCompletion} and L{complete} expect the
@@ -31,7 +29,9 @@ Quotient.AutoComplete.Model.methods(
      * @rtype: C{Boolean}
      */
     function isCompletion(self, needle, haystack) {
-        return 0 < needle.length && Quotient.Common.Util.startswith(needle, haystack);
+        return (0 < needle.length
+                    && (haystack.toLowerCase().slice(0, needle.length)
+                            == needle.toLowerCase()));
     },
 
     /**
@@ -45,7 +45,7 @@ Quotient.AutoComplete.Model.methods(
     function _getLastItemStripped(self, s) {
         var values = s.split(/,/),
             last = values[values.length - 1];
-        return Quotient.Common.Util.stripLeadingTrailingWS(last);
+        return last.replace(/^\s+/, '').replace(/\s+$/, '');
     },
 
     /**
@@ -93,8 +93,8 @@ Quotient.AutoComplete.Model.methods(
  *
  * FIXME: Maybe the model should know what the selection is
  */
-Quotient.AutoComplete.View = Divmod.Class.subclass('Quotient.AutoComplete.View');
-Quotient.AutoComplete.View.methods(
+Mantissa.AutoComplete.View = Divmod.Class.subclass('Mantissa.AutoComplete.View');
+Mantissa.AutoComplete.View.methods(
     /**
      * @param textbox: The node that will be monitored for keypresses, and
      * below which the list of completions will be displayed
@@ -248,9 +248,9 @@ Quotient.AutoComplete.View.methods(
                 self.makeCompletionNode(completions[i]));
         }
         self._selectCompletion(0);
-        self.completionsNode.style.top = Quotient.Common.Util.findPosY(self.textbox) +
+        self.completionsNode.style.top = Divmod.Runtime.theRuntime.findPosY(self.textbox) +
                                          Divmod.Runtime.theRuntime.getElementSize(self.textbox).h + "px";
-        self.completionsNode.style.left = Quotient.Common.Util.findPosX(self.textbox) + "px";
+        self.completionsNode.style.left = Divmod.Runtime.theRuntime.findPosX(self.textbox) + "px";
         self.completionsNode.style.display = "";
     },
 
@@ -268,14 +268,14 @@ Quotient.AutoComplete.View.methods(
 
 
 /**
- * I coordinate L{Quotient.AutoComplete.Model} and
- * L{Quotient.AutoComplete.View}, and respond to events
+ * I coordinate L{Mantissa.AutoComplete.Model} and
+ * L{Mantissa.AutoComplete.View}, and respond to events
  */
-Quotient.AutoComplete.Controller = Divmod.Class.subclass('Quotient.AutoComplete.Controller');
-Quotient.AutoComplete.Controller.methods(
+Mantissa.AutoComplete.Controller = Divmod.Class.subclass('Mantissa.AutoComplete.Controller');
+Mantissa.AutoComplete.Controller.methods(
     /**
-     * @type model: L{Quotient.AutoComplete.Model}
-     * @type view: L{Quotient.AutoComplete.View}
+     * @type model: L{Mantissa.AutoComplete.Model}
+     * @type view: L{Mantissa.AutoComplete.View}
      * @param scheduler: function which takes a function and a number of
      * milliseconds, and executes the function in that many milliseconds.  If
      * undefined, defaults to C{setTimeout}

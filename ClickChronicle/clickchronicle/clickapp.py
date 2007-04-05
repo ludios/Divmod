@@ -555,7 +555,7 @@ class ClickRecorder(Item, website.PrefixURLMixin):
     def _getTzinfo(self):
         if self._tzinfo is None:
             prefs = ixmantissa.IPreferenceAggregator(self.store)
-            tzname = prefs.getPreferenceValue('timezone')
+            tzname = prefs.getPreferenceValue('timezone').encode('ascii')
             self._tzinfo = pytz.timezone(tzname)
         return self._tzinfo
 

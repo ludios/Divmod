@@ -58,6 +58,19 @@ def parse(*a, **k):
     # not.  this module really can't use *anything* outside the stdlib, because one
     # of its primary purposes is managing the path of your Twisted install!!
 
+def childWithName(element, name):
+    for child in element.childNodes:
+        if child.localName == name:
+            return child
+    return None
+
+def getText(element):
+    text = []
+    for child in element.childNodes:
+        assert child.nodeType == child.TEXT_NODE
+        text.append(child.data)
+    return "".join(text)
+
 def addSiteDir(fsPath):
     if fsPath not in sys.path:
         chop = len(sys.path)
@@ -261,16 +274,19 @@ class BranchManager:
         trunkDirectory = self.projectBranchDir(projectName)
         if not os.path.exists(trunkDirectory):
             raise IOError("Trunk not found for project %r" % (projectName,))
-        doc = parse(file(os.path.join(trunkDirectory, '.svn', 'entries')))
-        for entry in doc.documentElement.childNodes:
-            if hasattr(entry, 'hasAttribute'):
-                if entry.hasAttribute('url'):
-                    uri = '/'.join(entry.getAttribute('url').split('/')[:-1])
-                    if branchRelativePath == 'trunk':
-                        branchURI = uri + '/trunk'
-                    else:
-                        branchURI = '/'.join([uri, 'branches', branchRelativePath])
-                    return branchURI
+        os.chdir(trunkDirectory)
+        doc = parse(os.popen("svn info --xml"))
+        info = doc.documentElement
+        assert info.localName == "info", "root element is not <info>"
+        entry = childWithName(info, "entry")
+        url = childWithName(entry, "url")
+        uri = getText(url).encode("utf-8")
+        uri = "/".join(uri.split('/')[:-1])
+        if branchRelativePath == 'trunk':
+            branchURI = uri + '/trunk'
+        else:
+            branchURI = '/'.join([uri, 'branches', branchRelativePath])
+        return branchURI
 
 theBranchManager = None
 

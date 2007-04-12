@@ -1,3 +1,5 @@
+# -*- test-case-name: combinator -*-
+
 import os
 import site
 import sys
@@ -54,9 +56,10 @@ def parse(*a, **k):
     from xml.dom.minidom import parse
     return parse(*a, **k)
 
-    # Yes, I know I wrote microdom, but this is a stdlib feature and microdom is
-    # not.  this module really can't use *anything* outside the stdlib, because one
-    # of its primary purposes is managing the path of your Twisted install!!
+    # Yes, I know I wrote microdom, but this is a stdlib feature and microdom
+    # is not.  this module really can't use *anything* outside the stdlib,
+    # because one of its primary purposes is managing the path of your Twisted
+    # install!!
 
 def childWithName(element, name):
     for child in element.childNodes:
@@ -89,7 +92,7 @@ def addSiteDir(fsPath):
 
 
 class BranchManager:
-    def __init__(self, svnProjectsDir, sitePathsPath):
+    def __init__(self, svnProjectsDir=None, sitePathsPath=None):
         """
         @param svnProjectsDir: a path to a group of SVN repositories arranged
         in the structure:
@@ -114,8 +117,8 @@ class BranchManager:
         of the most current branch for a particular project.  A branch name, in
         this context, is a relative path from the project's SVN /branches
         directory.  For example, the branch path of
-        'svn+ssh://example.com/svn/Foo/branches/quasimodo/your-favorite-branch/'
-        is 'quasimodo/your-faorite-branch'.
+        'svn+ssh://example.com/svn/Foo/branches/quasimodo/your-branch/' is
+        'quasimodo/your-branch'.
 
         'trunk' is a special branch path, which, obviously, points to
         'svn+ssh://example.com/svn/Foo/trunk/'
@@ -125,8 +128,20 @@ class BranchManager:
         to sys.path, but also as a site directory, so .pth files in it will be
         respected (so that multi-project repositories such as the Divmod
         repository can be activated).
-        """
 
+        If the optional arguments are not provided, they will be initialized
+        from the C{COMBINATOR_PROJECTS} and C{COMBINATOR_PATHS} environment
+        variables respectively, or, if those are not set, using an heuristic to
+        locate the relative position of the startup script assuming that it is
+        part of a Divmod repository checkout in the canonical directory
+        structure described above.
+        """
+        if svnProjectsDir is None:
+            svnProjectsDir = (os.getenv('COMBINATOR_PROJECTS') or
+                              getDefaultPath())
+        if sitePathsPath is None:
+            sitePathsPath = (os.getenv('COMBINATOR_PATHS') or
+                             os.path.join(svnProjectsDir, "combinator_paths"))
         self.svnProjectsDir = svnProjectsDir
         self.sitePathsPath = sitePathsPath
         self.binCachePath = os.path.join(sitePathsPath, 'bincache')
@@ -136,7 +151,8 @@ class BranchManager:
             return os.path.abspath(
                 os.path.join(self.svnProjectsDir, projectName, branchPath))
         return os.path.abspath(
-            os.path.join(self.svnProjectsDir, projectName, 'branches', branchPath))
+            os.path.join(self.svnProjectsDir, projectName, 'branches',
+                         branchPath))
 
 
     def addPaths(self):
@@ -154,7 +170,8 @@ class BranchManager:
                 yield projName, branchPath
 
     def getPaths(self):
-        """ Yield all .bch-file paths as well as a locally-installed directory.
+        """
+        Yield all .bch-file paths as well as a locally-installed directory.
         """
         for projName, branchPath in self.getCurrentBranches():
             fsPath = self.projectBranchDir(projName, branchPath)
@@ -178,12 +195,16 @@ class BranchManager:
             yield (os.path.abspath(
                     os.path.expanduser("~/Python/Lib/site-packages")))
         elif sys.platform != 'darwin':
-            # Darwin already has appropriate user-installation directories set up.
+            # Darwin already has appropriate user-installation directories set
+            # up.
             yield (os.path.abspath(
-                    os.path.expanduser("~/.local/lib/python%s/site-packages" % (majorMinor,))))
+                    os.path.expanduser(
+                        "~/.local/lib/python%s/site-packages" %
+                        (majorMinor,))))
 
     def currentBranchFor(self, projectName):
-        return file(os.path.join(self.sitePathsPath, projectName)+'.bch').read().strip()
+        return file(os.path.join(self.sitePathsPath, projectName)+'.bch'
+                    ).read().strip()
 
     def newProjectBranch(self, projectName, branchName):
         trunkURI = self.projectBranchURI(projectName, 'trunk')
@@ -222,16 +243,21 @@ class BranchManager:
         """
         import shutil
 
-        branchDirectory = self.projectBranchDir(projectName, branchRelativePath)
+        branchDirectory = self.projectBranchDir(projectName,
+                                                branchRelativePath)
         trunkDirectory = self.projectBranchDir(projectName)
-        if branchRelativePath == 'trunk' and not os.path.exists(trunkDirectory):
+        if (branchRelativePath == 'trunk' and not os.path.exists(
+                trunkDirectory)):
             if branchURI is None:
-                raise IOError("You need to specify a URI as a 3rd argument to check out trunk")
+                raise IOError(
+                    "You need to specify a URI as a 3rd argument"
+                    " to check out trunk")
             os.chdir(self.svnProjectsDir)
             runcmd("svn", "co", branchURI, trunkDirectory)
         if not os.path.exists(branchDirectory):
             if branchURI is None:
-                branchURI = self.projectBranchURI(projectName, branchRelativePath)
+                branchURI = self.projectBranchURI(
+                    projectName, branchRelativePath)
             bchDir = os.path.join(self.svnProjectsDir, projectName, 'branches')
 
             if not os.path.exists(bchDir):
@@ -302,22 +328,10 @@ def getDefaultPath():
     saf = splitall(__file__)
     if not saf[-5:-2] == ['Divmod', 'trunk', 'Combinator']:
         warn(
-            'Combinator sitecustomize located outside of Combinator directory, '
-            'aborting (try passing --projects-dir)')
+            'Combinator sitecustomize located outside of Combinator directory,'
+            ' aborting (try passing --projects-dir)')
         return
 
     return os.path.join(*saf[:-5])
 
-def init(svnProjectsDir=None, sitePathsPath=None):
-    global theBranchManager
-    if theBranchManager is not None:
-        return theBranchManager
-    if svnProjectsDir is None:
-        svnProjectsDir = os.getenv('COMBINATOR_PROJECTS') or getDefaultPath()
-    if sitePathsPath is None:
-        sitePathsPath = (os.getenv('COMBINATOR_PATHS') or
-            os.path.join(svnProjectsDir, "combinator_paths"))
-    theBranchManager = BranchManager(svnProjectsDir, sitePathsPath)
-    theBranchManager.addPaths()
-    return theBranchManager
-
+theBranchManager = BranchManager()

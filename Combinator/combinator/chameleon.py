@@ -54,7 +54,8 @@ def remain(argv):
             except ImportError:
                 print "Non-console I/O is broken on win32"
                 print "Workaround requires pywin32"
-                print "http://sourceforge.net/project/showfiles.php?group_id=78018"
+                print ("http://sourceforge.net/project/showfiles.php?"
+                       "group_id=78018")
                 os._exit(2)
             else:
                 ipipe, opipe = win32pipe.popen4(' '.join(newargz), 't')

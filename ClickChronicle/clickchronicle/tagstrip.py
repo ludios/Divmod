@@ -1,6 +1,6 @@
 import re
 
-from BeautifulSoup import BeautifulSoup, BeautifulStoneSoup
+from clickchronicle.soup import BeautifulSoup, BeautifulStoneSoup
 
 def _massageMicrosoftBytes(match):
     char = match.group(1)

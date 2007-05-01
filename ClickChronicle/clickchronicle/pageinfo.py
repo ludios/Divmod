@@ -1,4 +1,4 @@
-from BeautifulSoup import BeautifulSoup
+from clickchronicle.soup import BeautifulSoup
 import re
 
 def lowerValues(tags, keys):

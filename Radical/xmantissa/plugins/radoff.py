@@ -8,7 +8,7 @@ from radical import model, web, radtheme
 offer = offering.Offering(
     name = u"Radical",
     description = u"""
-    Radical is an awesome game for you to play.
+    Demo of Athena's abilities as a platform for isometric-view games.
     """,
     siteRequirements = [
         (inevow.IResource, website.WebSite)],

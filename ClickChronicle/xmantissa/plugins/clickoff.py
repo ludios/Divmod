@@ -10,16 +10,7 @@ plugin = offering.Offering(
     name = u"ClickChronicle",
 
     description = u"""
-    To-morrow, and to-morrow, and to-morrow,
-    Creeps in this petty pace from day to day,
-    To the last syllable of recorded time;
-    And all our yesterdays have lighted fools
-    The way to dusty death. Out, out, brief candle!
-    Life's but a walking shadow; a poor player,
-    That struts and frets his hour upon the stage,
-    And then is heard no more: it is a tale
-    Told by an idiot, full of sound and fury,
-    Signifying nothing.
+    An application for recording and reporting users' web viewing history.
     """,
 
     siteRequirements = (

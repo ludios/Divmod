@@ -7,6 +7,7 @@ from twisted.trial.unittest import TestCase
 
 from combinator.sysenv import Env, generatePathVariable
 from StringIO import StringIO
+import os
 
 class EnvironmentManipulatorTest(TestCase):
     """
@@ -59,6 +60,7 @@ class EnvironmentManipulatorTest(TestCase):
                                        GREETINGS_PROGRAM="1"))
 
 
+
 class EnvironmentInteractionTest(TestCase):
     """
     These tests verify the behavior of functions which set up the environment.
@@ -73,3 +75,27 @@ class EnvironmentInteractionTest(TestCase):
         generatePathVariable(e, "alpha", "beta", StringIO())
         self.assertEquals(e.d['COMBINATOR_PROJECTS'], "alpha")
         self.assertEquals(e.d['COMBINATOR_PATHS'], "beta")
+
+
+    def test_executableCreation(self):
+        """
+        Test that Combinator creates scripts for files in the
+        /bin subdirectories of projects it manages.
+        """
+        e = Env(StringIO(), {})
+        alpha = self.mktemp()
+        beta = self.mktemp()
+        os.mkdir(alpha)
+        os.mkdir(beta)
+        binDir = os.path.join(alpha, "Foo", "trunk", "bin")
+        os.makedirs(binDir)
+        binFile = os.path.join(binDir, "thingy")
+        file(binFile, 'w')
+        file(os.path.join(beta, "Foo.bch"), 'w').write("trunk\n")
+        syspath = []
+        m = generatePathVariable(e, alpha, beta, StringIO())
+
+        m.addPaths()
+        m.createExecutables(stream=StringIO())
+        self.failUnless(os.path.exists(os.path.join(beta, "bincache",
+                                                    "thingy")))

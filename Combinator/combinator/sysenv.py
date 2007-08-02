@@ -117,7 +117,8 @@ def generatePythonPathVariable(nv):
     nv.prePath('PYTHONPATH', os.path.split(os.path.split(__file__)[0])[0])
 
 
-def generatePathVariable(nv, svnProjectsDir=None, sitePathsPath=None, stream=sys.stderr):
+def generatePathVariable(nv, svnProjectsDir=None, sitePathsPath=None,
+                         stream=sys.stderr, syspath=None):
     """
     Generate various path environment variables to point at Combinator-managed
     and user-local installation locations (PATH, PATHEXT on Windows,
@@ -127,6 +128,8 @@ def generatePathVariable(nv, svnProjectsDir=None, sitePathsPath=None, stream=sys
     variables would point at do not exist, create them.
 
     @param nv: an L{Env} object, the environment to be modified.
+
+    @param syspath: The list of paths to modify.
 
     @param svnProjectsDir: the pathname of the "Projects" directory, where
     everything is kept.  If unspecified, I will try to guess according to the
@@ -142,7 +145,7 @@ def generatePathVariable(nv, svnProjectsDir=None, sitePathsPath=None, stream=sys
     @param stream: a file-like object to write notifications of filesystem
     manipulations to.  Defaults to stderr.
 
-    @return: None
+    @return: The branch manager representing the new environment.
     """
     from combinator import branchmgr
     # We instantiate a new branch manager here rather than using
@@ -151,7 +154,7 @@ def generatePathVariable(nv, svnProjectsDir=None, sitePathsPath=None, stream=sys
     # in this case represents the environment we were launched in, whereas this
     # new branch manager represents the environment of python processes run
     # under shells that read the environment this script produces.
-    m = branchmgr.BranchManager(svnProjectsDir, sitePathsPath)
+    m = branchmgr.BranchManager(svnProjectsDir, sitePathsPath, syspath)
 
     nv.prePath('PATH', m.binCachePath)
     if os.name == 'nt':
@@ -167,58 +170,9 @@ def generatePathVariable(nv, svnProjectsDir=None, sitePathsPath=None, stream=sys
 
     nv.d['COMBINATOR_PROJECTS'] = m.svnProjectsDir
     nv.d['COMBINATOR_PATHS'] = m.sitePathsPath
-
-    # XXX move to separate command?
-    if not os.path.isdir(m.binCachePath):
-        os.makedirs(m.binCachePath)
-    for ent in sys.path:
-        branchBinDir = os.path.join(ent, 'bin')
-        if os.path.isdir(branchBinDir):
-            for binary in scriptsPresentIn(branchBinDir):
-                dst = os.path.join(m.binCachePath,
-                                   binary)
-                if os.name == 'nt':
-                    dst += '.py'
-                src = os.path.join(
-                    os.path.dirname(os.path.dirname(__file__)),
-                    'bin', 'cham.py')
-                if not os.path.exists(dst):
-                    stream.write('link: %r => %r\n <on account of %r>\n' %
-                                 (dst, src, ent))
-                    file(dst, 'w').write(file(src).read())
-                    if os.name != 'nt':
-                        os.chmod(dst, 0755)
-
-
-def splitup(pathname):
-    # split into a sequence of path segments.
-    return os.path.normpath(pathname).split(os.sep)
-
-
-
-def inHiddenDirectory(dirpath):
-    for segment in splitup(dirpath):
-        if segment.startswith('.'):
-            return True
-    return False
-
-
-
-def scriptsPresentIn(directory):
-    for dirpath, dirnames, filenames in os.walk(directory):
-        if inHiddenDirectory(dirpath):
-            # Don't descend into hidden directories, e.g. ".svn"
-            continue
-        for filename in filenames:
-            if (filename not in ('cham.py', 'cham.bat')
-                # let's skip these combinator-internal scripts.
-                and not filename.startswith(".")):
-                    # and hidden files
-                yield filename
+    return m
 
 userShell = os.environ.get('SHELL', '')
-
-
 
 def gethow():
     if len(sys.argv) > 1:
@@ -235,6 +189,8 @@ def gethow():
 def export(svnProjectsDir=None, sitePathsPath=None):
     e = Env()
     generatePythonPathVariable(e)
-    generatePathVariable(e, svnProjectsDir, sitePathsPath)
+    m = generatePathVariable(e, svnProjectsDir, sitePathsPath)
+    m.addPaths()
     how = gethow()
     e.export(how)
+    m.createExecutables()

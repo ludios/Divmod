@@ -1,7 +1,7 @@
 # -*- test-case-name: combinator -*-
 
 import os
-import site
+from combinator import xsite
 import sys
 
 _cmdLineQuoteRe = None
@@ -15,13 +15,18 @@ def _cmdLineQuote(s):
         return '"' + _cmdLineQuoteRe.sub(r'\1\1\\"', s) + '"'
     return s
 
+
+
 def prompt(s):
     p = os.getcwd().replace(os.path.expanduser('~'), '~')
     return p + '$ ' + s
 
+
+
 def warn(*a, **k):
     import warnings
     warnings.warn(*a, **k)
+
 
 
 def runcmd(*x):
@@ -50,6 +55,8 @@ def runcmd(*x):
         raise ValueError("Command: %r exited with unexpected code: %d" % (
             popenstr, code))
 
+
+
 def parse(*a, **k):
     # We're in the critical path for sitecustomize, so let's not import
     # anything that we don't need to.
@@ -61,11 +68,15 @@ def parse(*a, **k):
     # because one of its primary purposes is managing the path of your Twisted
     # install!!
 
+
+
 def childWithName(element, name):
     for child in element.childNodes:
         if child.localName == name:
             return child
     return None
+
+
 
 def getText(element):
     text = []
@@ -74,15 +85,21 @@ def getText(element):
         text.append(child.data)
     return "".join(text)
 
-def addSiteDir(fsPath):
-    if fsPath not in sys.path:
-        chop = len(sys.path)
-        site.addsitedir(fsPath)
+
+
+def addSiteDir(fsPath, syspath):
+    """
+    Add C{fsPath} to C{syspath} and remove all preceding entries, if it's not
+    already present.
+    """
+    if fsPath not in syspath:
+        chop = len(syspath)
+        xsite.addsitedir(fsPath, syspath)
         # Put everything at the beginning of the path (overriding the site
         # installation directory), since Python likes to put it at the end.
-        spc = sys.path[chop:]
-        del sys.path[chop:]
-        sys.path[0:0] = spc
+        spc = syspath[chop:]
+        del syspath[chop:]
+        syspath[0:0] = spc
     elif 0:                     # We SHOULD emit a warning here, but all kinds
                                 # of tests set PYTHONPATH invalidly and cause
                                 # havoc.
@@ -90,10 +107,42 @@ def addSiteDir(fsPath):
              UserWarning )
 
 
+def inHiddenDirectory(dirpath):
+    """
+    @param dirpath: a filesystem path string.
+    @return: whether C{dirpath} is within a dotfile directory.
+    """
+    for segment in os.path.normpath(dirpath).split(os.sep):
+        if segment.startswith('.'):
+            return True
+    return False
+
+
+
+def scriptsPresentIn(directory):
+    """
+    Collect all scripts present in C{directory}.
+    @param directory: A filesystem path string.
+    @return: An iterator of all scripts in C{directory}.
+    """
+    for dirpath, dirnames, filenames in os.walk(directory):
+        if inHiddenDirectory(dirpath):
+            # Don't descend into hidden directories, e.g. ".svn"
+            continue
+        for filename in filenames:
+            if (filename not in ('cham.py', 'cham.bat')
+                # let's skip these combinator-internal scripts.
+                and not filename.startswith(".")):
+                    # and hidden files
+                yield filename
+
+
 
 class BranchManager:
-    def __init__(self, svnProjectsDir=None, sitePathsPath=None):
+    def __init__(self, svnProjectsDir=None, sitePathsPath=None, syspath=None):
         """
+        @param syspath: The list of paths this branch manager will modify.
+
         @param svnProjectsDir: a path to a group of SVN repositories arranged
         in the structure:
 
@@ -125,23 +174,27 @@ class BranchManager:
 
 
         The path pointing to each branch thus specified will be added not only
-        to sys.path, but also as a site directory, so .pth files in it will be
+        to C{syspath}, but also as a site directory, so .pth files in it will be
         respected (so that multi-project repositories such as the Divmod
         repository can be activated).
 
-        If the optional arguments are not provided, they will be initialized
-        from the C{COMBINATOR_PROJECTS} and C{COMBINATOR_PATHS} environment
-        variables respectively, or, if those are not set, using an heuristic to
-        locate the relative position of the startup script assuming that it is
-        part of a Divmod repository checkout in the canonical directory
-        structure described above.
+        If the optional arguments are not provided, C{svnProjectsDir} and
+        C{sitePathsPath} will be initialized from the C{COMBINATOR_PROJECTS},
+        C{COMBINATOR_PATHS} environment variables respectively, or, if those
+        are not set, using an heuristic to locate the relative position of the
+        startup script assuming that it is part of a Divmod repository checkout
+        in the canonical directory structure described above. If no argument is
+        provided for C{syspath}, it will be initialized from C{sys.path}.
         """
+        if syspath is None:
+            syspath = sys.path
         if svnProjectsDir is None:
             svnProjectsDir = (os.getenv('COMBINATOR_PROJECTS') or
                               getDefaultPath())
         if sitePathsPath is None:
             sitePathsPath = (os.getenv('COMBINATOR_PATHS') or
                              os.path.join(svnProjectsDir, "combinator_paths"))
+        self.syspath = syspath
         self.svnProjectsDir = svnProjectsDir
         self.sitePathsPath = sitePathsPath
         self.binCachePath = os.path.join(sitePathsPath, 'bincache')
@@ -157,7 +210,8 @@ class BranchManager:
 
     def addPaths(self):
         for fsp in self.getPaths():
-            addSiteDir(fsp)
+            addSiteDir(fsp, self.syspath)
+
 
     def getCurrentBranches(self):
         if not os.path.isdir(self.sitePathsPath):
@@ -168,6 +222,7 @@ class BranchManager:
                 projName = os.path.splitext(os.path.split(yth)[-1])[0]
                 branchPath = file(yth).read().strip()
                 yield projName, branchPath
+
 
     def getPaths(self):
         """
@@ -202,9 +257,11 @@ class BranchManager:
                         "~/.local/lib/python%s/site-packages" %
                         (majorMinor,))))
 
+
     def currentBranchFor(self, projectName):
         return file(os.path.join(self.sitePathsPath, projectName)+'.bch'
                     ).read().strip()
+
 
     def newProjectBranch(self, projectName, branchName):
         trunkURI = self.projectBranchURI(projectName, 'trunk')
@@ -212,6 +269,7 @@ class BranchManager:
         runcmd('svn', 'cp', trunkURI, branchURI, '-m',
                'Branching to %r' % (branchName,))
         self.changeProjectBranch(projectName, branchName, revert=False)
+
 
     def mergeProjectBranch(self, projectName):
         currentBranch = self.currentBranchFor(projectName)
@@ -234,6 +292,7 @@ class BranchManager:
                branchDir + "/@" + rev,
                branchDir + "/@HEAD")
         self.changeProjectBranch(projectName, 'trunk')
+
 
     def changeProjectBranch(self, projectName, branchRelativePath,
                             branchURI=None, revert=True):
@@ -314,6 +373,35 @@ class BranchManager:
             branchURI = '/'.join([uri, 'branches', branchRelativePath])
         return branchURI
 
+
+    def createExecutables (self, stream=sys.stderr):
+        """
+        Create scripts for executing files in the /bin subdirs of project
+        branches found on C{syspath}. Report progress to C{stream}.
+
+        @type stream: A file-like object.
+        """
+        if not os.path.isdir(self.binCachePath):
+            os.makedirs(self.binCachePath)
+        for ent in self.syspath:
+            branchBinDir = os.path.join(ent, 'bin')
+            if os.path.isdir(branchBinDir):
+                for binary in scriptsPresentIn(branchBinDir):
+                    dst = os.path.join(self.binCachePath,
+                                       binary)
+                    if os.name == 'nt':
+                        dst += '.py'
+                    src = os.path.join(os.path.dirname(os.path.dirname(__file__)),
+                                       'bin', 'cham.py')
+                    if not os.path.exists(dst):
+                        stream.write('link: %r => %r\n <on account of %r>\n' %
+                                     (dst, src, ent))
+                        file(dst, 'w').write(file(src).read())
+                        if os.name != 'nt':
+                            os.chmod(dst, 0755)
+
+
+
 theBranchManager = None
 
 def splitall(p):
@@ -323,6 +411,8 @@ def splitall(p):
     else:
         return splitall(car) + [cdr]
 
+
+
 def getDefaultPath():
     # Am I somewhere I recognize?
     saf = splitall(__file__)
@@ -331,7 +421,8 @@ def getDefaultPath():
             'Combinator sitecustomize located outside of Combinator directory,'
             ' aborting (try passing --projects-dir)')
         return
-
     return os.path.join(*saf[:-5])
+
+
 
 theBranchManager = BranchManager()

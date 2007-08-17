@@ -1,4 +1,4 @@
-# -*- test-case-name: axiom,epsilon,xmantissa,nevow,formless,pyflakes,xquotient,radical,reverend,sine,vertex,xapwrap,hyperbola,imaginary -*-
+# -*- test-case-name: axiom,epsilon,xmantissa,nevow,formless,pyflakes,xquotient,radical,reverend,sine,vertex,xapwrap,hyperbola,imaginary,examplegame -*-
 Axiom
 Combinator
 Epsilon
@@ -13,4 +13,5 @@ Vertex
 Xapwrap
 Hyperbola
 Imaginary
+Imaginary/ExampleGame
 Prime

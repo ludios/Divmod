@@ -3,11 +3,12 @@
 This module contains tests for combinator.branchmgr.
 """
 
-import os
+import os, sys
 
 from twisted.trial.unittest import TestCase
 
 from combinator.branchmgr import BranchManager
+
 
 class BranchManagerTests(TestCase):
     """
@@ -69,3 +70,38 @@ class BranchManagerTests(TestCase):
         b = BranchManager()
         self.assertEqual(b.sitePathsPath, "pathdir")
         self.assertEqual(b.binCachePath, "pathdir/bincache")
+
+
+    def _perUserSitePackages(self, home):
+        """
+        Construct the path to the user-specific site-packages path.
+        """
+        return os.path.abspath(os.path.join(
+            home, '.local', 'lib', 'python%d.%d' % tuple(sys.version_info[:2]),
+            'site-packages'))
+
+
+    def test_userSitePackages(self):
+        """
+        L{BranchManager.getPaths} should return an iterable which has as an
+        element the user-specific site-packages directory, if that directory
+        exists.
+        """
+        home = self.mktemp()
+        sitePackages = self._perUserSitePackages(home)
+        os.makedirs(sitePackages)
+        self.changeEnvironment('HOME', home)
+        b = BranchManager()
+        self.assertIn(sitePackages, list(b.getPaths()))
+
+
+    def test_missingUserSitePackages(self):
+        """
+        L{BranchManager.getPaths} should return an iterable which does not
+        have as an element the user-specific site-packages directory, if
+        that directory does not exist.
+        """
+        home = self.mktemp()
+        self.changeEnvironment('HOME', home)
+        b = BranchManager()
+        self.assertNotIn(self._perUserSitePackages(home), list(b.getPaths()))

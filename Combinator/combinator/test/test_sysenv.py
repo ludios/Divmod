@@ -73,8 +73,8 @@ class EnvironmentInteractionTest(TestCase):
         """
         e = Env(StringIO(), {})
         generatePathVariable(e, "alpha", "beta", StringIO())
-        self.assertEquals(e.d['COMBINATOR_PROJECTS'], "alpha")
-        self.assertEquals(e.d['COMBINATOR_PATHS'], "beta")
+        self.assertEqual(e.d['COMBINATOR_PROJECTS'], "alpha")
+        self.assertEqual(e.d['COMBINATOR_PATHS'], os.path.abspath("beta"))
 
 
     def test_executableCreation(self):

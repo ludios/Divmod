@@ -29,15 +29,58 @@ def warn(*a, **k):
 
 
 
-def runcmd(*x):
-    popenstr = ' '.join(map(_cmdLineQuote, x))
-    print prompt(popenstr)
+def commandString(args):
+    """
+    Format an argument list so it can be run with popen.
 
-    pipe = os.popen(popenstr)
+    @type args: sequence
+    @param args: The argument list to format
+
+    @rtype: C{str}
+    @return: A quoted string which can be passed to a shell to run a
+        command.
+    """
+    return ' '.join(map(_cmdLineQuote, args))
+
+
+
+def runCommand(command):
+    """
+    Execute a command and return its standard output and exit code.
+
+    @type command: C{str}
+    @param command: A string suitable to be passed to popen.
+
+    @return: a two-tuple of the standard output and exit code of the
+        command.
+    """
+    pipe = os.popen(command)
     output = pipe.read()
     code = pipe.close() or 0
+    return output, code
+
+
+
+def runcmd(*args):
+    """
+    Execute a command, possibly prompting the user before doing so, and then
+    display its output.
+    """
+    popenstr = commandString(args)
+    print prompt(popenstr)
+
+    output, code = runCommand(popenstr)
 
     print 'C: ' + '\nC: '.join(output.splitlines())
+    return checkStatus(popenstr, output, code)
+
+
+
+def checkStatus(popenstr, output, code):
+    """
+    Check the exit status of a command and return its output if it ran
+    successfully or raise an exception if it exited abnormally.
+    """
     if os.name == 'nt':
         # There is nothing we can possibly do with this error code.
         return output
@@ -54,6 +97,21 @@ def runcmd(*x):
     else:
         raise ValueError("Command: %r exited with unexpected code: %d" % (
             popenstr, code))
+
+
+
+def subversionURLExists(url):
+    """
+    Return true if the given SVN URL exists, false otherwise.
+    """
+    command = commandString(['svn', 'ls', url, '2>/dev/null'])
+    output, code = runCommand(command)
+    try:
+        checkStatus(command, output, code)
+    except ValueError:
+        return False
+    else:
+        return True
 
 
 
@@ -196,10 +254,13 @@ class BranchManager:
                              os.path.join(svnProjectsDir, "combinator_paths"))
         self.syspath = syspath
         self.svnProjectsDir = svnProjectsDir
-        self.sitePathsPath = sitePathsPath
+        self.sitePathsPath = os.path.abspath(sitePathsPath)
         self.binCachePath = os.path.join(sitePathsPath, 'bincache')
 
     def projectBranchDir(self, projectName, branchPath='trunk'):
+        """
+        Return the absolute path to the given branch of the given project.
+        """
         if branchPath == 'trunk':
             return os.path.abspath(
                 os.path.join(self.svnProjectsDir, projectName, branchPath))
@@ -268,6 +329,8 @@ class BranchManager:
     def newProjectBranch(self, projectName, branchName):
         trunkURI = self.projectBranchURI(projectName, 'trunk')
         branchURI = self.projectBranchURI(projectName, branchName)
+        if subversionURLExists(branchURI):
+            raise ValueError(branchURI, "already exists.")
         runcmd('svn', 'cp', trunkURI, branchURI, '-m',
                'Branching to %r' % (branchName,))
         self.changeProjectBranch(projectName, branchName, revert=False)
@@ -287,7 +350,6 @@ class BranchManager:
         if rev is None:
             raise IOError("No revision found")
         trunkDir = self.projectBranchDir(projectName)
-        print 'Swapping to', trunkDir
         os.chdir(trunkDir)
         runcmd('svn', 'up')
         runcmd('svn', 'merge',
@@ -302,67 +364,69 @@ class BranchManager:
         Swap which branch of a particular project we are 'working on'.  Adjust
         path files to note this difference.
         """
-        import shutil
+        originalWorkingDirectory = os.getcwd()
+        try:
+            import shutil
 
-        branchDirectory = self.projectBranchDir(projectName,
-                                                branchRelativePath)
-        trunkDirectory = self.projectBranchDir(projectName)
-        if (branchRelativePath == 'trunk' and not os.path.exists(
-                trunkDirectory)):
-            if branchURI is None:
-                raise IOError(
-                    "You need to specify a URI as a 3rd argument"
-                    " to check out trunk")
-            os.chdir(self.svnProjectsDir)
-            runcmd("svn", "co", branchURI, trunkDirectory)
-        if not os.path.exists(branchDirectory):
-            if branchURI is None:
-                branchURI = self.projectBranchURI(
-                    projectName, branchRelativePath)
-            bchDir = os.path.join(self.svnProjectsDir, projectName, 'branches')
+            branchDirectory = self.projectBranchDir(projectName,
+                                                    branchRelativePath)
+            trunkDirectory = self.projectBranchDir(projectName)
+            if (branchRelativePath == 'trunk' and not os.path.exists(
+                    trunkDirectory)):
+                if branchURI is None:
+                    raise IOError(
+                        "You need to specify a URI as a 3rd argument"
+                        " to check out trunk")
+                runcmd("svn", "co", branchURI, trunkDirectory)
+            if not os.path.exists(branchDirectory):
+                if branchURI is None:
+                    branchURI = self.projectBranchURI(
+                        projectName, branchRelativePath)
+                bchDir = os.path.join(self.svnProjectsDir, projectName, 'branches')
 
-            if not os.path.exists(bchDir):
-                os.makedirs(bchDir)
-            tempname = branchDirectory+".TRUNK"
-            ftd = os.path.dirname(tempname)
-            if not os.path.exists(ftd):
-                os.makedirs(ftd)
-            try:
-                shutil.copytree(trunkDirectory, tempname, True)
-            except KeyboardInterrupt:
-                shutil.rmtree(tempname)
-                raise
-            os.chdir(tempname)
-            if revert:
-                runcmd("svn", "revert", ".", '-R')
-                # no really, revert
-                statusf = runcmd('svn','status','--no-ignore')
-                for line in statusf.splitlines():
-                    if line[0] == '?' or line[0] == 'I':
-                        unknownFile = line[7:].strip()
-                        print 'removing unknown:', unknownFile
-                        if os.path.isdir(unknownFile):
-                            shutil.rmtree(unknownFile)
-                        else:
-                            os.remove(unknownFile)
-            runcmd("svn", "switch", branchURI)
-            os.chdir('..')
-            os.rename(tempname, branchDirectory)
+                if not os.path.exists(bchDir):
+                    os.makedirs(bchDir)
+                tempname = branchDirectory+".TRUNK"
+                ftd = os.path.dirname(tempname)
+                if not os.path.exists(ftd):
+                    os.makedirs(ftd)
+                try:
+                    shutil.copytree(trunkDirectory, tempname, True)
+                except KeyboardInterrupt:
+                    shutil.rmtree(tempname)
+                    raise
+                os.chdir(tempname)
+                if revert:
+                    runcmd("svn", "revert", ".", '-R')
+                    # no really, revert
+                    statusf = runcmd('svn','status','--no-ignore')
+                    for line in statusf.splitlines():
+                        if line[0] == '?' or line[0] == 'I':
+                            unknownFile = line[7:].strip()
+                            print 'removing unknown:', unknownFile
+                            if os.path.isdir(unknownFile):
+                                shutil.rmtree(unknownFile)
+                            else:
+                                os.remove(unknownFile)
+                runcmd("svn", "switch", branchURI)
+                os.chdir('..')
+                os.rename(tempname, branchDirectory)
 
-        if not os.path.exists(self.sitePathsPath):
-            os.makedirs(self.sitePathsPath)
+            if not os.path.exists(self.sitePathsPath):
+                os.makedirs(self.sitePathsPath)
 
-        f = file(os.path.join(self.sitePathsPath, projectName)+'.bch', 'w')
-        f.write(branchRelativePath)
-        f.close()
+            f = file(os.path.join(self.sitePathsPath, projectName)+'.bch', 'w')
+            f.write(branchRelativePath)
+            f.close()
+        finally:
+            os.chdir(originalWorkingDirectory)
 
 
     def projectBranchURI(self, projectName, branchRelativePath):
         trunkDirectory = self.projectBranchDir(projectName)
         if not os.path.exists(trunkDirectory):
             raise IOError("Trunk not found for project %r" % (projectName,))
-        os.chdir(trunkDirectory)
-        doc = parse(os.popen("svn info --xml"))
+        doc = parse(os.popen("svn info --xml " + trunkDirectory))
         info = doc.documentElement
         assert info.localName == "info", "root element is not <info>"
         entry = childWithName(info, "entry")

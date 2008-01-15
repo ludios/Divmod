@@ -1,4 +1,4 @@
-# -*- test-case-name: axiom,epsilon,xmantissa,nevow,formless,pyflakes,xquotient,radical,reverend,sine,vertex,xapwrap,hyperbola,imaginary,examplegame -*-
+# -*- test-case-name: axiom,epsilon,xmantissa,nevow,formless,pyflakes,xquotient,reverend,sine,vertex,xapwrap,hyperbola,imaginary,examplegame -*-
 Axiom
 Combinator
 Epsilon
@@ -6,7 +6,6 @@ Mantissa
 Nevow
 Pyflakes
 Quotient
-Radical
 Reverend
 Sine
 Vertex

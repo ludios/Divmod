@@ -35,17 +35,15 @@ To integrate with development tools such as Pythonwin, you will need to
 (instead of running the previous commands) set your PYTHONPATH to point to
 ...\Divmod\trunk\Combinator\
 
+On Windows, you will have to prefix commandlines with something like:
+
+        "python c:\python24\python.exe Y:\Divmod\trunk\Combinator\bin\"
+
 To use the various Divmod projects, when you are done with this
-path-setup, you should run the following commands.  (On Windows, you
-will have to prefix these commandlines with something like
+path-setup, you should run the following commands:
 
-	"python c:\python24\python.exe Y:\Divmod\trunk\Combinator\bin\"
-
-)
-
-	% chbranch Divmod trunk
-	% chbranch Twisted trunk svn://svn.twistedmatrix.com/svn/Twisted/trunk
-	% chbranch Nevow trunk svn://svn.twistedmatrix.com/svn/Nevow/trunk
+        % chbranch Divmod trunk
+        % chbranch Twisted trunk svn://svn.twistedmatrix.com/svn/Twisted/trunk
 
 Also, you will have to install platform versions of OpenSSL, PyOpenSSL
 (0.6 or better), SQLite (3.0.8 or better) PySQLite (2.0 or better),

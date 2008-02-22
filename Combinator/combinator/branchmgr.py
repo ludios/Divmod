@@ -327,6 +327,16 @@ class BranchManager:
 
 
     def newProjectBranch(self, projectName, branchName):
+        """
+        Create a new branch of trunk of the given project.
+
+        @type projectName: C{str}
+        @param projectName: The name of the project, already known by this
+            Combinator configuration, for which to create a branch.
+
+        @type branchName: C{str}
+        @param branchName: The new branch's name.
+        """
         trunkURI = self.projectBranchURI(projectName, 'trunk')
         branchURI = self.projectBranchURI(projectName, branchName)
         if subversionURLExists(branchURI):
@@ -363,6 +373,24 @@ class BranchManager:
         """
         Swap which branch of a particular project we are 'working on'.  Adjust
         path files to note this difference.
+
+        @type projectName: C{str}
+        @param projectName: The name of the project for which to swap the
+            active branch.
+
+        @type branchRelativePath: C{str}
+        @param branchRelativePath: The name of the branch to make active.
+
+        @type branchURI: C{str} or C{NoneType}
+        @param branchURI: The URI of the trunk branch for the given project.
+            This must be provided if it has not previously been supplied.
+
+        @type revert: C{bool}
+        @param revert: A flag indicating whether to revert the copy of the
+            trunk working-copy before switching it to the specified branch.
+
+        @raise IOError: The project's trunk branch URI was not supplied and
+            is not known.
         """
         originalWorkingDirectory = os.getcwd()
         try:
@@ -378,15 +406,20 @@ class BranchManager:
                         "You need to specify a URI as a 3rd argument"
                         " to check out trunk")
                 runcmd("svn", "co", branchURI, trunkDirectory)
+
             if not os.path.exists(branchDirectory):
                 if branchURI is None:
                     branchURI = self.projectBranchURI(
                         projectName, branchRelativePath)
+
+                if not subversionURLExists(branchURI):
+                    raise IOError(branchURI + " does not exist.")
+
                 bchDir = os.path.join(self.svnProjectsDir, projectName, 'branches')
 
                 if not os.path.exists(bchDir):
                     os.makedirs(bchDir)
-                tempname = branchDirectory+".TRUNK"
+                tempname = branchDirectory + ".TRUNK"
                 ftd = os.path.dirname(tempname)
                 if not os.path.exists(ftd):
                     os.makedirs(ftd)
@@ -415,7 +448,7 @@ class BranchManager:
             if not os.path.exists(self.sitePathsPath):
                 os.makedirs(self.sitePathsPath)
 
-            f = file(os.path.join(self.sitePathsPath, projectName)+'.bch', 'w')
+            f = file(os.path.join(self.sitePathsPath, projectName) + '.bch', 'w')
             f.write(branchRelativePath)
             f.close()
         finally:

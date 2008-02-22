@@ -248,6 +248,71 @@ class ChangeBranchTests(TestCase):
         self.assertEqual(self.manager.currentBranchFor(project), branch)
 
 
+    def test_changeBranchRejectsInvalid(self):
+        """
+        L{BranchManager.changeProjectBranch} raises L{IOError} when passed
+        the name of a branch which does not already exist.
+        """
+        project = 'Quux'
+        branch = 'fantastical'
+
+        # First get trunk
+        self.manager.changeProjectBranch(
+            project, 'trunk', _uri(self.repository, 'trunk'))
+
+        # Then try to change to a branch which isn't real.
+        self.assertRaises(
+            IOError,
+            self.manager.changeProjectBranch,
+            project, branch)
+
+
+    def test_changeBranchRejectsExplicitInvalid(self):
+        """
+        L{BranchManager.changeProjectBranch} raises L{IOError} when passed a
+        branch URI which is invalid.
+        """
+        project = 'Quux'
+        branch = 'foo'
+
+        # First get trunk
+        self.manager.changeProjectBranch(
+            project, 'trunk', _uri(self.repository, 'trunk'))
+
+        # Then try to change to a branch which isn't real.
+        self.assertRaises(
+            IOError,
+            self.manager.changeProjectBranch,
+            project, branch, _uri(self.repository, 'not a real thing'))
+
+
+    def test_changeToCheckedOutBranch(self):
+        """
+        L{BranchManager.changeProjectBranch} succeeds if the repository is
+        inaccessible but there is already a checkout of the specified
+        branch.
+        """
+        project = 'Quux'
+        branch = 'foo'
+
+        # First get trunk
+        self.manager.changeProjectBranch(
+            project, 'trunk', _uri(self.repository, 'trunk'))
+
+        # Then switch to the branch
+        self.manager.changeProjectBranch(project, branch)
+
+        # Go "offline"
+        self.repository.remove()
+
+        # Switch back to trunk and (since trunk is slightly different than
+        # other branches) then back to the branch
+        self.manager.changeProjectBranch(project, 'trunk')
+        self.assertEqual(self.manager.currentBranchFor(project), 'trunk')
+        self.manager.changeProjectBranch(project, branch)
+        self.assertEqual(self.manager.currentBranchFor(project), branch)
+
+
 
 class MakeBranchTests(TestCase):
     """

@@ -1,8 +1,57 @@
 # -*- test-case-name: combinator -*-
 
+"""
+Local and remote subversion branch manipulation functionality.
+
+This provides the implementation for the mkbranch, chbranch, unbranch, and
+whbranch command line tools.
+"""
+
 import os
 from combinator import xsite
 import sys
+
+
+class InvalidParameter(Exception):
+    """
+    An operation could not be performed because one or more of the parameters
+    was invalid.
+    """
+
+
+class DuplicateBranch(InvalidParameter):
+    """
+    An attempt was made to create a branch with the same name as an existing branch.
+    """
+
+
+class NonExistentBranch(InvalidParameter):
+    """
+    An attempt was made to use a branch which does not exist.
+    """
+
+
+
+class InvalidBranch(InvalidParameter):
+    """
+    An attempt was made to use a branch in a way which is not allowed for that
+    branch.
+    """
+
+
+class MissingCreationRevision(ValueError):
+    """
+    The revision at which a branch was created could not be determined.
+    """
+
+
+
+class MissingTrunkLocation(InvalidParameter):
+    """
+    A checkout of the trunk branch of a project could not be performed because
+    the location of the trunk branch is unknown and was not specified.
+    """
+
 
 _cmdLineQuoteRe = None
 
@@ -322,6 +371,7 @@ class BranchManager:
 
 
     def currentBranchFor(self, projectName):
+        
         return file(os.path.join(self.sitePathsPath, projectName)+'.bch'
                     ).read().strip()
 
@@ -340,16 +390,19 @@ class BranchManager:
         trunkURI = self.projectBranchURI(projectName, 'trunk')
         branchURI = self.projectBranchURI(projectName, branchName)
         if subversionURLExists(branchURI):
-            raise ValueError(branchURI, "already exists.")
+            raise DuplicateBranch(branchName)
         runcmd('svn', 'cp', trunkURI, branchURI, '-m',
                'Branching to %r' % (branchName,))
         self.changeProjectBranch(projectName, branchName, revert=False)
 
 
     def mergeProjectBranch(self, projectName):
-        currentBranch = self.currentBranchFor(projectName)
+        try:
+            currentBranch = self.currentBranchFor(projectName)
+        except IOError:
+            raise MissingTrunkLocation(projectName)
         if currentBranch == "trunk":
-            raise ValueError("Cannot merge trunk")
+            raise InvalidBranch()
         branchDir = self.projectBranchDir(projectName, currentBranch)
         os.chdir(branchDir)
         rev = None
@@ -358,7 +411,7 @@ class BranchManager:
             if hasattr(node, 'getAttribute'):
                 rev = node.getAttribute("revision")
         if rev is None:
-            raise IOError("No revision found")
+            raise MissingCreationRevision("No revision found")
         trunkDir = self.projectBranchDir(projectName)
         os.chdir(trunkDir)
         runcmd('svn', 'up')
@@ -392,6 +445,7 @@ class BranchManager:
         @raise IOError: The project's trunk branch URI was not supplied and
             is not known.
         """
+        branchURIWasNone = (branchURI is None)
         originalWorkingDirectory = os.getcwd()
         try:
             import shutil
@@ -402,9 +456,7 @@ class BranchManager:
             if (branchRelativePath == 'trunk' and not os.path.exists(
                     trunkDirectory)):
                 if branchURI is None:
-                    raise IOError(
-                        "You need to specify a URI as a 3rd argument"
-                        " to check out trunk")
+                    raise MissingTrunkLocation(projectName)
                 runcmd("svn", "co", branchURI, trunkDirectory)
 
             if not os.path.exists(branchDirectory):
@@ -413,7 +465,10 @@ class BranchManager:
                         projectName, branchRelativePath)
 
                 if not subversionURLExists(branchURI):
-                    raise IOError(branchURI + " does not exist.")
+                    if branchURIWasNone:
+                        raise NonExistentBranch(branchRelativePath)
+                    else:
+                        raise NonExistentBranch(branchURI)
 
                 bchDir = os.path.join(self.svnProjectsDir, projectName, 'branches')
 
@@ -458,7 +513,7 @@ class BranchManager:
     def projectBranchURI(self, projectName, branchRelativePath):
         trunkDirectory = self.projectBranchDir(projectName)
         if not os.path.exists(trunkDirectory):
-            raise IOError("Trunk not found for project %r" % (projectName,))
+            raise MissingTrunkLocation(projectName)
         doc = parse(os.popen("svn info --xml " + trunkDirectory))
         info = doc.documentElement
         assert info.localName == "info", "root element is not <info>"
@@ -473,7 +528,7 @@ class BranchManager:
         return branchURI
 
 
-    def createExecutables (self, stream=sys.stderr):
+    def createExecutables(self, stream=sys.stderr):
         """
         Create scripts for executing files in the /bin subdirs of project
         branches found on C{syspath}. Report progress to C{stream}.
@@ -501,8 +556,6 @@ class BranchManager:
 
 
 
-theBranchManager = None
-
 def splitall(p):
     car, cdr = os.path.split(p)
     if not cdr:
@@ -522,6 +575,128 @@ def getDefaultPath():
         return
     return os.path.join(*saf[:-5])
 
+
+
+def _combinatorUsage(executable, info):
+    """
+    Exit with the given usage information.
+
+    @type executable: C{str}
+    @param executable: The name of the executable being exited.
+
+    @type info: C{str}
+    @param info: Information about how to correctly invoke this executable.
+
+    @raise SystemExit: Always raised with a user-readable usage string.
+    """
+    raise SystemExit("Usage: %s %s" % (os.path.basename(executable), info))
+
+
+
+def _combinatorMain(operation, *args):
+    """
+    Run a branch manager operation and handle expected errors by presenting
+    them in a user-friendly manner and exiting.
+
+    @param operation: A branch manager callable to invoke.
+    @param *args: Positional arguments to pass to C{operation}.
+
+    @return: Whatever is returned by C{operation(*args)}.
+
+    @raise SystemExit: Raised if an exception of known type is raised by the
+        branch manager operation.
+    """
+    try:
+        return operation(*args)
+    except MissingTrunkLocation, e:
+        raise SystemExit(
+            "The location of %r trunk is not known.  Specify a URI as the "
+            "3rd argument to check out a branch (check out trunk to make "
+            "this unnecessary)." % e.args)
+    except NonExistentBranch, e:
+        raise SystemExit(
+            "No such branch: %r" % e.args)
+    except DuplicateBranch, e:
+        raise SystemExit(
+            "Branch named %r exists already." % e.args)
+    except InvalidBranch, e:
+        raise SystemExit("Cannot merge trunk.")
+
+
+
+def chbranchMain(args):
+    """
+    Change the active branch of a project.  This is the main function for
+    C{chbranch} command.
+
+    @param args: A list of 3 or 4 elements:
+      1. The name of the chbranch executable.
+      2. The name of the project on which to operate.
+      3. The name of the branch to which to change.
+      4. The version control URI of the branch.  This is only required when
+         changing to trunk for the first time.
+    """
+    if 3 <= len(args) <= 4:
+        return _combinatorMain(theBranchManager.changeProjectBranch, *args[1:])
+    _combinatorUsage(args[0], "<project> <branch name> [trunk url]")
+
+
+
+def whbranchMain(args):
+    """
+    Display the active branch of a project.  This is the main function for
+    C{whbranch} command.
+
+    @param args: A list of one or two elements:
+      1. The name of the whbranch executable.
+      2. The name of a project.  If not specified, the active branch for all
+         managed projects will be displayed.
+    """
+    if len(args) == 1:
+        whichBranch = None
+    elif len(args) == 2:
+        whichBranch = args[1]
+    else:
+        _combinatorUsage(args[0], "[project]")
+
+    for k, v in _combinatorMain(theBranchManager.getCurrentBranches):
+        if whichBranch is not None:
+            if k == whichBranch:
+                print v
+                break
+        else:
+            print k + ":", v
+
+
+
+def unbranchMain(args):
+    """
+    Merge the active branch of a project into the trunk working copy of that
+    project.  This is the main function for the C{unbranch} command.
+
+    @param args: A list of two elements:
+      1. The name of the unbranch executable.
+      2. The name of the project for which to merge a branch.
+    """
+    if len(args) == 2:
+        return _combinatorMain(theBranchManager.mergeProjectBranch, *args[1:])
+    _combinatorUsage(args[0], "<project>")
+
+
+
+def mkbranchMain(args):
+    """
+    Create a new branch for a project and make it active.  This is the main
+    function for the C{mkbranch} command.
+
+    @param args: A list of three elements:
+      1. The name of the mkbranch executable.
+      2. The name of the project for which to create a new branch.
+      3. The name to give to the newly created branch.
+    """
+    if len(args) == 3:
+        return _combinatorMain(theBranchManager.newProjectBranch, *args[1:])
+    _combinatorUsage(args[0], "<project> <branch name>")
 
 
 theBranchManager = BranchManager()

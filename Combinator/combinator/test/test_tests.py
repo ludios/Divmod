@@ -1,6 +1,6 @@
 
 """
-Since combinator sets up the the environment for the tests, these tests
+Since combinator sets up the environment for the tests, these tests
 attempt to verify that the tests are actually running the code that you think
 they're running.
 """

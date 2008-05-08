@@ -53,6 +53,7 @@ class MissingTrunkLocation(InvalidParameter):
     """
 
 
+
 _cmdLineQuoteRe = None
 
 def _cmdLineQuote(s):
@@ -302,7 +303,7 @@ class BranchManager:
             sitePathsPath = (os.getenv('COMBINATOR_PATHS') or
                              os.path.join(svnProjectsDir, "combinator_paths"))
         self.syspath = syspath
-        self.svnProjectsDir = svnProjectsDir
+        self.svnProjectsDir = os.path.abspath(svnProjectsDir)
         self.sitePathsPath = os.path.abspath(sitePathsPath)
         self.binCachePath = os.path.join(sitePathsPath, 'bincache')
 
@@ -371,7 +372,7 @@ class BranchManager:
 
 
     def currentBranchFor(self, projectName):
-        
+
         return file(os.path.join(self.sitePathsPath, projectName)+'.bch'
                     ).read().strip()
 
@@ -397,28 +398,32 @@ class BranchManager:
 
 
     def mergeProjectBranch(self, projectName):
+        originalWorkingDirectory = os.getcwd()
         try:
-            currentBranch = self.currentBranchFor(projectName)
-        except IOError:
-            raise MissingTrunkLocation(projectName)
-        if currentBranch == "trunk":
-            raise InvalidBranch()
-        branchDir = self.projectBranchDir(projectName, currentBranch)
-        os.chdir(branchDir)
-        rev = None
-        for node in parse(os.popen("svn log --stop-on-copy --xml")
-                          ).documentElement.childNodes:
-            if hasattr(node, 'getAttribute'):
-                rev = node.getAttribute("revision")
-        if rev is None:
-            raise MissingCreationRevision("No revision found")
-        trunkDir = self.projectBranchDir(projectName)
-        os.chdir(trunkDir)
-        runcmd('svn', 'up')
-        runcmd('svn', 'merge',
-               branchDir + "/@" + rev,
-               branchDir + "/@HEAD")
-        self.changeProjectBranch(projectName, 'trunk')
+            try:
+                currentBranch = self.currentBranchFor(projectName)
+            except IOError:
+                raise MissingTrunkLocation(projectName)
+            if currentBranch == "trunk":
+                raise InvalidBranch()
+            branchDir = self.projectBranchDir(projectName, currentBranch)
+            os.chdir(branchDir)
+            rev = None
+            for node in parse(os.popen("svn log --stop-on-copy --xml")
+                              ).documentElement.childNodes:
+                if hasattr(node, 'getAttribute'):
+                    rev = node.getAttribute("revision")
+            if rev is None:
+                raise MissingCreationRevision("No revision found")
+            trunkDir = self.projectBranchDir(projectName)
+            os.chdir(trunkDir)
+            runcmd('svn', 'up')
+            runcmd('svn', 'merge',
+                   branchDir + "/@" + rev,
+                   branchDir + "/@HEAD")
+            self.changeProjectBranch(projectName, 'trunk')
+        finally:
+            os.chdir(originalWorkingDirectory)
 
 
     def changeProjectBranch(self, projectName, branchRelativePath,

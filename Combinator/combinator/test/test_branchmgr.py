@@ -10,7 +10,7 @@ from twisted.python.filepath import FilePath
 
 from combinator import branchmgr
 from combinator.branchmgr import DuplicateBranch, NonExistentBranch
-from combinator.branchmgr import InvalidBranch, MissingCreationRevision
+from combinator.branchmgr import InvalidBranch
 from combinator.branchmgr import MissingTrunkLocation
 from combinator.branchmgr import BranchManager, subversionURLExists
 from combinator.branchmgr import chbranchMain, mkbranchMain, whbranchMain
@@ -107,7 +107,7 @@ class BranchManagerTests(TestCase):
         """
         self.changeEnvironment("COMBINATOR_PROJECTS", "somedir")
         b = BranchManager()
-        self.assertEqual(b.svnProjectsDir, "somedir")
+        self.assertEqual(b.svnProjectsDir, os.path.abspath("somedir"))
 
 
     def test_pathsEnvironment(self):
@@ -473,6 +473,21 @@ class ChangeBranchTestsMixin:
             DuplicateBranch,
             self.manager.newProjectBranch, projectName, branchName)
         self.assertEqual(err.args, (branchName,))
+
+    def test_merge(self):
+        """
+        Merging a branch does not produce any errors under normal conditions.
+        """
+        projectName = "Quux"
+        branchName = 'baz'
+        self.createRepository(projectName, {"trunk": {},
+                                            'branches': {branchName: {}}})
+        self.manager.changeProjectBranch(
+            projectName, 'trunk', self.uri(projectName, 'trunk'))
+        self.manager.changeProjectBranch(projectName, branchName)
+        self.manager.mergeProjectBranch(projectName)
+        self.assertEqual(
+            self.manager.currentBranchFor(projectName), 'trunk')
 
 
     def test_mergeUnknownProject(self):

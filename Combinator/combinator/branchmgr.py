@@ -54,6 +54,14 @@ class MissingTrunkLocation(InvalidParameter):
 
 
 
+class UncleanTrunkWorkingCopy(ValueError):
+    """
+    A merge of the current branch into trunk couldn't be performed because the
+    trunk working copy contains uncommitted changes.
+    """
+
+
+
 _cmdLineQuoteRe = None
 
 def _cmdLineQuote(s):
@@ -397,7 +405,7 @@ class BranchManager:
         self.changeProjectBranch(projectName, branchName, revert=False)
 
 
-    def mergeProjectBranch(self, projectName):
+    def mergeProjectBranch(self, projectName, force=False):
         originalWorkingDirectory = os.getcwd()
         try:
             try:
@@ -417,6 +425,11 @@ class BranchManager:
                 raise MissingCreationRevision("No revision found")
             trunkDir = self.projectBranchDir(projectName)
             os.chdir(trunkDir)
+            if not force:
+                statusf = runcmd('svn', 'status', '--quiet')
+                for line in statusf.splitlines():
+                    if line[0] == 'M' or line[0] == 'A':
+                        raise UncleanTrunkWorkingCopy()
             runcmd('svn', 'up')
             runcmd('svn', 'merge',
                    branchDir + "/@" + rev,
@@ -624,6 +637,9 @@ def _combinatorMain(operation, *args):
     except DuplicateBranch, e:
         raise SystemExit(
             "Branch named %r exists already." % e.args)
+    except UncleanTrunkWorkingCopy:
+        raise SystemExit(
+            "Can't unbranch while trunk working copy contains modifications.")
     except InvalidBranch, e:
         raise SystemExit("Cannot merge trunk.")
 
@@ -683,9 +699,14 @@ def unbranchMain(args):
       1. The name of the unbranch executable.
       2. The name of the project for which to merge a branch.
     """
+    force = False
+    if "--force" in args:
+        force = True
+        args.remove("--force")
     if len(args) == 2:
-        return _combinatorMain(theBranchManager.mergeProjectBranch, *args[1:])
-    _combinatorUsage(args[0], "<project>")
+        return _combinatorMain(theBranchManager.mergeProjectBranch,
+                               args[1], force)
+    _combinatorUsage(args[0], "[--force] <project>")
 
 
 

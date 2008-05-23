@@ -10,7 +10,7 @@ from twisted.python.filepath import FilePath
 
 from combinator import branchmgr
 from combinator.branchmgr import DuplicateBranch, NonExistentBranch
-from combinator.branchmgr import InvalidBranch
+from combinator.branchmgr import InvalidBranch, UncleanTrunkWorkingCopy
 from combinator.branchmgr import MissingTrunkLocation
 from combinator.branchmgr import BranchManager, subversionURLExists
 from combinator.branchmgr import chbranchMain, mkbranchMain, whbranchMain
@@ -180,6 +180,7 @@ class FakeBranchManager(object):
             repositories = {}
         self.repositories = repositories
         self.workingCopies = {}
+        self.trunkClean = True
 
 
     def _exists(self, path):
@@ -241,13 +242,15 @@ class FakeBranchManager(object):
         self.activeBranches[projectName] = branchName
 
 
-    def mergeProjectBranch(self, projectName):
+    def mergeProjectBranch(self, projectName, force=False):
         """
         Change the given project's active branch to trunk, unless it is trunk
         already.
         """
         if self.activeBranches.get(projectName, None) == "trunk":
             raise InvalidBranch()
+        if not self.trunkClean and not force:
+            raise UncleanTrunkWorkingCopy()
         self.changeProjectBranch(projectName, 'trunk')
 
 
@@ -518,6 +521,47 @@ class ChangeBranchTestsMixin:
         self.assertEqual(err.args, ())
 
 
+    def test_mergeUnclean(self):
+        """
+        L{BranchManager.mergeProjectBranch} raises L{UncleanTrunkWorkingCopy}
+        if there are uncommitted changes in trunk.
+        """
+        projectName = "Quux"
+        branchName = 'baz'
+        fname = 'foo.txt'
+        contents = {fname: 'some data'}
+        self.createRepository(projectName, {"trunk": contents,
+                                            'branches': {branchName: contents}})
+        self.manager.changeProjectBranch(
+            projectName, 'trunk', self.uri(projectName, 'trunk'))
+        self.manager.changeProjectBranch(projectName, branchName)
+        self.modifyTrunk(projectName, fname)
+        err = self.assertRaises(
+            UncleanTrunkWorkingCopy,
+            self.manager.mergeProjectBranch, projectName)
+        self.assertEqual(
+            self.manager.currentBranchFor(projectName), branchName)
+
+
+    def test_forceMergeUnclean(self):
+        """
+        L{BranchManager.mergeProjectBranch} does not raise
+        L{UncleanTrunkWorkingCopy} if the 'force' flag is specified.
+        """
+        projectName = "Quux"
+        branchName = 'baz'
+        fname = 'foo.txt'
+        contents = {fname: 'some data'}
+        self.createRepository(projectName, {"trunk": contents,
+                                            'branches': {branchName: contents}})
+        self.manager.changeProjectBranch(
+            projectName, 'trunk', self.uri(projectName, 'trunk'))
+        self.manager.changeProjectBranch(projectName, branchName)
+        self.modifyTrunk(projectName, fname)
+        self.manager.mergeProjectBranch(projectName, force=True)
+        self.assertEqual(
+            self.manager.currentBranchFor(projectName), 'trunk')
+
 
 class FakeBranchManagerChangeBranchTests(TestCase, ChangeBranchTestsMixin):
     """
@@ -560,6 +604,13 @@ class FakeBranchManagerChangeBranchTests(TestCase, ChangeBranchTestsMixin):
         Discard the repository for the given project.
         """
         del self.manager.repositories[projectName]
+
+
+    def modifyTrunk(self, projectName, fname):
+        """
+        Make a change to a file in trunk.
+        """
+        self.manager.trunkClean = False
 
 
 
@@ -627,6 +678,16 @@ class BranchManagerChangeBranchTests(TestCase, ChangeBranchTestsMixin):
         branches can't possibly succeed.
         """
         self.repositories.child(projectName).remove()
+
+
+    def modifyTrunk(self, projectName, fname):
+        """
+        Make a change to a file in trunk.
+        """
+        trunkpath = FilePath(self.paths).child(projectName).child('trunk')
+        f = trunkpath.child(fname).open('w')
+        f.write("some unique data")
+        f.close()
 
 
 
@@ -869,7 +930,7 @@ class MainFunctionTests(TestCase):
                 unbranchMain, args)
             self.assertEqual(
                 err.args,
-                ("Usage: unbranch <project>",))
+                ("Usage: unbranch [--force] <project>",))
 
 
     def test_unbranchUnknownProject(self):

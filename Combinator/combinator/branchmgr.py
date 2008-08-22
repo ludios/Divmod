@@ -368,15 +368,12 @@ class BranchManager:
         if sys.platform.startswith('win'):
             yield (os.path.abspath(
                     os.path.expanduser("~/Python/Lib/site-packages")))
-        elif sys.platform != 'darwin':
-            # Darwin already has appropriate user-installation directories set
-            # up.
+        else:
             userSitePackages = os.path.abspath(
                 os.path.expanduser(
                     "~/.local/lib/python%s/site-packages" % (majorMinor,)))
             if os.path.exists(userSitePackages):
                 yield userSitePackages
-
 
 
     def currentBranchFor(self, projectName):

@@ -1,4 +1,3 @@
-
 """
 This module contains tests for combinator.branchmgr.
 """
@@ -165,6 +164,10 @@ class FakeBranchManager(object):
         names.  The branch name corresponding to each project name is the
         branch which is currently active for that project.
 
+    @ivar sproutsFrom: A mapping from C{str} project names to C{str} branch
+        names.  The branch name corresponding to each project name is the
+        branch from which the project's active branch sprouted.
+
     @ivar repositories: A mapping from C{str} project names to C{dict}s
         representing the contents of the repository for that project.  Keys are
         C{str} giving path segments and values are either C{str} giving file
@@ -176,6 +179,7 @@ class FakeBranchManager(object):
     """
     def __init__(self, repositories=None):
         self.activeBranches = {}
+        self.sproutsFrom = {}
         if repositories is None:
             repositories = {}
         self.repositories = repositories
@@ -223,6 +227,14 @@ class FakeBranchManager(object):
         return self.activeBranches[projectName]
 
 
+    def currentBranchOrigin(self, projectName):
+        """
+        Retrieve the name of the branch from which the named project's
+        currently active branch sprouted.
+        """
+        return self.sproutsFrom[projectName]
+
+
     def getCurrentBranches(self):
         """
         Retrieve all of the currently active branches.
@@ -230,7 +242,7 @@ class FakeBranchManager(object):
         return self.activeBranches.iteritems()
 
 
-    def newProjectBranch(self, projectName, branchName):
+    def newProjectBranch(self, projectName, branchName, fromBranchName='trunk'):
         """
         Change the given project's active branch.
         """
@@ -240,18 +252,19 @@ class FakeBranchManager(object):
         if self._exists((projectName,) + ('branches', branchName)):
             raise DuplicateBranch(branchName)
         self.activeBranches[projectName] = branchName
+        self.sproutsFrom[projectName] = fromBranchName
 
 
-    def mergeProjectBranch(self, projectName, force=False):
+    def mergeProjectBranch(self, projectName, targetBranch='trunk', force=False):
         """
         Change the given project's active branch to trunk, unless it is trunk
         already.
         """
-        if self.activeBranches.get(projectName, None) == "trunk":
-            raise InvalidBranch()
+        if self.activeBranches.get(projectName, None) in ["trunk", targetBranch]:
+            raise InvalidBranch(targetBranch)
         if not self.trunkClean and not force:
             raise UncleanTrunkWorkingCopy()
-        self.changeProjectBranch(projectName, 'trunk')
+        self.changeProjectBranch(projectName, targetBranch)
 
 
 
@@ -811,15 +824,15 @@ class MainFunctionTests(TestCase):
     def test_mkbranchWrongNumberOfArguments(self):
         """
         L{mkbranchMain} raises L{SystemExit} with usage information when called
-        with a number of arguments other than three.
+        with a number of arguments other than three or four.
         """
         for args in [
             ["/bin/mkbranch", "Foo"],
-            ["/bin/mkbranch", "Foo", "bar", "baz"]]:
+            ["/bin/mkbranch", "Foo", "bar", "baz", "cruft"]]:
             err = self.assertRaises(SystemExit, mkbranchMain, args)
             self.assertEqual(
                 err.args,
-                ("Usage: mkbranch <project> <branch name>",))
+                ("Usage: mkbranch <project> <branch name> [<source branch name>]",))
 
 
     def test_mkbranchUnknownProject(self):
@@ -865,6 +878,24 @@ class MainFunctionTests(TestCase):
         self.manager.changeProjectBranch("Quux", "trunk", ("Quux", "trunk"))
         mkbranchMain(["/bin/mkbranch", "Quux", "bar"])
         self.assertEqual(self.manager.currentBranchFor("Quux"), "bar")
+        self.assertEqual(self.manager.currentBranchOrigin("Quux"), "trunk")
+
+
+    def test_mkbranchFromSourceOtherThanTrunk(self):
+        """
+        L{mkbranchMain} returns without exception when called to create a
+        new branch from a source branch other than trunk in a project which
+        exists.  It changes the active branch for the specified project.
+        """
+
+        self.manager.repositories["Quux"] = {"trunk": {},
+                                             "branches":
+                                                 {"foo": {},
+                                                  "maint-1.0": {}}}
+        self.manager.changeProjectBranch("Quux", "trunk", ("Quux", "trunk"))
+        mkbranchMain(["/bin/mkbranch", "Quux", "bar", "maint-1.0"])
+        self.assertEqual(self.manager.currentBranchFor("Quux"), "bar")
+        self.assertEqual(self.manager.currentBranchOrigin("Quux"), "maint-1.0")
 
 
     def test_whbranchWrongNumberOfArguments(self):
@@ -920,17 +951,17 @@ class MainFunctionTests(TestCase):
     def test_unbranchWrongNumberOfArgments(self):
         """
         L{unbranchMain} raises L{SystemExit} with usage information if it is
-        called with a number of arguments other than two.
+        called with a number of arguments other than two or three.
         """
         for args in [
             ["/bin/unbranch"],
-            ["/bin/unbranch", "Foo", "bar"]]:
+            ["/bin/unbranch", "Foo", "bar", "baz"]]:
             err = self.assertRaises(
                 SystemExit,
                 unbranchMain, args)
             self.assertEqual(
                 err.args,
-                ("Usage: unbranch [--force] <project>",))
+                ("Usage: unbranch [--force] <project> [<target branch name>]",))
 
 
     def test_unbranchUnknownProject(self):
@@ -965,6 +996,26 @@ class MainFunctionTests(TestCase):
         self.assertEqual(err.args, ("Cannot merge trunk.",))
 
 
+    def test_unbranchCurrentSameAsTarget(self):
+        """
+        L{unbranchMain} raises L{SystemExit} with a string explaining that
+        unbranch cannot be called with the name of a project for which
+        the current active branch is the same as the merge target.
+        """
+        projectName = "Quux"
+        self.manager.repositories[projectName] = {"trunk": {},
+                                                  "branches":
+                                                      {"foo": {}}}
+        self.manager.changeProjectBranch(
+            projectName, "trunk", (projectName, "trunk"))
+        self.manager.changeProjectBranch(projectName, "foo")
+        err = self.assertRaises(
+            SystemExit,
+            unbranchMain, ["/bin/unbranch", projectName, "foo"])
+
+        self.assertEqual(err.args, ("Cannot merge foo.",))
+
+
     def test_unbranch(self):
         """
         L{unbranchMain} returns without exception when called with the name of
@@ -980,3 +1031,23 @@ class MainFunctionTests(TestCase):
         self.manager.changeProjectBranch(projectName, "foo")
         unbranchMain(["/bin/unbranch", projectName])
         self.assertEqual(self.manager.currentBranchFor(projectName), "trunk")
+
+
+    def test_unbranchToTargetOtherThanTrunk(self):
+        """
+        L{unbranchMain} returns without exception when called with the name of
+        a project which is known and a destination branch for the merge.
+        The current active branch of the project is neither trunk nor the
+        destination branch prior to the invocation.  The active branch
+        afterwards is the destination branch.
+        """
+        projectName = "Quux"
+        self.manager.repositories[projectName] = {"trunk": {},
+                                                  "branches":
+                                                      {"foo": {},
+                                                       "maint-1.0" : {}}}
+        self.manager.changeProjectBranch(
+            projectName, "trunk", (projectName, "trunk"))
+        self.manager.changeProjectBranch(projectName, "foo")
+        unbranchMain(["/bin/unbranch", projectName, "maint-1.0"])
+        self.assertEqual(self.manager.currentBranchFor(projectName), "maint-1.0")

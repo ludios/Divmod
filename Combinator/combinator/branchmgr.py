@@ -36,7 +36,12 @@ class InvalidBranch(InvalidParameter):
     """
     An attempt was made to use a branch in a way which is not allowed for that
     branch.
+
+    @type branch: C{str}
+    @param branch: The name of the invalid branch
     """
+    def __init__(self, branch):
+        self.branch = branch
 
 
 class MissingCreationRevision(ValueError):
@@ -382,7 +387,7 @@ class BranchManager:
                     ).read().strip()
 
 
-    def newProjectBranch(self, projectName, branchName):
+    def newProjectBranch(self, projectName, branchName, fromBranchName='trunk'):
         """
         Create a new branch of trunk of the given project.
 
@@ -393,8 +398,12 @@ class BranchManager:
         @type branchName: C{str}
         @param branchName: The new branch's name.
         """
-        trunkURI = self.projectBranchURI(projectName, 'trunk')
+        trunkURI = self.projectBranchURI(projectName, fromBranchName)
         branchURI = self.projectBranchURI(projectName, branchName)
+        # optimize away this url exists test for the common case, where
+        # fromBranchName = 'trunk'
+        if fromBranchName != 'trunk' and not subversionURLExists(trunkURI):
+            raise NonExistentBranch(fromBranchName)
         if subversionURLExists(branchURI):
             raise DuplicateBranch(branchName)
         runcmd('svn', 'cp', trunkURI, branchURI, '-m',
@@ -402,15 +411,15 @@ class BranchManager:
         self.changeProjectBranch(projectName, branchName, revert=False)
 
 
-    def mergeProjectBranch(self, projectName, force=False):
+    def mergeProjectBranch(self, projectName, targetBranch='trunk', force=False):
         originalWorkingDirectory = os.getcwd()
         try:
             try:
                 currentBranch = self.currentBranchFor(projectName)
             except IOError:
                 raise MissingTrunkLocation(projectName)
-            if currentBranch == "trunk":
-                raise InvalidBranch()
+            if currentBranch == targetBranch:
+                raise InvalidBranch(currentBranch)
             branchDir = self.projectBranchDir(projectName, currentBranch)
             os.chdir(branchDir)
             rev = None
@@ -420,7 +429,7 @@ class BranchManager:
                     rev = node.getAttribute("revision")
             if rev is None:
                 raise MissingCreationRevision("No revision found")
-            trunkDir = self.projectBranchDir(projectName)
+            trunkDir = self.projectBranchDir(projectName, branchPath=targetBranch)
             os.chdir(trunkDir)
             if not force:
                 statusf = runcmd('svn', 'status', '--quiet')
@@ -431,7 +440,7 @@ class BranchManager:
             runcmd('svn', 'merge',
                    branchDir + "/@" + rev,
                    branchDir + "/@HEAD")
-            self.changeProjectBranch(projectName, 'trunk')
+            self.changeProjectBranch(projectName, targetBranch)
         finally:
             os.chdir(originalWorkingDirectory)
 
@@ -638,7 +647,7 @@ def _combinatorMain(operation, *args):
         raise SystemExit(
             "Can't unbranch while trunk working copy contains modifications.")
     except InvalidBranch, e:
-        raise SystemExit("Cannot merge trunk.")
+        raise SystemExit("Cannot merge %s." % e.branch)
 
 
 
@@ -692,18 +701,24 @@ def unbranchMain(args):
     Merge the active branch of a project into the trunk working copy of that
     project.  This is the main function for the C{unbranch} command.
 
-    @param args: A list of two elements:
+    @param args: A list of two required elements and a third optional element:
       1. The name of the unbranch executable.
       2. The name of the project for which to merge a branch.
+      3. The name of the branch to which the merge should be delivered.
+         (default 'trunk')
     """
     force = False
     if "--force" in args:
         force = True
         args.remove("--force")
-    if len(args) == 2:
+    if len(args) in (2, 3):
+        if len(args) == 2:
+            targetBranch = 'trunk'
+        else:
+            targetBranch = args[2]
         return _combinatorMain(theBranchManager.mergeProjectBranch,
-                               args[1], force)
-    _combinatorUsage(args[0], "[--force] <project>")
+                               args[1], targetBranch, force)
+    _combinatorUsage(args[0], "[--force] <project> [<target branch name>]")
 
 
 
@@ -712,14 +727,16 @@ def mkbranchMain(args):
     Create a new branch for a project and make it active.  This is the main
     function for the C{mkbranch} command.
 
-    @param args: A list of three elements:
+    @param args: A list of three required elements and a fourth optional element:
       1. The name of the mkbranch executable.
       2. The name of the project for which to create a new branch.
       3. The name to give to the newly created branch.
+      4. The name of the branch from which to sprout the new branch.
+         (default 'trunk')
     """
-    if len(args) == 3:
+    if len(args) in (3, 4):
         return _combinatorMain(theBranchManager.newProjectBranch, *args[1:])
-    _combinatorUsage(args[0], "<project> <branch name>")
+    _combinatorUsage(args[0], "<project> <branch name> [<source branch name>]")
 
 
 theBranchManager = BranchManager()

@@ -4,7 +4,10 @@ Some functions copied from site.py and improved to not modify sys.path
 directly.
 """
 import os
-from sets import Set
+try:
+    set
+except NameError:
+    from sets import Set as set
 from site import makepath
 
 
@@ -15,7 +18,7 @@ def _init_pathinfo(syspath):
     @param syspath: A list of filesystem path strings to directories containing
     Python packages and modules.
     """
-    d = Set()
+    d = set()
     for dir in syspath:
         try:
             if os.path.isdir(dir):

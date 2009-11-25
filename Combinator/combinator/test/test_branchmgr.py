@@ -15,7 +15,7 @@ from combinator.branchmgr import MissingTrunkLocation
 from combinator.branchmgr import BranchManager, subversionURLExists
 from combinator.branchmgr import chbranchMain, mkbranchMain, whbranchMain
 from combinator.branchmgr import unbranchMain
-from combinator.subversion import createSubversionRepository
+from combinator.subversion import createSubversionRepository, commit
 
 
 
@@ -535,7 +535,7 @@ class ChangeBranchTestsMixin:
         self.manager.changeProjectBranch(
             projectName, 'trunk', self.uri(projectName, 'trunk'))
         self.manager.changeProjectBranch(projectName, branchName)
-        self.modifyTrunk(projectName, fname)
+        self.modifyTrunk(projectName, fname, 'some new data')
         err = self.assertRaises(
             UncleanTrunkWorkingCopy,
             self.manager.mergeProjectBranch, projectName)
@@ -557,10 +557,11 @@ class ChangeBranchTestsMixin:
         self.manager.changeProjectBranch(
             projectName, 'trunk', self.uri(projectName, 'trunk'))
         self.manager.changeProjectBranch(projectName, branchName)
-        self.modifyTrunk(projectName, fname)
+        self.modifyTrunk(projectName, fname, 'some new data')
         self.manager.mergeProjectBranch(projectName, force=True)
         self.assertEqual(
             self.manager.currentBranchFor(projectName), 'trunk')
+
 
 
 class FakeBranchManagerChangeBranchTests(TestCase, ChangeBranchTestsMixin):
@@ -606,7 +607,7 @@ class FakeBranchManagerChangeBranchTests(TestCase, ChangeBranchTestsMixin):
         del self.manager.repositories[projectName]
 
 
-    def modifyTrunk(self, projectName, fname):
+    def modifyTrunk(self, projectName, fname, newData):
         """
         Make a change to a file in trunk.
         """
@@ -680,14 +681,68 @@ class BranchManagerChangeBranchTests(TestCase, ChangeBranchTestsMixin):
         self.repositories.child(projectName).remove()
 
 
-    def modifyTrunk(self, projectName, fname):
+    def modifyTrunk(self, projectName, fname, newData):
         """
         Make a change to a file in trunk.
         """
         trunkpath = FilePath(self.paths).child(projectName).child('trunk')
         f = trunkpath.child(fname).open('w')
-        f.write("some unique data")
+        f.write(newData)
         f.close()
+
+
+    def commitTrunk(self, projectName):
+        """
+        Commit the trunk working copy for the given project.
+        """
+        commit(
+            FilePath(self.paths).child(projectName).child('trunk'),
+            'Commit some changes')
+
+
+    def modifyBranch(self, projectName, branchName, fname, newData):
+        """
+        Make a change to a file in a branch.
+        """
+        fObj = FilePath(self.paths).child(projectName).child(
+            'branches').child(branchName).child(fname).open('w')
+        fObj.write(newData)
+        fObj.close()
+
+
+    def commitBranch(self, projectName, branchName):
+        """
+        Commit a branch working for the given project.
+        """
+        commit(
+            FilePath(self.paths).child(projectName).child(
+                'branches').child(branchName),
+            'Commit some changes')
+
+
+    def test_mergeConflict(self):
+        """
+        L{BranchManager.mergeProjectBranch} performs merges
+        non-interactively so that they complete even if there is a merge
+        conflict.
+        """
+        projectName = "Quux"
+        branchName = 'baz'
+        fname = 'foo.txt'
+        contents = {fname: 'some data'}
+        self.createRepository(projectName, {"trunk": contents,
+                                            "branches": {}})
+
+        self.manager.changeProjectBranch(
+            projectName, 'trunk', self.uri(projectName, 'trunk'))
+        self.manager.newProjectBranch(projectName, branchName)
+        self.modifyTrunk(projectName, fname, 'changed data')
+        self.commitTrunk(projectName)
+        self.modifyBranch(
+            projectName, branchName, fname, 'differently changed data')
+        self.commitBranch(projectName, branchName)
+
+        self.manager.mergeProjectBranch(projectName)
 
 
 

@@ -428,7 +428,7 @@ class BranchManager:
                     if line[0] == 'M' or line[0] == 'A':
                         raise UncleanTrunkWorkingCopy()
             runcmd('svn', 'up')
-            runcmd('svn', 'merge',
+            runcmd('svn', 'merge', '--non-interactive',
                    branchDir + "/@" + rev,
                    branchDir + "/@HEAD")
             self.changeProjectBranch(projectName, 'trunk')

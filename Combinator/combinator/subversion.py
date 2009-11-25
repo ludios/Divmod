@@ -54,3 +54,18 @@ def _createFiles(path, contents, runCommand):
             directory.makedirs()
             runCommand("svn add " + directory.path)
             _createFiles(directory, innards, runCommand)
+
+
+def commit(path, message, runCommand=system):
+    """
+    Commit outstanding changes in the working copy indicated by C{path} using
+    the specified commit message.
+
+    @param path: The working copy with outstanding changes to commit.
+    @type path: L{FilePath}
+
+    @param message: The commit message to use.
+    @type message: C{str}
+    """
+    runCommand("svn commit -m '%s' %s" % (message, path.path))
+

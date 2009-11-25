@@ -6,7 +6,7 @@ Tests for L{combinator.subversion}.
 from twisted.trial.unittest import TestCase
 from twisted.python.filepath import FilePath
 
-from combinator.subversion import createSubversionRepository
+from combinator.subversion import createSubversionRepository, commit
 
 
 class CreateSubversionRepositoryTests(TestCase):
@@ -142,3 +142,14 @@ class CreateSubversionRepositoryTests(TestCase):
             self.repository, {'file': 'bytes'}, True, self.runCommand)
         self.workingCopy.restat(False)
         self.assertFalse(self.workingCopy.exists())
+
+
+    def test_commit(self):
+        """
+        Changes in the working copy passed to L{commit} are committed to the
+        repository.
+        """
+        commit(self.workingCopy, "change stuff about", self.runCommand)
+        self.assertEquals(
+            self.commands,
+            [("svn commit -m 'change stuff about' " + self.workingCopy.path, None)])
